@@ -1,0 +1,46 @@
+KINO 1.8 — TRANSFER AND CONTINUATION
+
+Current private GitHub: https://github.com/iz-tecum/kino-mac
+Release: https://github.com/iz-tecum/kino-mac/releases/tag/v1.8.0
+Game ZIP SHA256: 5f55ac48830340f3820df0cc46a5972f8b177795b530f0a5c550ab5d1f5367df
+Full source ZIP SHA256: 876fe5a3e3e032750a09b02b1e01176349c6c7e606423866d5fe96bc6f0e38e5
+The full source ZIP is over GitHub's per-asset limit, so its private release
+uses two numbered parts with checksums and a reconstruction helper. The Mac
+app itself remains one ZIP. The plain Git repository contains editable code,
+metadata and notices; the source archive also contains all media and runtimes.
+
+Cloud task: Set up game, 01a127dc-cd67-7530-8606-46143199d0e6, host durable.
+User explicitly authorized both chats to collaborate and transfer all game work.
+That task uses Linux, and neither session has an identifiable MacBook host.
+Selected iz-tecum/game remains public and untouched pending privacy preference.
+No direct MacBook download or app launch is yet verified.
+
+Native verification
+Exact final ZIP-extracted ARM64 app: 2 launches, 3648 local requests, no
+unexpected errors; input/settings/simulated sleep, offline network policy,
+restart and helper shutdown passed. Short Laptop preset scenes measured
+59.90/59.85/59.35 rendered FPS on M3 iMac, not MacBook performance.
+Intel executable is present but the Rosetta test timed out at 120 seconds,
+42% material restoration, 695 requests and no recorded asset errors. Full
+Intel gameplay remains unverified. Do not claim native Intel or target MacBook
+compatibility until an actual run passes. The forced-timeout Intel test required
+terminating its remaining main process after renderer closure; final ARM quit
+passed. Preserve failed-attempt evidence when investigating further.
+
+Original loopback reset/timeouts were addressed with a bounded 12-connection
+streaming HTTP agent and one pre-header reset retry. Nine wrapper tests pass.
+314 runtime unit tests and 382 grouped browser checks pass, plus the separate
+WebGL-unavailable/retry check. Current reports are in the full source evidence.
+
+Local installed 1.7 was observed paused on Round 1 and remains untouched.
+iCloud Drive/Kino der Toten contains a hash-verified local game ZIP, but macOS
+reported iCloud account/server error4355 and uploaded=false; do not claim sync.
+The GitHub app asset upload has been verified by server SHA256 and size.
+
+Next target-device checks
+On the MacBook: download/unzip the game, open Kino der Toten, select Laptop
+in Graphics, test Q aim and Z fire while looking, movement, pause, resize,
+settings, an ordinary round and actual lid sleep/wake. Record chip/macOS and
+frame rate there. Requires macOS13+ and compatible WebGL2 graphics. The app
+is locally signed; it is not Apple-notarized. No security settings were weakened.
+Do not end an unsaved run on either computer without the user's choice.
