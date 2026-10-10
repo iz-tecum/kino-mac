@@ -1,0 +1,10 @@
+{
+  "name": "kino-desktop",
+  "productName": "Kino der Toten",
+  "version": "1.8.0",
+  "private": true,
+  "description": "Offline desktop launcher for the Kino browser reconstruction",
+  "type": "module",
+  "main": "main.mjs",
+  "license": "MIT"
+}

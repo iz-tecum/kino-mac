@@ -1,0 +1,8 @@
+Creature and barricade recordings: NZ:P Team (2025).
+Sound credits: Blubswillrule, Biodude, Cypress, Marty P.
+https://github.com/nzp-team/assets/tree/70a14104914f2fc65b99b3c58b1f92c2356ecf76
+License: Creative Commons Attribution-ShareAlike 4.0 International.
+https://creativecommons.org/licenses/by-sa/4.0/
+Source WAV files are unchanged. Nova pitch and all event timing/mixing are new runtime adaptations.
+Recordings and their adaptations retain CC BY-SA 4.0. These are community replacements, not exact Black Ops creature recordings.
+The separate existing dog.ogg growl remains a recovered T5 recording under its existing asset notice.

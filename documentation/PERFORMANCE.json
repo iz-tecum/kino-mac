@@ -1,0 +1,167 @@
+{
+  "version": "1.8.0",
+  "status": "Final r3 ARM64 measured; Intel startup limitation, no verified Intel gameplay",
+  "evidence": "evidence/current-v1.8/packaged-v9-r3-arm-check/report.json",
+  "hardware_context": {
+    "machine": "iMac Mac15,5",
+    "chip": "Apple M3",
+    "memory": "24 GB",
+    "gpu_cores": 10
+  },
+  "method": "Controlled visible native window; 1440 by 900 content pixels; selected graphics preset (recorded per phase). Incidental movement/fire/look input blocked only during performance phases; Escape still pauses. Invulnerability prevents benchmark deaths. Lobby keeps normal spawns; stage and round-25 stress use explicit debug setup. These are controlled performance measurements, not survival achievements.",
+  "metric_distinction": "renderedFps counts rendered frames. frameIntervalMs describes requestAnimationFrame display callbacks, not rendered-frame-time percentiles. A small count/window boundary offset can report slightly above the configured 60 FPS cap.",
+  "scope": "Actual ZIP-extracted r3 packaged 1.8.0 ARM64 executable, visible native window, Laptop preset. Short controlled phases on the current iMac; no physical MacBook, Intel hardware, thermal, battery, prolonged-session or audio-listening claim.",
+  "phases": [
+    {
+      "label": "lobby-after-15-second-warmup",
+      "elapsedMs": 15025,
+      "rafFps": 59.833610648918466,
+      "renderedFps": 59.90016638935108,
+      "frameIntervalMs": {
+        "p50": 16.69999999999709,
+        "p95": 17.599999999998545,
+        "max": 33.5
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "devicePixelRatio": 2,
+        "canvasWidth": 1414,
+        "canvasHeight": 883,
+        "actualRenderScale": 0.9819444444444444,
+        "hidden": false
+      },
+      "settings": {
+        "quality": "laptop"
+      },
+      "enemy_count_first_sample": 6,
+      "first_sample_feet": [
+        -83.51781171029343,
+        81.98164062499961,
+        1274.79155028186
+      ],
+      "first_sample_rotation": [
+        -0.10059999999999998,
+        -1.0031641660703783,
+        0
+      ]
+    },
+    {
+      "label": "power-on-stage",
+      "elapsedMs": 10007.900000095367,
+      "rafFps": 59.75279529115014,
+      "renderedFps": 59.852716353509926,
+      "frameIntervalMs": {
+        "p50": 16.69999999999709,
+        "p95": 17.599999999998545,
+        "max": 33.400000000001455
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "devicePixelRatio": 2,
+        "canvasWidth": 1414,
+        "canvasHeight": 883,
+        "actualRenderScale": 0.9819444444444444,
+        "hidden": false
+      },
+      "settings": {
+        "quality": "laptop"
+      },
+      "enemy_count_first_sample": 0,
+      "first_sample_feet": [
+        0,
+        -39.95,
+        -400
+      ],
+      "first_sample_rotation": [
+        0.07979023995789972,
+        0,
+        0
+      ]
+    },
+    {
+      "label": "controlled-round-25-with-24-active-zombies",
+      "elapsedMs": 15012.39999961853,
+      "rafFps": 59.284324959541124,
+      "renderedFps": 59.35093656061926,
+      "frameIntervalMs": {
+        "p50": 16.69999999999709,
+        "p95": 17.60000000000582,
+        "max": 33.79999999998836
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "devicePixelRatio": 2,
+        "canvasWidth": 1414,
+        "canvasHeight": 883,
+        "actualRenderScale": 0.9819444444444444,
+        "hidden": false
+      },
+      "settings": {
+        "quality": "laptop"
+      },
+      "enemy_count_first_sample": 24,
+      "first_sample_feet": [
+        0,
+        -40.03333333333333,
+        -400
+      ],
+      "first_sample_rotation": [
+        0.07979023995789972,
+        0,
+        0
+      ]
+    }
+  ],
+  "interpretation": [
+    "Lobby measured after a 15-second warmup with six active enemies; powered stage has no enemies; stress uses an explicitly controlled round-25 setup with 24 active zombies.",
+    "Invulnerability/debug setup are benchmark assistance, not survival achievements. Stage/stress use the recorded fixed view; the active-enemy count does not mean every enemy is visible. This is not a worst-case crowd benchmark.",
+    "The 1440x900 CSS viewport at display density 2 renders a 1414x883 picture in Laptop mode. The HUD and menu remain native-resolution text.",
+    "Do not compare these Laptop values directly with previous Balanced releases as evidence of an equivalent-quality speedup."
+  ],
+  "intel": {
+    "status": "limitation; startup did not reach ready or play within 120 seconds",
+    "report": "evidence/current-v1.8/packaged-v9-r3-intel-check/report.json",
+    "success": false,
+    "local_requests": 695,
+    "unexpected_errors": 0,
+    "launches_completed": 0,
+    "failure": "TimeoutError: page.waitForFunction: Timeout 120000ms exceeded.",
+    "last_observed_loading_stage": "Restoring theater materials and lighting",
+    "last_observed_progress": "42%",
+    "loading_evidence": "evidence/current-v1.8/r3-intel-loading-state.json",
+    "full_intel_gameplay_verified": false,
+    "physical_intel_hardware_tested": false,
+    "performance_claim": null
+  },
+  "unverified": [
+    "Physical MacBook",
+    "Native Intel Mac hardware",
+    "Thermals and fan behavior",
+    "Battery consumption",
+    "Physical audio output and human listening",
+    "Sustained-session performance"
+  ],
+  "candidate": "r3",
+  "transport": {
+    "active_transfer_limit": 12,
+    "slot_lifetime": "Held until response body completes or is cancelled.",
+    "wrapper_tests": {
+      "passed": 9,
+      "failed": 0,
+      "evidence": "evidence/current-v1.8/wrapper-v9-unit.log"
+    }
+  },
+  "historical_native_evidence": [
+    {
+      "report": "evidence/current-v1.8/packaged-v9-arm-check/report.json",
+      "scope": "Earlier successful ARM run before final transport revision; superseded for candidate acceptance and current performance."
+    },
+    {
+      "report": "evidence/current-v1.8/packaged-v9-intel-check-final/report.json",
+      "scope": "Earlier failed asset-reset attempt before final transport revision; retained history, not current candidate result."
+    }
+  ]
+}

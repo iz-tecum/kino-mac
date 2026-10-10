@@ -1,0 +1,1825 @@
+--- v1.3/.tools/audit-dressing-floors.mjs
++++ v1.4/.tools/audit-dressing-floors.mjs
+@@ -0,0 +1,15 @@
++import fs from 'node:fs';import path from 'node:path';import * as THREE from 'three';
++import {createDaylightGeometry} from './daylight-geometry.mjs';
++import {surfaceReceivers} from '../export/web/theater-surface-light.js';
++const optics=createDaylightGeometry(path.resolve(import.meta.dirname,'../export/web')),report=[];
++for(const receiver of surfaceReceivers){const [x,z,X,Z]=receiver.bounds,points=[];
++  for(let i=0;i<7;i++)for(let j=0;j<7;j++){
++    const origin=[x+(X-x)*(i+.5)/7,receiver.height+40,z+(Z-z)*(j+.5)/7];
++    const hit=optics.firstHit(new THREE.Ray(new THREE.Vector3(...origin),new THREE.Vector3(0,-1,0)),.1,150);
++    if(hit&&hit.face.normal.y>.95)points.push({position:hit.point.toArray(),material:hit.material,normalY:hit.face.normal.y});
++  }
++  const histogram={};for(const p of points){const h=Math.round(p.position[1]);histogram[h]=(histogram[h]||0)+1;}
++  report.push({id:receiver.id,bounds:receiver.bounds,configuredHeight:receiver.height,histogram,points});
++}
++const output=process.argv[2]||path.resolve(import.meta.dirname,'../../../references-v5/floor-height-audit-current.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n');
++console.log(JSON.stringify(report.map(({id,configuredHeight,histogram})=>({id,configuredHeight,histogram})),null,2));
+--- v1.3/.tools/audit-dressing-object.mjs
++++ v1.4/.tools/audit-dressing-object.mjs
+@@ -0,0 +1,9 @@
++// Reproduce the white right-stair object identification from the saved view.
++import fs from 'node:fs';import path from 'node:path';import * as THREE from 'three';
++const web=path.resolve(import.meta.dirname,'../export/web'),gltf=JSON.parse(fs.readFileSync(path.join(web,'kino.gltf'))),binary=fs.readFileSync(path.join(web,'kino.bin'));
++const state=JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname,'../artifacts/v5-dressing/report.json'))).views.find(v=>v.mode==='after'&&v.name==='lobby').state;
++const camera=new THREE.PerspectiveCamera(state.cameraFov,1440/900,1,14000);camera.position.fromArray(state.player.position);camera.rotation.set(...state.player.rotation,'YXZ');camera.updateMatrixWorld();
++function attribute(i){const a=gltf.accessors[i],v=gltf.bufferViews[a.bufferView],C=a.componentType===5126?Float32Array:a.componentType===5125?Uint32Array:Uint16Array;const size={VEC3:3,VEC2:2,SCALAR:1}[a.type];return new THREE.BufferAttribute(new C(binary.buffer,binary.byteOffset+(v.byteOffset||0)+(a.byteOffset||0),a.count*size),size);}
++const primitive=gltf.meshes.find(m=>m.name==='world_shell').primitives.find(p=>gltf.materials[p.material].name==='wc/decal_darkstain_04'),geometry=new THREE.BufferGeometry();geometry.setAttribute('position',attribute(primitive.attributes.POSITION));geometry.setAttribute('uv',attribute(primitive.attributes.TEXCOORD_0));geometry.setIndex(attribute(primitive.indices));const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));mesh.updateMatrixWorld();
++const caster=new THREE.Raycaster(),hits=[];for(const screen of [[1150,520],[1150,545],[1170,490],[1190,550],[1120,510]]){caster.setFromCamera(new THREE.Vector2(screen[0]/720-1,1-screen[1]/450),camera);const hit=caster.intersectObject(mesh,false)[0];if(hit)hits.push({screen,point:hit.point.toArray(),uv:hit.uv.toArray(),face:hit.faceIndex});}
++const material=gltf.materials[primitive.material],texture=gltf.textures[material.pbrMetallicRoughness.baseColorTexture.index],output=path.resolve(import.meta.dirname,'../../../references-v5/right-stair-diagnostic.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify({material,texture:gltf.images[texture.source],hits},null,2)+'\n');console.log(JSON.stringify({material:material.name,hits},null,2));
+--- v1.3/.tools/bake-surface-sunlight.mjs
++++ v1.4/.tools/bake-surface-sunlight.mjs
+@@ -0,0 +1,21 @@
++import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';
++import * as THREE from 'three';
++import {createDaylightGeometry} from './daylight-geometry.mjs';
++import {surfaceReceivers} from '../export/web/theater-surface-light.js';
++const root=path.resolve(import.meta.dirname,'../export/web');
++const optical=createDaylightGeometry(root,{staticProps:true}),plan=JSON.parse(fs.readFileSync(path.join(root,'theater-light-plan.json')));
++const size=512,width=size*2,height=size*3,bytes=new Uint8Array(width*height),sun=new THREE.Vector3(...plan.sun.direction).normalize(),ray=new THREE.Ray(new THREE.Vector3(),sun);
++const start=performance.now(),regions=[];
++for(const [i,region]of surfaceReceivers.entries()){
++  const tile=[i%2,Math.floor(i/2)],[x,z,X,Z]=region.bounds;let lit=0,energy=0;
++  for(let y=0;y<size;y++)for(let u=0;u<size;u++){
++    ray.origin.set(x+(X-x)*u/(size-1),region.height+1.2,z+(Z-z)*y/(size-1));
++    const light=optical.transmission(ray,.3,10000);bytes[(tile[1]*size+y)*width+tile[0]*size+u]=Math.round(light*255);lit+=light>0?1:0;energy+=light;
++  }
++  regions.push({...region,tile,litPixels:lit,meanTransmission:energy/(size*size)});
++  console.log(JSON.stringify({region:region.id,litPixels:lit,seconds:(performance.now()-start)/1000}));
++}
++fs.writeFileSync(path.join(root,'environment/theater-surface-light.bin'),bytes);
++const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
++const result={version:1,binary:'environment/theater-surface-light.bin',width,height,tileSize:size,regions,sunDirection:plan.sun.direction,color:plan.sun.color,energy:plan.sun.energy,method:'512-square optical direct-sun receiver tiles. Native opaque world and static furniture, alpha-tested broken boards/fences and glazing transmission. No geometry or collision changes. Dynamic actors/doors excluded.',geometry:optical.stats,provenance:{world:hash(fs.readFileSync(path.join(root,'kino.bin'))),gltf:hash(fs.readFileSync(path.join(root,'kino.gltf'))),binary:hash(bytes)},seconds:(performance.now()-start)/1000};
++fs.writeFileSync(path.join(root,'theater-surface-light.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({geometry:optical.stats,seconds:result.seconds}));
+--- v1.3/.tools/bake-theater-irradiance.mjs
++++ v1.4/.tools/bake-theater-irradiance.mjs
+@@ -13,18 +13,18 @@
+ const optical=createDaylightGeometry(root);
+ const sky=Array.from({length:plan.sky?.samples??9},(_,i)=>{const y=(i+.5)/(plan.sky?.samples??9),a=i*2.39996323,r=Math.sqrt(1-y*y);return new THREE.Vector3(Math.cos(a)*r,y,Math.sin(a)*r);});
+ const pos=new THREE.Vector3(),normal=new THREE.Vector3(),delta=new THREE.Vector3(),ray=new THREE.Ray(),sun=new THREE.Vector3(...plan.sun.direction).normalize();
+-const cache=new Map(),geometry={},chunks=[];let offset=0,rays=0,vertices=0;const start=performance.now(),scale=4;
++const cache=new Map(),geometry={},chunks=[],solarChunks=[];let offset=0,rays=0,vertices=0;const start=performance.now(),scale=4;
+ function attribute(i){const a=doc.accessors[i],v=doc.bufferViews[a.bufferView];if(a.componentType!==5126||v.byteStride)throw Error('Unexpected geometry');return new THREE.BufferAttribute(new Float32Array(raw.buffer,raw.byteOffset+(v.byteOffset||0)+(a.byteOffset||0),a.count*3),3);}
+ for(const primitive of doc.meshes.find(m=>m.name==='world_shell').primitives){
+   const p=attribute(primitive.attributes.POSITION),n=attribute(primitive.attributes.NORMAL),key=geometryFingerprint(p,n);
+   if(!ao.geometry[key]||geometry[key])continue;
+-  const bytes=new Uint8Array(p.count*6);
++  const bytes=new Uint8Array(p.count*6),solarBytes=new Uint8Array(p.count*3);
+   for(let i=0;i<p.count;i++){
+     pos.fromBufferAttribute(p,i);normal.fromBufferAttribute(n,i).normalize();
+     const ck=`${pos.x.toFixed(1)},${pos.y.toFixed(1)},${pos.z.toFixed(1)}:${normal.x.toFixed(2)},${normal.y.toFixed(2)},${normal.z.toFixed(2)}`;
+     let value=cache.get(ck);
+     if(!value){
+-      const light=[0,0,0,0,0,0];ray.origin.copy(pos).addScaledVector(normal,2.6);
++      const light=[0,0,0,0,0,0],solar=[0,0,0];ray.origin.copy(pos).addScaledVector(normal,2.6);
+       for(const source of plan.sources){
+         const amount=lightFalloff(source,pos,normal);if(amount<.004)continue;
+         delta.fromArray(source.position).sub(ray.origin);const distance=delta.length();ray.direction.copy(delta).divideScalar(distance);rays++;
+@@ -33,20 +33,21 @@
+         const at=source.powered?3:0;for(let c=0;c<3;c++)light[at+c]+=source.color[c]*amount;
+       }
+       const sunAmount=Math.max(0,normal.dot(sun))*plan.sun.energy;
+-      if(sunAmount>.01){ray.direction.copy(sun);rays++;const transmission=optical.transmission(ray,.4,10000);for(let c=0;c<3;c++)light[c]+=plan.sun.color[c]*sunAmount*transmission;}
++      if(sunAmount>.01){ray.direction.copy(sun);rays++;const transmission=optical.transmission(ray,.4,10000);for(let c=0;c<3;c++){solar[c]=plan.sun.color[c]*sunAmount*transmission;light[c]+=solar[c];}}
+       // Uniform upper-hemisphere integration: geometry, cutout roofs and real
+       // glazing determine the sky contribution, never physics-only clips.
+       for(const direction of sky){const facing=Math.max(0,normal.dot(direction));if(facing<.02)continue;ray.direction.copy(direction);rays++;const transmission=optical.transmission(ray,.4,10000);for(let c=0;c<3;c++)light[c]+=(plan.sky?.color[c]??.6)*(plan.sky?.energy??.72)*2*facing*transmission/sky.length;}
+-      value=light.map(v=>Math.round(Math.min(1,v/scale)*255));cache.set(ck,value);
++      value={light:light.map(v=>Math.round(Math.min(1,v/scale)*255)),solar:solar.map(v=>Math.round(Math.min(1,v/scale)*255))};cache.set(ck,value);
+     }
+-    bytes.set(value,i*6);
++    bytes.set(value.light,i*6);solarBytes.set(value.solar,i*3);
+   }
+-  geometry[key]={offset,count:p.count,sourceMaterial:ao.geometry[key].sourceMaterial};chunks.push(Buffer.from(bytes));offset+=bytes.length;vertices+=p.count;
++  geometry[key]={offset,count:p.count,sourceMaterial:ao.geometry[key].sourceMaterial};chunks.push(Buffer.from(bytes));solarChunks.push(Buffer.from(solarBytes));offset+=bytes.length;vertices+=p.count;
+   if(chunks.length%16===0)console.log(JSON.stringify({groups:chunks.length,vertices,rays,seconds:(performance.now()-start)/1000}));
+ }
++const solarBinary=Buffer.concat(solarChunks);fs.writeFileSync(path.join(root,'environment/theater-solar.bin'),solarBinary);
+ const binary=Buffer.concat(chunks),hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+ fs.writeFileSync(path.join(root,'environment/theater-irradiance.bin'),binary);
+-const manifest={version:1,binary:'environment/theater-irradiance.bin',byteLength:binary.length,scale,geometry,plan,
++const manifest={version:1,binary:'environment/theater-irradiance.bin',byteLength:binary.length,solarBinary:'environment/theater-solar.bin',solarByteLength:solarBinary.length,scale,geometry,plan,
+   method:'Reconstructed diffuse irradiance from native fixtures, direct sun and nine occluded sky directions. Optical world-shell visibility includes solid ceilings, sampled roof/fence cutouts and attenuated glazing; local fixtures additionally respect collision. Separate always-on and powered RGB fields. Static props and dynamic doors are not solar shadow casters. Not original T5 lightmaps.',
+   opticalGeometry:optical.stats,stats:{groups:chunks.length,vertices,uniqueSamples:cache.size,raycasts:rays,seconds:(performance.now()-start)/1000},
+   provenance:{worldSha256:hash(raw),collisionSha256:hash(cb),planSha256:hash(fs.readFileSync(path.join(root,'theater-light-plan.json'))),outputSha256:hash(binary)}};
+--- v1.3/.tools/build-dressing-plan.mjs
++++ v1.4/.tools/build-dressing-plan.mjs
+@@ -0,0 +1,17 @@
++import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {fileURLToPath} from 'node:url';import * as THREE from 'three';import {createDaylightGeometry} from './daylight-geometry.mjs';
++const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
++export function clipPolygon(poly,axis,limit,sign){const out=[];for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length],da=sign*(a.p[axis]-limit),db=sign*(b.p[axis]-limit);if(da<=0)out.push(a);if((da<=0)!==(db<=0)){const t=da/(da-db);out.push({p:a.p.map((x,j)=>x+(b.p[j]-x)*t),w:a.w.map((x,j)=>x+(b.w[j]-x)*t)});}}return out;}
++export function buildDressingPlan(root){const gltfBytes=fs.readFileSync(path.join(root,'kino.gltf')),doc=JSON.parse(gltfBytes),bin=fs.readFileSync(path.join(root,'kino.bin')),optics=createDaylightGeometry(root),shell=doc.meshes.find(m=>m.name==='world_shell');
++ function accessor(i){const a=doc.accessors[i],v=doc.bufferViews[a.bufferView],C=a.componentType===5126?Float32Array:a.componentType===5125?Uint32Array:Uint16Array;return new C(bin.buffer,bin.byteOffset+(v.byteOffset||0)+(a.byteOffset||0),a.count*({VEC3:3,VEC2:2,SCALAR:1}[a.type]));}
++ const textures={pool:{material:'wc/glo_dec_blood_pool_extra_large',texture:'textures/~-gglo_dec_mature_blood_pool_ext_lrg_c.png'},medium:{material:'wc/glo_dec_blood_pool_medium',texture:'textures/~-gglo_dec_mature_blood_pool_med_c.png'},trail:{material:'wc/glo_dec_blood_foot_prints_blend',texture:'textures/~-gglo_dec_mature_blood_foot_prnts_c.png'},debris:{material:'wc/eb_ter_trashpile_blend',texture:'textures/~-gglo_dec_trash_pile_c.png'}};
++ const seeds=[['lobby-pool-left','Lobby','pool',[-200,130,1120],220,190,.3],['lobby-pool-right','Lobby','pool',[180,130,1270],250,180,-.4],['lobby-pool-front','Lobby','medium',[-90,135,1410],165,150,.8],['lobby-trail','Lobby','trail',[60,130,1100],90,270,.1],['lobby-debris-left','Lobby','debris',[-310,130,1170],150,100,.2],['lobby-debris-right','Lobby','debris',[330,130,1350],150,110,-.4],['lobby-debris-back','Lobby','debris',[310,130,850],130,100,.5],['dining-pool','Dining','medium',[1490,20,-380],170,155,.5],['dining-debris','Dining','debris',[1370,20,-565],160,115,.2],['theater-pool','Theater','pool',[-170,-25,-660],210,160,-.5],['theater-debris','Theater','debris',[-340,-25,-920],170,120,.3],['dressing-trail','Dressing','trail',[1280,25,-1320],90,210,.9],['alley-debris','Alley','debris',[-1530,30,-320],180,130,.4],['stage-pool','Stage','medium',[220,30,-1730],145,130,-.3]];
++ const patches=[],rejected=[];
++ for(const [id,room,kind,origin,width,height,angle]of seeds){const hit=optics.firstHit(new THREE.Ray(new THREE.Vector3(...origin),new THREE.Vector3(0,-1,0)),.1,180);if(!hit||Math.abs(hit.face.normal.y)<.98){rejected.push({id,reason:'No level native floor at seed'});continue;}
++ const cy=hit.point.y,cx=origin[0],cz=origin[2],cos=Math.cos(angle),sin=Math.sin(angle),parts=[];let area=0;
++ for(const [primitive,p]of shell.primitives.entries()){const material=doc.materials[p.material],names=material.extras?.sourceMaterialNames??[material.name];if(!names.some(n=>n.includes(textures[kind].material))||material.alphaMode)continue;const pos=accessor(p.attributes.POSITION),ix=accessor(p.indices),vertices=[];
++ for(let i=0;i<ix.length;i+=3){const indices=[ix[i],ix[i+1],ix[i+2]],v=indices.map(at=>[pos[at*3],pos[at*3+1],pos[at*3+2]]);if(v.some(a=>Math.abs(a[1]-cy)>.08))continue;if((v[1][2]-v[0][2])*(v[2][0]-v[0][0])-(v[1][0]-v[0][0])*(v[2][2]-v[0][2])<=0)continue;const local=v.map((a,j)=>({p:[((a[0]-cx)*cos+(a[2]-cz)*sin)/(width/2),a[1],(-(a[0]-cx)*sin+(a[2]-cz)*cos)/(height/2)],w:[j===0?1:0,j===1?1:0,j===2?1:0]}));if(local.every(a=>a.p[0]<-1)||local.every(a=>a.p[0]>1)||local.every(a=>a.p[2]<-1)||local.every(a=>a.p[2]>1))continue;let clipped=local;for(const [axis,limit,sign]of [[0,1,1],[0,-1,-1],[2,1,1],[2,-1,-1]])clipped=clipPolygon(clipped,axis,limit,sign);for(let j=1;j<clipped.length-1;j++){const tri=[clipped[0],clipped[j],clipped[j+1]],triArea=Math.abs((tri[1].p[0]-tri[0].p[0])*(tri[2].p[2]-tri[0].p[2])-(tri[2].p[0]-tri[0].p[0])*(tri[1].p[2]-tri[0].p[2]))/2;if(triArea<1e-8)continue;area+=triArea*width*height/4;for(const a of tri)vertices.push({position:[cx+a.p[0]*width/2*cos-a.p[2]*height/2*sin,a.p[1]+.16,cz+a.p[0]*width/2*sin+a.p[2]*height/2*cos].map(x=>+x.toFixed(4)),uv:[(a.p[0]+1)/2,(a.p[2]+1)/2],indices,weights:a.w});}}
++ if(vertices.length)parts.push({primitive,materialName:material.name,vertices});}
++ if(area<width*height*.25){rejected.push({id,reason:'Insufficient documented native floor coverage',area});continue;}patches.push({id,room,kind,center:[cx,cy,cz],width,height,angle,area,parts,placement:'Reconstructed placement, clipped to surviving native floor triangles; source compound metadata documents this layer on the base material.'});}
++ for(const t of Object.values(textures))t.sha256=hash(fs.readFileSync(path.join(root,t.texture)));
++ return {version:1,provenance:{gltfSha256:hash(gltfBytes),geometrySha256:hash(bin),source:'Recovered Kino native glTF material sourceMaterialNames and original texture PNGs. Exact compound layer UVs were not retained by the original scene exporter.'},textures,patches,rejected};}
++if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){const root=path.resolve(import.meta.dirname,'../export/web'),plan=buildDressingPlan(root);fs.writeFileSync(path.join(root,'theater-dressing.json'),JSON.stringify(plan)+'\n');console.log(JSON.stringify({patches:plan.patches.map(p=>({id:p.id,vertices:p.parts.reduce((s,p)=>s+p.vertices.length,0),area:p.area})),rejected:plan.rejected}));}
+--- v1.3/.tools/capture-atmosphere.mjs
++++ v1.4/.tools/capture-atmosphere.mjs
+@@ -21,11 +21,11 @@
+  await capture('01-lobby-unpowered',[-101,108,1256],[0,240,650]);
+  await page.evaluate(()=>{const e=kino.debug.getEntities().find(e=>e.targetname==='use_elec_switch');kino.debug.teleportPlayer([e.position[0],e.position[1]-55,e.position[2]]);kino.debug.step(.2);kino.debug.interact()});
+  await capture('02-lobby-powered',[-101,108,1256],[0,240,650]);
+- await capture('03-upper-hall',[620,280,600],[1300,350,600]);
++ await capture('03-upper-hall',[620,340,600],[1300,350,600]);
+  await capture('04-dining',[1540,0,-360],[1330,100,-680]);
+  await capture('05-dressing',[1350,0,-1560],[1430,60,-1660]);
+  await capture('06-theater',[0,-60,-650],[0,160,-1650]);
+- await capture('07-stage',[500,0,-1280],[-200,110,-600]);
++ await capture('07-stage',[300,24,-1270],[0,90,-350]);
+  await capture('08-alley',[-1460,10,-380],[-1700,100,-700]);
+  await capture('09-projection',[-139,328,436],[80,370,150]);
+  await page.evaluate(()=>{kino.debug.reset();kino.debug.setActive(true);kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);kino.debug.teleportPlayer([-100,100,1180]);kino.debug.lookAt([0,130,930]);kino.debug.spawnEnemy([0,80,950],'zombie')});
+--- v1.3/.tools/capture-stage-view.mjs
++++ v1.4/.tools/capture-stage-view.mjs
+@@ -0,0 +1,7 @@
++import fs from 'node:fs';import path from 'node:path';import {chromium} from 'playwright-core';import {resolveChromeExecutable} from './browser-path.mjs';
++const output=path.resolve('artifacts/v5-stage-view');fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage();
++const report={method:'Controlled power activation and stage placement, settled through normal collision. Nav path checked; this is a visual viewpoint check, not a full route playthrough.',errors:[],failedRequests:[],candidates:[]};page.on('console',m=>{if(m.type()==='error')report.errors.push(m.text())});page.on('pageerror',e=>report.errors.push(String(e)));page.on('requestfailed',r=>report.failedRequests.push(r.url()));
++try{await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>window.kino?.debug.getState().ready,null,{timeout:180000});await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);const e=kino.debug.getEntities().find(e=>e.targetname==='use_elec_switch');kino.debug.teleportPlayer([e.position[0],e.position[1]-55,e.position[2]]);kino.debug.step(.3);kino.debug.interact();kino.debug.step(1)});
++for(const feet of [[300,24,-1270],[420,24,-1260],[120,24,-1240]]){const candidate=await page.evaluate(feet=>{const nav=kino.debug.navigationPath([-470,0,-1260],feet);kino.debug.teleportPlayer(feet);kino.debug.step(1.2);kino.debug.lookAt([0,90,-350]);return {requested:feet,nav,state:kino.debug.getState(),center:kino.debug.pickSurface(720,450)}},feet);report.candidates.push(candidate);const p=candidate.state.player;if(p.grounded&&p.feet[2]<-1220&&p.feet[2]>-1907&&p.position[1]-p.feet[1]>59&&candidate.nav.length>1&&candidate.center.every(h=>Math.hypot(...h.point.map((x,i)=>x-p.position[i]))>160)){report.selected=feet;break;}}
++if(!report.selected)throw Error('No clear stage viewpoint passed nav/grounded/normal-height checks');await page.waitForTimeout(1300);await page.evaluate(()=>kino.debug.lookAt([0,90,-350]));await page.screenshot({path:path.join(output,'stage-to-auditorium.png')});report.state=await page.evaluate(()=>kino.debug.getState());report.lighting=await page.evaluate(()=>kino.debug.lightingState());report.map=await page.evaluate(()=>kino.debug.mapState());report.success=report.state.player.grounded&&report.lighting.power===1&&!report.errors.length&&!report.failedRequests.length;if(!report.success)process.exitCode=1;
++}catch(e){report.success=false;report.failure=String(e);process.exitCode=1;}finally{await browser.close();fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({success:report.success,selected:report.selected,failure:report.failure,errors:[...new Set(report.errors)],failedRequests:report.failedRequests,output}));}
+--- v1.3/.tools/daylight-geometry.mjs
++++ v1.4/.tools/daylight-geometry.mjs
+@@ -8,6 +8,7 @@
+ export function daylightMaterialPolicy(material){
+   const name=material.extras?.sourceMaterialNames?.[0]??material.name??'';
+   const base=name.startsWith('*')?name.match(/\(([^:)]+)/)?.[1]??name:name;
++  if(/^wc\/(?:decal_burn_scortch|decal_burntstain_01|decal_burntstain_02|decal_darkstain_02|decal_darkstain_04|decal_darkstain_07|decal_grime_blotchy|decal_grime_drip|decal_lightstain_03|decal_wall_fillet|decal_lightstain_01)$/.test(name))return {mode:'skip',reason:'standalone decorative stain, not a physical surface',name,base};
+   if(/(?:^|\/)sky(?:_|$)/.test(base)||/caulk|hdrportal|shadowcaster/.test(base))return {mode:'skip',reason:'sky or nonvisual helper',name,base};
+   // A blended material is classified by its BASE surface. A decal layered on
+   // opaque plaster/black backing never makes the underlying roof disappear.
+@@ -37,7 +38,7 @@
+   return image.alpha[y*image.width+x]/255;
+ }
+ 
+-export function createDaylightGeometry(root,{glass=true,maxLayers=48}={}){
++export function createDaylightGeometry(root,{glass=true,maxLayers=48,staticProps=false}={}){
+   const doc=JSON.parse(fs.readFileSync(path.join(root,'kino.gltf'))),buffers=doc.buffers.map(b=>fs.readFileSync(path.join(root,b.uri))),positions=[],uvs=[],triMeta=[],policies=doc.materials.map(daylightMaterialPolicy),textures=new Map();
+   const stats={triangles:0,opaqueTriangles:0,cutoutTriangles:0,glassTriangles:0,skippedTriangles:0,alphaTextures:0,unsupportedTextures:[],scope:'Native world_shell only; static prop shadows remain a separate collision/prop test.'};
+   function accessor(i){const a=doc.accessors[i],v=doc.bufferViews[a.bufferView],raw=buffers[v.buffer],C={5126:Float32Array,5125:Uint32Array,5123:Uint16Array,5121:Uint8Array}[a.componentType],components={SCALAR:1,VEC2:2,VEC3:3,VEC4:4}[a.type];if(!C||!components||v.byteStride)throw Error('Unsupported native geometry accessor');return new C(raw.buffer,raw.byteOffset+(v.byteOffset||0)+(a.byteOffset||0),a.count*components);}
+@@ -45,10 +46,22 @@
+     if(!['glass','cutout'].includes(policy.mode))continue;const material=doc.materials[materialIndex],texture=doc.textures[material.pbrMetallicRoughness?.baseColorTexture?.index],uri=texture&&doc.images[texture.source]?.uri;if(!uri)continue;
+     try{if(!textures.has(uri))textures.set(uri,decodePngAlpha(fs.readFileSync(path.join(root,decodeURIComponent(uri)))));policy.alpha=textures.get(uri);policy.sampler=doc.samplers?.[texture.sampler]??{};policy.alphaCutoff=material.alphaCutoff??.5;}catch(e){stats.unsupportedTextures.push({uri,error:String(e)});/* Missing alpha fails opaque, never creates an invented hole. */}
+   }
+-  for(const [primitive,p]of doc.meshes.find(m=>m.name==='world_shell').primitives.entries()){
++  const entries=[{mesh:doc.meshes.find(m=>m.name==='world_shell'),matrix:null,name:'world_shell'}];
++  if(staticProps){
++    function visit(index,parent,hidden=false){const node=doc.nodes[index];hidden ||= !!(node.extras?.dynamicBrush||node.extras?.collisionOnly);
++      const local=new THREE.Matrix4();if(node.matrix)local.fromArray(node.matrix);else local.compose(new THREE.Vector3(...(node.translation??[0,0,0])),new THREE.Quaternion(...(node.rotation??[0,0,0,1])),new THREE.Vector3(...(node.scale??[1,1,1])));
++      const matrix=parent.clone().multiply(local);
++      if(!hidden&&node.mesh!==undefined&&doc.meshes[node.mesh].name!=='world_shell')entries.push({mesh:doc.meshes[node.mesh],matrix,name:node.name});
++      for(const child of node.children??[])visit(child,matrix,hidden);
++    }
++    for(const index of doc.scenes[doc.scene??0].nodes)visit(index,new THREE.Matrix4());
++    stats.staticInstances=entries.length-1;stats.scope='Native world_shell and static native instances; dynamic doors, actors and movable entities excluded.';
++  }
++  const transformed=new THREE.Vector3();
++  for(const entry of entries)for(const [primitive,p]of entry.mesh.primitives.entries()){
+     const policy=policies[p.material],ix=accessor(p.indices),pos=accessor(p.attributes.POSITION),uv=p.attributes.TEXCOORD_0===undefined?null:accessor(p.attributes.TEXCOORD_0);
+     if(policy.mode==='skip'){stats.skippedTriangles+=ix.length/3;continue;}
+-    for(let i=0;i<ix.length;i+=3){for(let j=0;j<3;j++){const at=ix[i+j];positions.push(pos[at*3],pos[at*3+1],pos[at*3+2]);uvs.push(uv?.[at*2]??0,uv?.[at*2+1]??0);}triMeta.push({materialIndex:p.material,primitive,sourceTriangle:i/3});}
++    for(let i=0;i<ix.length;i+=3){for(let j=0;j<3;j++){const at=ix[i+j];transformed.fromArray(pos,at*3);if(entry.matrix)transformed.applyMatrix4(entry.matrix);positions.push(transformed.x,transformed.y,transformed.z);uvs.push(uv?.[at*2]??0,uv?.[at*2+1]??0);}triMeta.push({materialIndex:p.material,primitive,sourceTriangle:i/3,object:entry.name});}
+     stats[policy.mode+'Triangles']+=ix.length/3;
+   }
+   stats.triangles=triMeta.length;stats.alphaTextures=textures.size;
+--- v1.3/.tools/diagnose-bowie.mjs
++++ v1.4/.tools/diagnose-bowie.mjs
+@@ -0,0 +1,25 @@
++import {chromium} from 'playwright-core';
++import fs from 'node:fs';import assert from 'node:assert/strict';
++import {resolveChromeExecutable} from './browser-path.mjs';
++const out='artifacts/v5-combat/melee-diagnosis';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});const page=await browser.newPage({viewport:{width:1280,height:800}}),cases=[],errors=[];
++page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
++try{
++ await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>window.kino?.debug.getState().ready,null,{timeout:120000});await page.click('#start');
++ for(const dogRound of [true,false]){
++  const tries=await page.evaluate(wanted=>{for(let n=0;n<40;n++){kino.debug.reset();kino.debug.setActive(true);kino.debug.setInvulnerable(true);kino.debug.setAutoSpawn(false);kino.debug.setRound(10);if(kino.debug.getState().dogRound===wanted)return n+1;}throw Error('Could not sample round schedule');},dogRound);
++  await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);
++  const purchased=await page.evaluate(()=>{kino.debug.step(2);kino.debug.grantPoints(3000);const e=kino.debug.getEntities().find(e=>e.targetname==='bowie_upgrade');kino.debug.teleportPlayer(e.position);kino.debug.step(.2);kino.debug.interact();return kino.debug.getState().bowie;});assert(purchased);
++  for(const kind of [undefined,'zombie']){
++   const result=await page.evaluate(kind=>{
++    kino.debug.teleportPlayer([0,100,1120]);kino.debug.step(2);const p=kino.debug.getState().player.feet,id=kino.debug.spawnEnemy([p[0],p[1],p[2]-60],kind);kino.debug.step(.08);kino.debug.aimAtEnemy(id,false);
++    const before=kino.debug.getState(),started=kino.debug.melee();kino.debug.step(.17);const after=kino.debug.getState(),visual=kino.debug.weaponVisual();kino.debug.clearEnemies();return {kind:kind??'default',id,started,before,after,visual};
++   },kind);cases.push({wantedDogRound:dogRound,tries,...result});assert(result.started);const target=result.before.enemies.find(z=>z.id===result.id),survivor=result.after.enemies.find(z=>z.id===result.id);
++   if(dogRound&&kind===undefined){assert.equal(target.kind,'dog');assert.equal(target.health,900);assert(!survivor);}
++   else{assert.equal(target.kind,'zombie');assert.equal(target.health,1045);assert.equal(survivor.health,45);}
++   console.log('PASS',dogRound?'dog round':'normal round',kind??'default',target.kind,target.health,'→',survivor?.health??'dead');
++  }
++ }
++ assert.equal(errors.length,0,errors.join('\n'));
++}catch(error){cases.push({passed:false,error:String(error),state:await page.evaluate(()=>kino.debug.getState()).catch(()=>null)});console.error(error);process.exitCode=1;}
++finally{fs.writeFileSync(`${out}/round-species-report.json`,JSON.stringify({method:'Actual game with unmodified random schedule, sampled until round 10 is a dog round or ordinary round; explicit target species compared against the legacy default spawn fixture. Debug currency/position/time/invulnerability are controlled setup.',cases,errors},null,2));await browser.close();}
+--- v1.3/.tools/test-combat-presentation.mjs
++++ v1.4/.tools/test-combat-presentation.mjs
+@@ -0,0 +1,68 @@
++import {chromium} from 'playwright-core';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import {resolveChromeExecutable} from './browser-path.mjs';
++const out=process.env.KINO_COMBAT_OUT??'artifacts/v5-combat';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const page=await browser.newPage({viewport:{width:1440,height:900}}),checks=[],errors=[];
++const pass=(name,detail)=>{checks.push({name,passed:true,detail});console.log('PASS',name);};
++page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
++const screenshot=name=>page.screenshot({path:`${out}/${name}.png`});
++try{
++ await page.route('**/combat-presentation-test.html',route=>route.fulfill({contentType:'text/html',body:`<!doctype html><style>body{margin:0;background:#171a1e;color:#e6dfd0;font:16px sans-serif}header{position:absolute;left:24px;top:20px}canvas{display:block}</style><header id="caption">Native weapon motion and impact rendering</header><script type="importmap">{"imports":{"three":"/vendor/three.module.js","three/addons/":"/vendor/jsm/"}}</script><script type="module">
++ import * as THREE from 'three';import {ViewWeapon} from '/animation.js';import {CombatParticles} from '/combat-particles.js';
++ const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);document.body.append(renderer.domElement);
++ const scene=new THREE.Scene();scene.background=new THREE.Color(0x20252b);scene.add(new THREE.HemisphereLight(0xffffff,0x8899aa,1.2));const light=new THREE.DirectionalLight(0xffefce,1);light.position.set(0,4,2);scene.add(light);
++ const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.01,200),data=await fetch('/game-data.json').then(r=>r.json()),notes=[],view=new ViewWeapon(scene,data,name=>notes.push(name));
++ const effects=new THREE.Scene();effects.background=new THREE.Color(0x20252b);const wall=new THREE.Mesh(new THREE.PlaneGeometry(330,200),new THREE.MeshBasicMaterial({color:0x4a4d4d}));wall.position.set(0,45,-2);effects.add(wall);const effectCamera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,1,1000);effectCamera.position.set(0,60,240);effectCamera.lookAt(0,40,0);
++ let seed=1234;const pool=new CombatParticles(effects,512,()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296));
++ await view.equip(data.weapons.m1911_zm);window.lab={THREE,renderer,view,data,notes,scene,effects,pool,camera,effectCamera,draw:()=>renderer.render(scene,camera),drawEffects:()=>renderer.render(effects,effectCamera)};lab.draw();
++ </script>`}));
++ await page.goto('http://127.0.0.1:5173/combat-presentation-test.html');await page.waitForFunction(()=>window.lab,null,{timeout:120000});
++ const continuity=await page.evaluate(()=>{
++  const v=lab.view;v.update(2);v.update(.3,{moving:true,speed:190});const walking=v.snapshot();v.update(0,{moving:true,sprint:true,speed:285});const changed=v.snapshot();
++  for(let n=0;n<60;n++)v.update(1/60,{moving:true,speed:0});const stopped=v.snapshot();
++  for(let n=0;n<60;n++)v.update(1/60,{moving:true,speed:190,ads:true});const ads=v.snapshot();lab.draw();
++  return {walking,changed,stopped,ads,camera:lab.camera.position.toArray()};
++ });
++ assert.deepEqual(continuity.walking.motion.offset,continuity.changed.motion.offset);assert(continuity.stopped.motion.weight<.00001);assert.equal(continuity.ads.aim,1);assert(continuity.ads.motion.offset.slice(0,2).every(n=>Math.abs(n)<1e-8));assert.deepEqual(continuity.camera,[0,0,0]);pass('native viewmodel keeps continuous motion, rests against walls and preserves steady ADS',continuity);await screenshot('01-steady-native-ads');
++ const cancelled=await page.evaluate(()=>{
++  const v=lab.view,d=v.def,clip=v.rig.data.reloadAnim,notify=clip.notifies.find(n=>n.name.startsWith('sndnt#')&&n.time>.05),at=notify.time/(clip.duration/d.reloadTime);
++  v.reload(false,d.reloadTime);v.update(at-.005,{reloading:true});lab.notes.length=0;v.update(.02,{reloading:false});const notes=lab.notes.slice();v.update(.3);lab.draw();
++  const bone=v.gun.getObjectByName('tag_clip');return {notify,notes,mode:v.mode,position:bone.position.toArray(),bind:bone.userData.weaponBindPosition};
++ });
++ assert(!cancelled.notes.includes(cancelled.notify.name));assert.equal(cancelled.mode,'idle');assert(cancelled.position.every((n,i)=>Math.abs(n-cancelled.bind[i])<.01));pass('actual native M1911 cancelled reload does not emit its next sound and magazine returns to socket',cancelled);await screenshot('02-cancelled-reload-seated-magazine');
++ const rendered=await page.evaluate(()=>{
++  const {pool,THREE}=lab;for(const [i,kind,color] of [[0,'wall',0xb8a388],[1,'wood',0x987354],[2,'metal',0xffc76b],[3,'blood',0xa52b22]])pool.emit(new THREE.Vector3(-90+i*60,40,0),color,28,{kind,normal:new THREE.Vector3(0,0,1)});
++  pool.update(.08,900);lab.drawEffects();document.getElementById('caption').textContent='Actual pooled impacts · masonry dust / wood / metal sparks / blood';return pool.snapshot();
++ });
++ assert.equal(rendered.active,112);assert.equal(rendered.drawCalls,1);assert.equal(Object.keys(rendered.byKind).length,4);pass('all four impact materials compile and render through one fixed draw call',rendered);await screenshot('03-directional-impact-materials');
++ const bounded=await page.evaluate(()=>{
++  const {pool,THREE,renderer}=lab,before={...renderer.info.memory},objectCount=lab.effects.children.length,geometry=pool.geometry,buffer=pool.positions.buffer;
++  const samples=[];for(let cycle=0;cycle<4;cycle++){for(let frame=0;frame<120;frame++){pool.emit(new THREE.Vector3(0,40,0),0xffbb44,40,{kind:'blast'});pool.update(1/60,900);}lab.drawEffects();samples.push({pool:pool.snapshot(),memory:{...renderer.info.memory}});pool.reset();}
++  return {before,samples,after:pool.snapshot(),sameGeometry:geometry===pool.geometry,sameBuffer:buffer===pool.positions.buffer,objectCount,finalObjects:lab.effects.children.length};
++ });
++ assert(bounded.sameGeometry&&bounded.sameBuffer);assert.equal(bounded.objectCount,bounded.finalObjects);for(const sample of bounded.samples){assert(sample.pool.active<=512);assert.deepEqual(sample.memory,bounded.before);}assert.equal(bounded.after.active,0);pass('four sustained impact stress/reset cycles retain identical GPU buffers and allocations',bounded);
++ await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>window.kino?.debug.getState().ready,null,{timeout:120000});await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);
++ await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);kino.debug.giveWeapon('mp40_zm');});await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);await page.evaluate(()=>kino.debug.step(2));
++ const movement=await page.evaluate(()=>{
++  const key=(type,code)=>window.dispatchEvent(new KeyboardEvent(type,{code,bubbles:true}));
++  const before=kino.debug.getState().player.feet;key('keydown','KeyW');kino.debug.step(.35);key('keyup','KeyW');const walking=kino.debug.weaponVisual(),after=kino.debug.getState().player.feet;
++  kino.debug.teleportPlayer([301,245,600]);kino.debug.lookAt([301,305,500]);kino.debug.step(.2);key('keydown','KeyW');kino.debug.step(2);const wallStart=kino.debug.getState().player.feet;kino.debug.step(.6);const wallEnd=kino.debug.getState().player.feet,stopped=kino.debug.weaponVisual();key('keyup','KeyW');
++  return {before,after,walking,wallStart,wallEnd,stopped};
++ });
++ assert(Math.hypot(movement.after[0]-movement.before[0],movement.after[2]-movement.before[2])>15);assert(movement.walking.motion.weight>.3);assert(Math.hypot(movement.wallEnd[0]-movement.wallStart[0],movement.wallEnd[2]-movement.wallStart[2])<2);assert(movement.stopped.motion.weight<.02);pass('actual collision-limited movement drives weapon motion; held input against a wall settles',movement);
++ const wall=await page.evaluate(()=>{
++  window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyS',bubbles:true}));kino.debug.step(.4);window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyS',bubbles:true}));const state=kino.debug.getState();kino.debug.lookAt([301,state.player.position[1],500]);kino.debug.step(.5);const shot=kino.debug.shoot();kino.debug.step(.04);const result={shot,impact:kino.debug.mapState().particles,lastShot:kino.debug.lastShot()};kino.debug.pause();document.getElementById('menu').hidden=true;document.body.classList.remove('menu-open');return result;
++ });
++ assert(wall.shot);assert(['wall','wood','metal'].includes(wall.impact.lastEmission.kind));assert(wall.impact.lastEmission.normal);assert(wall.impact.active>0);pass('actual bullet collision emits a surface-normal material impact',wall);await screenshot('04-gameplay-wall-impact');
++ await page.evaluate(()=>{kino.debug.reset();kino.debug.setActive(true);kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);kino.debug.giveWeapon('m14_zm');});await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);
++ const flesh=await page.evaluate(()=>{
++  kino.debug.step(2);const id=kino.debug.spawnEnemy([-101,kino.debug.getState().player.feet[1],1140],'zombie');kino.debug.step(.1);kino.debug.aimAtEnemy(id,true);const shot=kino.debug.shoot();kino.debug.step(.04);const result={shot,impact:kino.debug.mapState().particles,lastShot:kino.debug.lastShot(),state:kino.debug.getState()};kino.debug.pause();document.getElementById('menu').hidden=true;document.body.classList.remove('menu-open');return result;
++ });
++ assert(flesh.shot);assert(flesh.lastShot.target);assert.equal(flesh.impact.lastEmission.kind,'blood');assert(flesh.impact.active>0);pass('actual enemy hit emits blood while authoritative damage/ammunition remain in Session',flesh);await screenshot('05-gameplay-blood-impact');
++ const pausedBefore=await page.evaluate(()=>({time:kino.debug.getState().time,motion:kino.debug.weaponVisual().motion,particles:kino.debug.mapState().particles}));await page.waitForTimeout(350);const pausedAfter=await page.evaluate(()=>({time:kino.debug.getState().time,motion:kino.debug.weaponVisual().motion,particles:kino.debug.mapState().particles}));assert.deepEqual(pausedAfter,pausedBefore);pass('actual pause freezes secondary motion and particle lifetimes',pausedAfter);
++ await page.evaluate(()=>kino.debug.reset());await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);const reset=await page.evaluate(()=>({motion:kino.debug.weaponVisual().motion,particles:kino.debug.mapState().particles}));assert.equal(reset.motion.kick,0);assert.equal(reset.particles.active,0);assert.equal(reset.particles.emitted,0);pass('new game clears every previous-run kick and impact',reset);
++ assert.equal(errors.length,0,errors.join('\n'));pass('zero browser script, WebGL shader, or asset errors');
++}catch(error){checks.push({passed:false,error:String(error),stack:error.stack,state:await page.evaluate(()=>window.kino?{state:kino.debug.getState(),motion:kino.debug.weaponVisual().motion,particles:kino.debug.mapState().particles}:null).catch(()=>null)});console.error(error);process.exitCode=1;await screenshot('failure').catch(()=>{});}
++finally{fs.writeFileSync(`${out}/report.json`,JSON.stringify({method:'Native viewmodel and pooled-effects WebGL lab followed by actual game input/collision/impact integration. Debug positions, invulnerability and simulation steps are controlled test setup, not a survival playthrough.',checks,errors},null,2));await browser.close();}
+--- v1.3/.tools/test-dressing.mjs
++++ v1.4/.tools/test-dressing.mjs
+@@ -0,0 +1,13 @@
++import fs from 'node:fs';import path from 'node:path';import {chromium} from 'playwright-core';import {resolveChromeExecutable} from './browser-path.mjs';
++const output=path.resolve('artifacts/v5-dressing');fs.mkdirSync(output,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});
++const report={errors:[],failedRequests:[],views:[],method:'Same-position controlled visual comparison; not traversal or human listening proof.'};
++try{for(const mode of ['before','after']){const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage();
++page.on('pageerror',e=>report.errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')report.errors.push(m.text())});page.on('requestfailed',r=>report.failedRequests.push(r.url()));page.on('response',r=>{if(r.status()>=400)report.errors.push(`${r.status()} ${r.url()}`)});
++if(mode==='before')await page.route('**/theater-dressing.js',r=>r.fulfill({body:'export async function restoreTheaterDressing(){return {disabledForComparison:true}}',contentType:'text/javascript'}));
++await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>window.kino?.debug.getState().ready,null,{timeout:180000});await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true)});
++await page.waitForTimeout(3500);
++for(const [name,feet,target]of [['lobby',[-20,96,1470],[0,210,820]],['floor',[-280,96,1390],[-120,80,1130]],['dining',[1510,0,-210],[1410,-16,-520]]]){await page.evaluate(({feet,target})=>{kino.debug.teleportPlayer(feet);kino.debug.step(.3);kino.debug.lookAt(target)},{feet,target});await page.waitForTimeout(1800);await page.screenshot({path:path.join(output,`${mode}-${name}.png`)});report.views.push({mode,name,state:await page.evaluate(()=>kino.debug.getState()),map:await page.evaluate(()=>kino.debug.mapState())});}
++await context.close();}
++report.success=!report.errors.length&&!report.failedRequests.length;if(!report.success)process.exitCode=1;
++}catch(e){report.success=false;report.failure=String(e);process.exitCode=1;}finally{await browser.close();fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({success:report.success,errors:[...new Set(report.errors)],errorCount:report.errors.length,failedRequests:report.failedRequests,failure:report.failure,views:report.views.length}));}
+--- v1.3/.tools/test-enemy-presentation.mjs
++++ v1.4/.tools/test-enemy-presentation.mjs
+@@ -0,0 +1,46 @@
++import {chromium} from 'playwright-core';
++import {resolveChromeExecutable} from './browser-path.mjs';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++const out=process.env.KINO_ENEMY_PRESENTATION_OUT??'artifacts/v5-audio-enemies';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const page=await browser.newPage({viewport:{width:1440,height:900}}),checks=[],errors=[];let pcm=[],poses=[];
++page.on('pageerror',e=>{errors.push(String(e));console.error('PAGE ERROR',String(e));});page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+' '+r.url());});page.on('requestfailed',r=>errors.push(r.url()+' '+r.failure()?.errorText));
++const pass=(name,detail)=>{checks.push({name,passed:true,detail});console.log('PASS',name);};
++const fresh=()=>page.evaluate(()=>{kino.debug.reset();kino.debug.setActive(true);kino.debug.setInvulnerable(true);kino.debug.setAutoSpawn(false);kino.debug.teleportPlayer([0,100,1120]);kino.debug.lookAt([0,135,800]);kino.debug.step(.7);});
++try{
++ console.log('Loading current source');const loadingFailure=new Promise((_,reject)=>page.once('pageerror',reject));await page.goto(process.env.KINO_URL??'http://127.0.0.1:5173/');await Promise.race([page.waitForFunction(()=>globalThis.kino?.debug.getState().ready,null,{timeout:180000}),loadingFailure]);console.log('Map ready');await page.click('#start');await fresh();console.log('Rendering recorded PCM');
++ pcm=await page.evaluate(async()=>{
++  const {GameAudio}=await import('./audio.js'),output=[];
++  for(const occlusion of [0,1]){
++   const a=new GameAudio();await a.load();a.ctx=new OfflineAudioContext(2,144000,48000);a.master=a.ctx.createGain();a.master.gain.value=.42;a.master.connect(a.ctx.destination);a.setListener([0,48,0]);
++   const key='enemy/nzp/zombie/a0';await a.native(key,.58,false,{position:[-200,48,-200],occlusion});const buffer=await a.ctx.startRendering();let power=0,difference=0,peak=0;
++   for(let c=0;c<2;c++){const data=buffer.getChannelData(c);for(let i=0;i<data.length;i++){power+=data[i]**2;difference+=(data[i]-(data[i-1]??0))**2;peak=Math.max(peak,Math.abs(data[i]));}}
++   output.push({key,occlusion,rms:Math.sqrt(power/(buffer.length*2)),differenceRms:Math.sqrt(difference/(buffer.length*2)),peak,seconds:buffer.duration,channels:buffer.numberOfChannels});
++  }return output;
++ });
++ assert(pcm[0].rms>0&&pcm[1].rms>0);assert(pcm[1].rms<pcm[0].rms*.38);assert(pcm[1].differenceRms/pcm[1].rms<pcm[0].differenceRms/pcm[0].rms*.8);assert(pcm.every(p=>p.peak<=1&&Number.isFinite(p.rms)));
++ pass('Actual rendered stereo PCM is quieter and spectrally muffled through a wall; no human listening claim',pcm);
++ for(const kind of ['zombie','dog','nova']){
++  await fresh();const id=await page.evaluate(kind=>{const p=kino.debug.getState().player.feet;return kino.debug.spawnEnemy([p[0],p[1],p[2]-220],kind);},kind);
++  await page.evaluate(()=>kino.debug.step(.9));await page.waitForFunction(id=>kino.debug.audioState().recentEvents.some(e=>e.enemyId===id&&e.enemyEvent==='step'),id,{timeout:10000});
++  const event=await page.evaluate(id=>kino.debug.audioState().recentEvents.find(e=>e.enemyId===id&&e.enemyEvent==='step'),id);assert(event.native);assert.equal(event.adaptation,'shared-native-surface-footfall');assert.equal(event.enemyKind,kind);assert.match(event.key,/^shared\/fly\/footsteps\//);assert.equal(event.channel,'effects');pass(kind+' actual moving rig emits a spatial native surface footfall',event);
++ }
++ await fresh();const acoustics=await page.evaluate(()=>{
++  const p=kino.debug.getState().player.feet,positions=[[p[0],p[1],p[2]-100],...kino.debug.spawnCandidates().slice(0,5).map(b=>b.outside)];
++  const ids=positions.map(pos=>kino.debug.spawnEnemy(pos,'zombie'));kino.debug.pause();return{ids,voices:kino.debug.audioState().enemy.voices};
++ });
++ assert(acoustics.voices.some(v=>!v.occluded));assert(acoustics.voices.some(v=>v.occluded),'actual geometry must occlude at least one natural exterior spawn');pass('Real Kino geometry distinguishes open lobby emitter from exterior spawns',acoustics);
++ for(const kind of ['zombie','dog','nova']){
++  const samples=[];
++  for(const [label,elapsed]of [['windup',.3],['impact',.55],['recovery',1.12]]){
++   await fresh();const sample=await page.evaluate(({kind,elapsed})=>{
++    const p=kino.debug.getState().player.feet,id=kino.debug.spawnEnemy([p[0],p[1],p[2]-40],kind);kino.debug.step(.01);kino.debug.step(elapsed);kino.debug.aimAtEnemy(id,false);kino.debug.pause();document.getElementById('menu').hidden=true;document.body.classList.remove('menu-open');return kino.debug.getState().enemies.find(z=>z.id===id);
++   },{kind,elapsed});assert.equal(sample.state,'attack');assert.equal(sample.animation,'attack');assert(sample.attackPoseTime>0);await page.screenshot({path:out+'/'+kind+'-'+label+'.png'});samples.push({label,...sample});
++  }
++  assert(samples[0].attackPoseTime<samples[1].attackPoseTime);assert(samples[1].attackPoseTime<samples[2].attackPoseTime);poses.push({kind,samples});pass(kind+' actual native attack advances through windup, authored impact and recovery',samples.map(s=>({label:s.label,simulation:s.attackElapsed,pose:s.attackPoseTime})));
++ }
++ await page.evaluate(()=>kino.debug.reset());await page.waitForTimeout(150);const cleaned=await page.evaluate(()=>kino.debug.audioState());assert.equal(cleaned.voices,0);assert.equal(cleaned.musicVoices,0);assert.equal(cleaned.pendingVoices,0);assert.equal(cleaned.enemy.active,0);pass('Reset disconnects vocal, footfall, occlusion, music and pending voices');
++ assert.equal(errors.length,0,errors.join('\n'));pass('No script, shader, decode or failed-request errors');
++}catch(error){checks.push({name:'Failure',passed:false,error:String(error),stack:error.stack});console.error(error);process.exitCode=1;await page.screenshot({path:out+'/failure.png'}).catch(()=>{});}
++finally{fs.writeFileSync(out+'/presentation-report.json',JSON.stringify({checks,errors,pcm,poses},null,2));await browser.close();}
+--- v1.3/.tools/test-melee.mjs
++++ v1.4/.tools/test-melee.mjs
+@@ -2,10 +2,9 @@
+ import {chromium} from 'playwright-core';
+ import fs from 'node:fs';
+ import assert from 'node:assert/strict';
+-const out='artifacts/melee';fs.mkdirSync(out,{recursive:true});
++const out=process.env.KINO_MELEE_OUT??'artifacts/melee';fs.mkdirSync(out,{recursive:true});
+ const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
+-const page=await browser.newPage({viewport:{width:1440,height:900}}),checks=[],errors=[];
+-page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
++const page=await browser.newPage({viewport:{width:1440,height:900}}),checks=[],errors=[],diagnostics={};
+ const check=(name,ok)=>{assert(ok,name);checks.push({name,passed:true});};
+ async function fresh(){
+  await page.evaluate(()=>{kino.debug.reset();kino.debug.setActive(true);kino.debug.setInvulnerable(true);kino.debug.teleportPlayer([0,100,1120]);});
+@@ -37,15 +36,16 @@
+  });check('out-of-range swipe cannot damage a zombie',miss.state.enemies[0].health===150&&miss.visual.animation==='knife:meleeAnim');
+  await fresh();await page.evaluate(()=>{kino.debug.grantPoints(3000);const e=kino.debug.getEntities().find(e=>e.targetname==='bowie_upgrade');kino.debug.teleportPlayer(e.position);kino.debug.step(.2);});
+  await page.keyboard.press('KeyF');check('Bowie purchase equips the upgrade',(await page.evaluate(()=>kino.debug.getState())).bowie);
+- await page.evaluate(()=>{kino.debug.teleportPlayer([0,100,1120]);kino.debug.step(.6);kino.debug.setRound(10);const p=kino.debug.getState().player.feet,id=kino.debug.spawnEnemy([p[0],p[1],p[2]-60]);kino.debug.aimAtEnemy(id,false);kino.debug.melee();kino.debug.step(.17);});
+- const bowie=await page.evaluate(()=>({state:kino.debug.getState(),visual:kino.debug.weaponVisual()}));
++ diagnostics.bowieSetup=await page.evaluate(()=>{kino.debug.teleportPlayer([0,100,1120]);kino.debug.step(.6);kino.debug.setRound(10);const p=kino.debug.getState().player.feet,id=kino.debug.spawnEnemy([p[0],p[1],p[2]-60],'zombie');kino.debug.aimAtEnemy(id,false);const before=kino.debug.getState(),started=kino.debug.melee();kino.debug.step(.17);return {id,started,before};});
++ const bowie=await page.evaluate(()=>({state:kino.debug.getState(),visual:kino.debug.weaponVisual()}));diagnostics.bowieResult=bowie;
++ check('Bowie fixture is explicitly a 1045-health round-ten zombie',diagnostics.bowieSetup.before.enemies.find(z=>z.id===diagnostics.bowieSetup.id)?.kind==='zombie'&&diagnostics.bowieSetup.before.enemies.find(z=>z.id===diagnostics.bowieSetup.id)?.health===1045);
+  check('Bowie uses its own blade and animation',bowie.visual.melee==='bowie'&&bowie.visual.animation==='bowie:meleeChargeAnim');
+- check('native Bowie damage is 1000; a round-ten zombie survives at 45 health',bowie.state.enemies.some(z=>z.health===45));
++ check('native Bowie damage is 1000; a round-ten zombie survives at 45 health',bowie.state.enemies.find(z=>z.id===diagnostics.bowieSetup.id)?.health===45);
+  await page.screenshot({path:`${out}/bowie-hit.png`});
+  await page.waitForFunction(()=>kino.debug.audioState().played.some(k=>k.includes('/bowie/bowie_stab/')));
+  check('melee impacts reach the native audio playback path',true);
+  await page.evaluate(()=>{kino.debug.reset();});await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);
+  check('reset clears the knife action',!(await page.evaluate(()=>kino.debug.weaponVisual())).knifeVisible.length);
+  check('no browser errors',errors.length===0);
+-}catch(e){checks.push({passed:false,error:String(e),stack:e.stack});console.error(e);process.exitCode=1;}
+-finally{fs.writeFileSync(`${out}/report.json`,JSON.stringify({checks,errors},null,2));console.log(checks.filter(c=>c.passed).length,'melee checks passed');await browser.close();}
++}catch(e){checks.push({passed:false,error:String(e),stack:e.stack});diagnostics.failure=await page.evaluate(()=>({state:kino.debug.getState(),visual:kino.debug.weaponVisual()})).catch(()=>null);console.error(e);process.exitCode=1;}
++finally{fs.writeFileSync(`${out}/report.json`,JSON.stringify({checks,errors,diagnostics},null,2));console.log(checks.filter(c=>c.passed).length,'melee checks passed');await browser.close();}
+--- v1.3/.tools/test-surface-light-runtime.mjs
++++ v1.4/.tools/test-surface-light-runtime.mjs
+@@ -0,0 +1,42 @@
++import {chromium} from 'playwright-core';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import {resolveChromeExecutable} from './browser-path.mjs';
++const out=process.env.KINO_DAYLIGHT_OUT??'artifacts/v5-final/daylight';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++let page=await browser.newPage({viewport:{width:1440,height:900},deviceScaleFactor:2});
++const checks=[],errors=[],expectedFailureEvents=[],restartSamples=[];let probingMissing=false;
++const watch=page=>{page.on('pageerror',e=>(probingMissing?expectedFailureEvents:errors).push({kind:'script',message:String(e)}));page.on('console',m=>{if(m.type()==='error')(probingMissing?expectedFailureEvents:errors).push({kind:'console',message:m.text()});});page.on('response',r=>{if(r.status()>=400)(probingMissing?expectedFailureEvents:errors).push({kind:'http',status:r.status(),url:r.url()});});};watch(page);
++const read=()=>page.evaluate(()=>({game:kino.debug.getState(),light:kino.debug.lightingState(),memory:kino.debug.memoryState()}));
++const pass=(name,detail)=>{checks.push({name,passed:true,detail});console.log('PASS',name);};
++const loaded=()=>page.waitForFunction(()=>globalThis.kino?.debug.getState().ready,null,{timeout:120000});
++async function quality(value){await page.locator('[data-setting="quality"]').selectOption(value);await page.waitForTimeout(100);}
++async function pause(){await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.pointerLockElement&&!kino.debug.getState().active);}
++async function start(){await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);await page.evaluate(()=>kino.debug.setAutoSpawn(false));await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);await page.waitForTimeout(250);}
++try{
++ await page.goto('http://127.0.0.1:5173/');await loaded();await start();let s=await read();
++ assert.equal(s.light.daylight.shafts,9);assert.equal(s.light.daylight.dust,198);assert(s.light.daylight.skyMeshes>0);assert(s.light.daylight.visible);pass('Final daylight loads nine shafts,198 dust particles and native sky meshes',s.light.daylight);
++ await page.screenshot({path:out+'/01-daylight-lobby.png'});
++ await pause();const paused=await read();await page.waitForTimeout(450);const later=await read();assert.equal(later.game.time,paused.game.time);assert.deepEqual(later.game.player.feet,paused.game.player.feet);assert.deepEqual(later.light.daylight,paused.light.daylight);pass('Real Escape freezes simulation and preserves daylight state',{time:paused.game.time,daylight:paused.light.daylight});
++ await page.click('#settings-open');await quality('performance');s=await read();assert.equal(s.game.settings.quality,'performance');assert(!s.light.daylight.visible);assert.equal(s.game.renderScale,1);
++ await quality('balanced');s=await read();assert.equal(s.game.settings.quality,'balanced');assert(s.light.daylight.visible);assert.equal(s.game.renderScale,1.25);await page.click('#settings-done');await start();pass('Performance disables shafts and dust; Balanced restores them with matching render scale',s.light.daylight);
++ // First reset can expose previously unrendered geometry. Record that cold
++ // transition separately, then require three exact, stable measured cycles.
++ await page.waitForTimeout(700);const initial=await read();let baseline=initial;restartSamples.push({phase:'before-warmup',memory:initial.memory,daylight:initial.light.daylight});
++ for(let cycle=0;cycle<=3;cycle++){
++   await pause();await page.click('#restart');await page.waitForFunction(()=>kino.debug.getState().active&&kino.debug.getState().viewmodelReady);await page.evaluate(()=>kino.debug.setAutoSpawn(false));await page.waitForTimeout(450);s=await read();
++   assert.equal(s.game.round,1);assert.equal(s.game.points,500);assert.equal(s.game.power,false);assert.equal(s.game.enemies.length,0);assert.deepEqual(s.light.daylight,baseline.light.daylight);
++   restartSamples.push({phase:cycle===0?'warmup':'measured',cycle,memory:s.memory,daylight:s.light.daylight});
++   assert.equal(s.memory.geometryBytes,initial.memory.geometryBytes,'Scene geometry bytes do not grow, including the first restart');assert.equal(s.memory.textureBytes,initial.memory.textureBytes,'Scene texture bytes do not grow');
++   if(cycle===0)baseline=s;else{assert.equal(s.memory.geometries,baseline.memory.geometries);assert.equal(s.memory.textures,baseline.memory.textures);}
++ }
++ pass('Three measured menu restarts after warmup retain identical GPU counts and scene bytes',restartSamples);await page.screenshot({path:out+'/02-third-restart.png'});
++ await page.close();page=await browser.newPage({viewport:{width:1100,height:760}});watch(page);probingMissing=true;
++ await page.route('**/theater-surface-light.json',route=>route.fulfill({status:404,contentType:'application/json',body:'{"error":"intentional missing daylight fixture"}'}));
++ await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>document.querySelector('#load-label')?.textContent.includes('Unable to start'),null,{timeout:120000});
++ const failure=await page.evaluate(()=>({ready:kino.debug.getState().ready,label:document.querySelector('#load-label').textContent,status:document.querySelector('#menu-status').textContent,button:document.querySelector('#start').textContent,disabled:document.querySelector('#start').disabled}));
++ assert(!failure.ready);assert.match(failure.label,/Surface daylight data: 404/);assert.equal(failure.button,'RETRY LOADING');assert(!failure.disabled);assert(expectedFailureEvents.some(e=>e.kind==='http'&&e.status===404&&e.url.endsWith('theater-surface-light.json')));assert(expectedFailureEvents.every(e=>e.kind==='http'?e.status===404&&e.url.endsWith('theater-surface-light.json'):/404/.test(e.message)),JSON.stringify(expectedFailureEvents));await page.screenshot({path:out+'/03-missing-plan-recovery.png'});pass('Missing surface-sunlight plan produces an explicit retryable loading error',failure);
++ await page.unroute('**/theater-surface-light.json');probingMissing=false;await page.click('#start');await loaded();s=await read();assert.equal(s.light.daylight.shafts,9);assert.equal(s.light.daylight.dust,198);assert(s.light.daylight.skyMeshes>0);pass('Retry succeeds after the required surface-sunlight file is restored',s.light.daylight);
++ assert.equal(errors.length,0,JSON.stringify(errors));
++}catch(error){checks.push({passed:false,error:String(error),stack:error.stack,state:await read().catch(()=>null)});console.error(error);process.exitCode=1;await page.screenshot({path:out+'/failure.png'}).catch(()=>{});}
++finally{fs.writeFileSync(`${out}/report.json`,JSON.stringify({method:'Actual browser with real pause/settings/restart controls, normal map initialization, exact renderer resource counts, and one deliberately failed surface-sunlight request followed by real Retry. Controlled smoke, not a performance benchmark.',checks,errors,expectedFailureEvents,restartSamples},null,2));await browser.close();}
+--- v1.3/.tools/test-zombies.mjs
++++ v1.4/.tools/test-zombies.mjs
+@@ -2,7 +2,7 @@
+ import {chromium} from 'playwright-core';
+ import fs from 'node:fs';
+ import assert from 'node:assert/strict';
+-const out='artifacts/zombies';fs.mkdirSync(out,{recursive:true});
++const out=process.env.KINO_ZOMBIES_OUT??'artifacts/zombies';fs.mkdirSync(out,{recursive:true});
+ const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
+ const page=await browser.newPage({viewport:{width:1440,height:900}}),checks=[],errors=[];
+ page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+' '+r.url());});
+--- v1.3/AUDIO-EVENT-CATALOG.json
++++ v1.4/AUDIO-EVENT-CATALOG.json
+@@ -1,6 +1,6 @@
+ {
+   "schema": "kino-audio-event-catalog-v1",
+-  "scope": "Kino reconstruction, local second implementation pass",
++  "scope": "Kino reconstruction, including v1.4 enemy presentation refinements",
+   "nativeAssetCount": 517,
+   "newSharedNativeAssetCount": 72,
+   "assetManifest": "export/web/audio/manifest.json",
+@@ -13,7 +13,21 @@
+     "rolloff": 1,
+     "units": "game world units",
+     "listener": "camera position/forward/up, updated during active simulation",
+-    "oneShotEmitters": "Position is copied at request time and does not move during playback."
++    "oneShotEmitters": "Position is copied at request time and does not move during playback.",
++    "movingCreatureEmitters": "Emitter position follows each active actor at 10Hz. Geometry obstruction is checked at most 5Hz per active voice, plus its initial request.",
++    "creatureOcclusion": {
++      "method": "world.lineClear camera-to-emitter visibility callback; reconstructed approximation, not recovered T5 room acoustics",
++      "clear": {
++        "lowpassHz": 18000,
++        "gain": 1
++      },
++      "blocked": {
++        "lowpassHz": 850,
++        "gain": 0.35
++      },
++      "transitionTimeConstantSeconds": 0.06,
++      "scope": "Creature vocals, creature footsteps and their barrier tear effects only; other effects retain their existing mix."
++    }
+   },
+   "lifecycle": {
+     "pause": "Suspend AudioContext; retain existing voices for resume.",
+@@ -1101,7 +1115,7 @@
+       "concurrency": {
+         "pool": "enemy-subpool",
+         "globalVoiceLimit": 10,
+-        "policy": "One vocal per enemy plus at most one barrier effect; priority interruption; eight general-effects slots reserved; reset/removal cancel pending decodes."
++        "policy": "One vocal per enemy plus one barrier effect and one footfall slot; all share the ten-voice creature limit; maximum three concurrent footfalls; priority interruption; eight general-effects slots reserved; reset/removal cancel pending decodes."
+       },
+       "spatial": true,
+       "cueKeys": [
+@@ -1158,7 +1172,91 @@
+         "47 NZ:P community WAV files are unchanged and retain CC BY-SA 4.0. These are replacements, not exact T5 zombie recordings.",
+         "Nova uses pitch-adapted NZ:P crawler/attack/death families; existing native dog.ogg remains its separate recovered T5 recording.",
+         "Source files, attribution, license and transformation details are packaged under audio/enemies/.",
+-        "The recovered barricade.wav is cataloged but not selected; board tear uses barricade_destroy.wav. Generic synthesized growl is no longer used by enemies."
++        "The recovered barricade.wav is cataloged but not selected; board tear uses barricade_destroy.wav. Generic synthesized growl is no longer used by enemies.",
++        "V1.4 moving creature voices are smoothly low-pass filtered and attenuated when world geometry obstructs the listener-to-emitter segment; this is an authored audibility approximation, not exact original room acoustics."
++      ]
++    },
++    {
++      "event": "enemy_surface_footfalls",
++      "classification": "native-recording-adaptation",
++      "timing": "Native walk/sprint animation foot markers during grounded chase movement, within 500 world units of the listener; actual displacement required; duplicate companion footstep markers ignored; minimum 0.11-second cadence.",
++      "channel": "effects",
++      "concurrency": {
++        "pool": "enemy-subpool",
++        "globalVoiceLimit": 10,
++        "maximumFootfalls": 3,
++        "policy": "Separate from actor vocal; cannot replace a vocal of equal/higher priority. Shares existing general effects reserve and lifecycle cleanup."
++      },
++      "spatial": true,
++      "cueKeys": [
++        "shared/fly/footsteps/land/carpet/carpet_00",
++        "shared/fly/footsteps/land/carpet/carpet_01",
++        "shared/fly/footsteps/land/concrete/concrete_00",
++        "shared/fly/footsteps/land/concrete/concrete_01",
++        "shared/fly/footsteps/land/concrete/concrete_02",
++        "shared/fly/footsteps/land/dirt/dirt_00",
++        "shared/fly/footsteps/land/dirt/dirt_01",
++        "shared/fly/footsteps/land/dirt/dirt_02",
++        "shared/fly/footsteps/land/metal/metal_00",
++        "shared/fly/footsteps/land/metal/metal_01",
++        "shared/fly/footsteps/land/wood/wood_00",
++        "shared/fly/footsteps/land/wood/wood_01",
++        "shared/fly/footsteps/run/carpet/carpet_run_00",
++        "shared/fly/footsteps/run/carpet/carpet_run_01",
++        "shared/fly/footsteps/run/carpet/carpet_run_02",
++        "shared/fly/footsteps/run/carpet/carpet_run_03",
++        "shared/fly/footsteps/run/carpet/carpet_run_05",
++        "shared/fly/footsteps/sprint/carpet/carpet_sprint_00",
++        "shared/fly/footsteps/sprint/carpet/carpet_sprint_01",
++        "shared/fly/footsteps/sprint/carpet/carpet_sprint_02",
++        "shared/fly/footsteps/sprint/carpet/carpet_sprint_03",
++        "shared/fly/footsteps/sprint/carpet/carpet_sprint_04",
++        "shared/fly/footsteps/sprint/concrete/concrete_sprint_00",
++        "shared/fly/footsteps/sprint/concrete/concrete_sprint_01",
++        "shared/fly/footsteps/sprint/concrete/concrete_sprint_02",
++        "shared/fly/footsteps/sprint/concrete/concrete_sprint_03",
++        "shared/fly/footsteps/sprint/concrete/concrete_sprint_04",
++        "shared/fly/footsteps/sprint/dirt/dirt_sprint_00",
++        "shared/fly/footsteps/sprint/dirt/dirt_sprint_01",
++        "shared/fly/footsteps/sprint/dirt/dirt_sprint_02",
++        "shared/fly/footsteps/sprint/dirt/dirt_sprint_03",
++        "shared/fly/footsteps/sprint/metal/metal_sprint_00",
++        "shared/fly/footsteps/sprint/metal/metal_sprint_01",
++        "shared/fly/footsteps/sprint/metal/metal_sprint_02",
++        "shared/fly/footsteps/sprint/metal/metal_sprint_03",
++        "shared/fly/footsteps/sprint/metal/metal_sprint_04",
++        "shared/fly/footsteps/sprint/wood/wood_sprint_00",
++        "shared/fly/footsteps/sprint/wood/wood_sprint_01",
++        "shared/fly/footsteps/sprint/wood/wood_sprint_02",
++        "shared/fly/footsteps/sprint/wood/wood_sprint_03",
++        "shared/fly/footsteps/sprint/wood/wood_sprint_04",
++        "shared/fly/footsteps/walk/concrete/concrete_walk_00",
++        "shared/fly/footsteps/walk/concrete/concrete_walk_01",
++        "shared/fly/footsteps/walk/concrete/concrete_walk_02",
++        "shared/fly/footsteps/walk/concrete/concrete_walk_03",
++        "shared/fly/footsteps/walk/concrete/concrete_walk_04",
++        "shared/fly/footsteps/walk/dirt/dirt_walk_00",
++        "shared/fly/footsteps/walk/dirt/dirt_walk_01",
++        "shared/fly/footsteps/walk/dirt/dirt_walk_02",
++        "shared/fly/footsteps/walk/dirt/dirt_walk_03",
++        "shared/fly/footsteps/walk/dirt/dirt_walk_04",
++        "shared/fly/footsteps/walk/metal/metal_walk_00",
++        "shared/fly/footsteps/walk/metal/metal_walk_01",
++        "shared/fly/footsteps/walk/metal/metal_walk_02",
++        "shared/fly/footsteps/walk/metal/metal_walk_03",
++        "shared/fly/footsteps/walk/metal/metal_walk_04",
++        "shared/fly/footsteps/walk/wood/wood_walk_00",
++        "shared/fly/footsteps/walk/wood/wood_walk_01",
++        "shared/fly/footsteps/walk/wood/wood_walk_02",
++        "shared/fly/footsteps/walk/wood/wood_walk_03",
++        "shared/fly/footsteps/walk/wood/wood_walk_04",
++        "shared/fly/footsteps/walk/wood/wood_walk_05"
++      ],
++      "source": "export/web/game-data.json native enemy animation notify tracks; export/web/audio/manifest.json recovered shared T5 movement recordings; export/web/surface-index.json ground material lookup.",
++      "notes": [
++        "Footfalls reuse shared native movement recordings, selected by ground surface and movement speed. These are explicitly adapted and are not a claim of recovered exact T5 zombie, Hellhound or Nova footstep banks.",
++        "Actor mouth/torso vocal positions and near-ground footfall positions are separate; the same bounded spatial occlusion policy applies.",
++        "Surface queries occur only at accepted nearby motion notifies, not every frame."
+       ]
+     }
+   ],
+--- v1.3/export/web/animation.js
++++ v1.4/export/web/animation.js
+@@ -3,6 +3,7 @@
+ import { clone } from 'three/addons/utils/SkeletonUtils.js';
+ import { assetManager, disposeSkeletons } from './runtime-assets.js';
+ import { NativeAimPose, dualWeaponAnimations, ReloadPropVisibility, retargetAugPump } from './weapon-pose.js';
++import { WeaponMotion } from './weapon-motion.js';
+ 
+ const loader=new GLTFLoader(assetManager), models=new Map(), clips=new Map();
+ export async function loadModel(url){if(!url)return null;if(!models.has(url))models.set(url,loader.loadAsync(url).then(gltf=>gltf.scene));return clone(await models.get(url));}
+@@ -72,6 +73,7 @@
+   constructor(scene,data,onSound=()=>{}){
+     this.scene=scene;this.data=data;this.onSound=onSound;this.pivot=new THREE.Group();scene.add(this.pivot);
+     this.token=0;this.currentId=null;this.recoil=0;this.aim=0;this.mode='idle';this.meleeLeft=0;this.sprintBlend=0;this.sprintExitLeft=0;
++    this.motion=new WeaponMotion();
+   }
+   async equip(def){
+     const key=def.id+(def.upgraded?':upgraded':'')+(def.attachmentActive?':attachment':'');
+@@ -126,7 +128,7 @@
+     // ADS is a separate native animation of tag_torso. Its first frame also
+     // defines each gun's HIP pose; the arms' bind torso is only right for M1911.
+     this.aimPose=new NativeAimPose(hands,entries.find(([key])=>key==='adsUpAnim')?.[1],entries.find(([key])=>key==='adsDownAnim')?.[1]);
+-    this.aim=0;this.recoil=0;this.meleeLeft=0;this.meleeType=null;this.sprintBlend=0;this.sprintExitLeft=0;this.applyAim();
++    this.aim=0;this.recoil=0;this.motion.reset();this.meleeLeft=0;this.meleeType=null;this.sprintBlend=0;this.sprintExitLeft=0;this.applyAim();
+     this.rig.play('idleAnim',true,1,0);this.rig.update(0);
+     this.mode=this.rig.play('raiseAnim',false,this.clipSpeed('raiseAnim',def.raiseTime),.04)?'raise':'idle';
+     this.root.traverse(o=>{o.frustumCulled=false;});
+@@ -141,7 +143,7 @@
+     if(!this.ready||this.meleeLeft>0)return;
+     let key=ads?(empty?'adsLastShotAnim':'adsFireAnim'):(empty?'lastShotAnim':'fireAnim');
+     if(hand==='left'&&this.rig.actions.leftFireAnim)key=empty&&this.rig.actions.leftLastShotAnim?'leftLastShotAnim':'leftFireAnim';
+-    if(!this.rig.actions[key])key='fireAnim';this.recoil=1;this.mode='fire';this.rig.play(key,false,1,0);
++    if(!this.rig.actions[key])key='fireAnim';this.recoil=1;this.motion.fire();this.mode='fire';this.rig.play(key,false,1,0);
+   }
+   reload(empty,duration,stage='magazine'){
+     if(!this.ready)return;const key=stage==='start'?'reloadStartAnim':stage==='end'?'reloadEndAnim':empty&&this.rig.actions.reloadEmptyAnim?'reloadEmptyAnim':'reloadAnim';
+@@ -161,8 +163,13 @@
+     this.rig.play(key,false,this.clipSpeed(key,duration),0);
+     return {duration,delay:charge?def.chargeDelay:def.delay,damage:def.damage};
+   }
+-  update(dt,{moving=false,sprint=false,ads=false,reloading=false,empty=false,time=0}={}){
++  update(dt,{moving=false,sprint=false,ads=false,reloading=false,empty=false,time=0,speed,grounded=true}={}){
+     if(!this.ready)return;
++    // Cancellation must select the idle timeline before advancing the mixer.
++    // Otherwise a cancelled reload can emit its next shell/magazine notify.
++    const reloadAction=this.rig.actions[this.rig.current];
++    const completesNow=reloadAction&&reloadAction.time+dt*reloadAction.timeScale>=reloadAction.getClip().duration-1e-5;
++    if(this.mode==='reload'&&!reloading&&!completesNow){this.mode='idle';this.reloadProps?.set(false);this.rig.play(empty&&this.rig.actions.emptyIdleAnim?'emptyIdleAnim':'idleAnim',true,1,.06);}
+     this.rig.update(dt);this.meleeLeft=Math.max(0,this.meleeLeft-dt);this.sprintExitLeft=Math.max(0,this.sprintExitLeft-dt);
+     const action=this.rig.actions[this.rig.current],finished=!action?.isRunning();
+     const sprintKey=phase=>{const key='sprint'+phase+(empty?'Empty':'')+'Anim';return this.rig.actions[key]?key:'sprint'+phase+'Anim';};
+@@ -178,10 +185,9 @@
+     const aiming=ads&&['idle','fire'].includes(this.mode);
+     this.aim=THREE.MathUtils.clamp(this.aim+(aiming?dt/Math.max(.01,this.def.adsInTime):-dt/Math.max(.01,this.def.adsOutTime)),0,1);
+     this.applyAim(!['idle','fire'].includes(this.mode),aiming?1:-1);
+-    this.recoil=Math.max(0,this.recoil-dt*8);
+-    const bob=moving&&this.mode!=='melee'?(1-this.aim)*.13*(this.bobAmount??1):0;
+-    this.pivot.position.set(Math.sin(time*(sprint?13:9))*bob,Math.cos(time*(sprint?26:18))*bob*.7,this.recoil*.25);
+-    this.pivot.rotation.set(this.recoil*.012,0,0);
++    const motion=this.motion.update(dt,{speed:['melee','reload','raise'].includes(this.mode)?0:(speed??(moving?(sprint?285:190):0)),grounded,aim:this.aim,enabled:(this.bobAmount??1)>0});
++    this.recoil=motion.kick*4;
++    this.pivot.position.fromArray(motion.offset);this.pivot.rotation.set(...motion.rotation);
+     // Ray Gun uses authored weapon offsets in place of sprint XAnims.
+     const offsetSprint=sprint&&!this.rig.actions.sprintLoopAnim&&this.mode==='sprint';
+     this.sprintBlend=THREE.MathUtils.damp(this.sprintBlend,offsetSprint?1:0,16,dt);
+@@ -191,7 +197,7 @@
+   snapshot(){
+     const position=name=>this.root?.getObjectByName(name)?.getWorldPosition(new THREE.Vector3()).toArray();
+     return {ready:this.ready,canFire:this.canFire,id:this.currentId,hiddenTags:this.hiddenTags??[],mode:this.mode,animation:this.rig?.current,
+-      time:this.rig?.actions[this.rig.current]?.time,aim:this.aim,melee:this.meleeType,meleeLeft:this.meleeLeft,reloadProps:this.reloadProps?.snapshot(),
++      time:this.rig?.actions[this.rig.current]?.time,aim:this.aim,melee:this.meleeType,meleeLeft:this.meleeLeft,reloadProps:this.reloadProps?.snapshot(),motion:this.motion.snapshot(),
+       knifeVisible:Object.entries(this.knives??{}).filter(([,m])=>m.visible).map(([k])=>k),
+       gun:position('j_gun'),knife:position('tag_knife_attach'),torso:this.hands?.getObjectByName('tag_torso')?.position.toArray()};
+   }
+--- v1.3/export/web/audio.js
++++ v1.4/export/web/audio.js
+@@ -12,6 +12,8 @@
+   constructor(){this._enabled=true;this.ctx=null;this.manifest={};this.buffers=new Map();this.bufferSizes=new Map();this.bufferBytes=0;this.maxBufferBytes=Infinity;this.synthBuffers=new Map();this.preload=true;this.played=[];this.music=null;this.musicToken=0;this.variants=new Map();this.lastVariants=new Map();this.recentEvents=[];this.listenerState=null;this.mix={master:100,effects:100,music:100,ambience:100,dialogue:100};this.groups=null;this.maxVoices=48;this.maxMusicVoices=4;this.voices=new Set();this.musicVoices=new Set();this.sourceVoices=new WeakMap();this.pendingVoices=new Set();this.playbackToken=0;this.acceptPlayback=true;}
+   async load(){const r=await fetch('audio/manifest.json');if(!r.ok)throw new Error('Audio manifest HTTP '+r.status);this.manifest=await r.json();}
+   enemy(event,position,meta){this.enemyAudio??=new EnemyAudio(this);return this.enemyAudio.emit(event,position,meta);}
++  setOcclusionTest(test){this.occlusionTest=typeof test==='function'?test:null;}
++  occlusionAt(position){const p=vector(position);return p&&this.listenerState&&this.occlusionTest?.(this.listenerState.position,p)===false?1:0;}
+   get enabled(){return this._enabled;}
+   set enabled(v){this._enabled=v;this.applyMix();}
+   setMix(values={}){
+@@ -48,7 +50,15 @@
+     if(!position||!this.ctx.createPanner){gain.connect(destination);return [];}
+     const panner=this.ctx.createPanner();panner.panningModel='HRTF';panner.distanceModel='linear';panner.refDistance=80;panner.maxDistance=1400;panner.rolloffFactor=1;
+     if(panner.positionX){panner.positionX.value=position[0];panner.positionY.value=position[1];panner.positionZ.value=position[2];}else panner.setPosition?.(...position);
+-    gain.connect(panner);panner.connect(destination);return [panner];
++    const spatial=[panner];
++    // Only callers requesting occlusion gain/filter the dry signal. Existing
++    // player weapons, interface cues and other maps retain their original mix.
++    if(Number.isFinite(options.occlusion)&&this.ctx.createBiquadFilter){
++      const filter=this.ctx.createBiquadFilter(),muffle=this.ctx.createGain(),value=Math.max(0,Math.min(1,options.occlusion));
++      filter.type='lowpass';filter.frequency.value=18000*Math.pow(850/18000,value);filter.Q&&(filter.Q.value=.7);muffle.gain.value=1-.65*value;
++      gain.connect(filter);filter.connect(muffle);muffle.connect(panner);spatial.push(filter,muffle);spatial.occlusion={filter,gain:muffle,value};
++    }else gain.connect(panner);
++    panner.connect(destination);return spatial;
+   }
+   recordEvent(key,channel,position,native,details={}){this.recentEvents.push({key,channel,position:vector(position),native,time:this.ctx?.currentTime??0,...details});if(this.recentEvents.length>30)this.recentEvents.shift();}
+   playAt(kind,position,volume=1){return this.play(kind,volume,{position:vector(position)});}
+@@ -141,6 +151,13 @@
+   }
+   stopSource(source){if(!source)return;const voice=this.sourceVoices.get(source);if(voice)voice.stop();else try{source.stop();}catch{}}
+   moveSource(source,position){const voice=source&&this.sourceVoices.get(source),p=vector(position);if(!voice||!p)return;for(const node of voice.spatialNodes??[]){if(node.positionX){node.positionX.value=p[0];node.positionY.value=p[1];node.positionZ.value=p[2];}else node.setPosition?.(...p);}}
++  setSourceOcclusion(source,amount){
++    const state=source&&this.sourceVoices.get(source)?.occlusion;if(!state||!Number.isFinite(amount))return;
++    const value=Math.max(0,Math.min(1,amount));if(value===state.value)return;state.value=value;
++    for(const [param,target] of [[state.filter.frequency,18000*Math.pow(850/18000,value)],[state.gain.gain,1-.65*value]]){
++      if(param.setTargetAtTime)param.setTargetAtTime(target,this.ctx.currentTime,.06);else param.value=target;
++    }
++  }
+   async buffer(key){
+     if(this.buffers.has(key)){const cached=this.buffers.get(key);this.buffers.delete(key);this.buffers.set(key,cached);return cached;}
+     const pending=fetch(this.manifest[key].url).then(r=>{if(!r.ok)throw new Error('Audio '+key+' HTTP '+r.status);return r.arrayBuffer();}).then(b=>this.ctx.decodeAudioData(b)).then(buffer=>{
+@@ -162,7 +179,7 @@
+       if(request.token!==this.playbackToken||!this.acceptPlayback||options.signal?.aborted||options.shouldStart?.()===false)return stoppedSource;
+       const source=this.ctx.createBufferSource(),gain=this.ctx.createGain(),channel=this.channel(key,loop);
+       source.buffer=b;source.loop=loop;if(source.playbackRate&&Number.isFinite(options.playbackRate))source.playbackRate.value=Math.max(.65,Math.min(1.6,options.playbackRate));gain.gain.value=volume;source.connect(gain);const spatial=this.output(gain,channel,options);
+-      const voice=this.trackVoice(source,[source,gain,...spatial],key,channel,loop||channel==='music'||channel==='ambience');voice.spatial=spatial.length>0;voice.spatialNodes=spatial;
++      const voice=this.trackVoice(source,[source,gain,...spatial],key,channel,loop||channel==='music'||channel==='ambience');voice.spatial=spatial.length>0;voice.spatialNodes=spatial.length?[spatial[0]]:[];voice.occlusion=spatial.occlusion;
+       try{source.start();}catch(error){voice.stop();throw error;}
+       this.played.push(key);if(this.played.length>30)this.played.shift();this.recordEvent(key,channel,options.position,this.manifest[key]?.native!==false,{sourceType:this.manifest[key]?.sourceType??'native-recording',...options.event});return source;
+     }finally{this.pendingVoices.delete(request);}
+--- v1.3/export/web/combat-particles.js
++++ v1.4/export/web/combat-particles.js
+@@ -1,39 +1,85 @@
+ import * as THREE from 'three';
+ 
+-// A fixed GPU allocation bounds busy-round impact effects and survives resets.
++const profiles=Object.freeze({
++  debris:{speed:110,up:95,life:.4,variation:.35,size:2.6,gravity:200,drag:0,shape:0},
++  wall:{speed:90,up:15,life:.32,variation:.32,size:3.7,gravity:100,drag:4,shape:1},
++  wood:{speed:110,up:15,life:.32,variation:.3,size:3.1,gravity:180,drag:2,shape:4},
++  metal:{speed:175,up:15,life:.18,variation:.22,size:1.9,gravity:160,drag:1,shape:2},
++  blood:{speed:85,up:12,life:.24,variation:.3,size:1.25,gravity:140,drag:2,shape:3,tint:.45},
++  blast:{speed:200,up:110,life:.35,variation:.4,size:4.5,gravity:135,drag:2,shape:1},
++  energy:{speed:150,up:40,life:.24,variation:.28,size:3,gravity:20,drag:3,shape:2},
++});
++const finiteVector=v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&Number.isFinite(v.z);
++
++// One fixed GPU allocation for every impact type; emission never creates scene
++// nodes, materials or textures. This pool survives rounds and game resets.
+ export class CombatParticles {
+-  constructor(scene,capacity=512){
+-    this.capacity=capacity;this.cursor=0;this.active=0;
++  constructor(scene,capacity=512,random=Math.random){
++    this.capacity=capacity=Math.max(1,Math.floor(Number.isFinite(capacity)?capacity:512));this.random=random;this.cursor=0;this.active=0;this.emitted=0;this.byKind={};this.lastEmission=null;
+     this.positions=new Float32Array(capacity*3);this.colors=new Float32Array(capacity*3);
+     this.opacity=new Float32Array(capacity);this.velocity=new Float32Array(capacity*3);this.life=new Float32Array(capacity);this.duration=new Float32Array(capacity);
++    this.sizes=new Float32Array(capacity);this.baseSizes=new Float32Array(capacity);this.shapes=new Float32Array(capacity);this.gravity=new Float32Array(capacity);this.drag=new Float32Array(capacity);
+     this.geometry=new THREE.BufferGeometry();
+-    for(const [name,array,size] of [['position',this.positions,3],['color',this.colors,3],['alpha',this.opacity,1]])this.geometry.setAttribute(name,new THREE.BufferAttribute(array,size).setUsage(THREE.DynamicDrawUsage));
++    for(const [name,array,size] of [['position',this.positions,3],['color',this.colors,3],['alpha',this.opacity,1],['particleSize',this.sizes,1],['shape',this.shapes,1]])this.geometry.setAttribute(name,new THREE.BufferAttribute(array,size).setUsage(THREE.DynamicDrawUsage));
+     this.material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,vertexColors:true,uniforms:{pixelHeight:{value:900}},
+-      vertexShader:'attribute float alpha; varying vec3 tint; varying float fade; uniform float pixelHeight; void main(){ tint=color; fade=alpha; vec4 p=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*p; gl_PointSize=alpha>0.?clamp(pixelHeight*2.6/max(1.,-p.z),1.,18.):0.; }',
+-      fragmentShader:'varying vec3 tint; varying float fade; void main(){float r=length(gl_PointCoord-.5)*2.; if(r>1.||fade<=0.)discard; gl_FragColor=vec4(tint,fade*(1.-smoothstep(.3,1.,r)));\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}'
++      vertexShader:'attribute float alpha; attribute float particleSize; attribute float shape; varying vec3 tint; varying float fade; varying float kind; uniform float pixelHeight; void main(){ tint=color; fade=alpha; kind=shape; vec4 p=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*p; gl_PointSize=alpha>0.?clamp(pixelHeight*particleSize/max(1.,-p.z),1.,32.):0.; }',
++      fragmentShader:'varying vec3 tint; varying float fade; varying float kind; void main(){ vec2 uv=gl_PointCoord-.5; float r=length(uv)*2.; if(r>1.||fade<=0.)discard; float edge=1.-smoothstep(.3,1.,r); if(kind>.5&&kind<1.5)edge=exp(-r*r*4.)*(1.-smoothstep(.75,1.,r))*.65; else if(kind>3.5){float a=fract(kind)*6.28318; vec2 q=mat2(cos(a),-sin(a),sin(a),cos(a))*uv; edge=(1.-smoothstep(.06,.12,abs(q.x)))*(1.-smoothstep(.3,.45,abs(q.y)));} else if(kind>1.5&&kind<2.5){float a=fract(kind)*12.56636; vec2 q=mat2(cos(a),-sin(a),sin(a),cos(a))*uv; edge=(1.-smoothstep(.025,.09,abs(q.x)))*(1.-smoothstep(.2,.5,abs(q.y)));} else if(kind>2.5)edge=1.-smoothstep(.55,1.,r); gl_FragColor=vec4(tint,fade*edge);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}'
+     });
+-    this.points=new THREE.Points(this.geometry,this.material);this.points.name='Combat impact pool';this.points.frustumCulled=false;scene.add(this.points);
+-    this.color=new THREE.Color();
++    this.points=new THREE.Points(this.geometry,this.material);this.points.name='Combat impact pool';this.points.frustumCulled=false;this.points.visible=false;scene.add(this.points);
++    this.color=new THREE.Color();this.axis=new THREE.Vector3();this.tangent=new THREE.Vector3();this.bitangent=new THREE.Vector3();this.launch=new THREE.Vector3();
+   }
+-  emit(position,color=0x9e3023,count=7){
++  emit(position,color=0x9e3023,count=7,options={}){
++    if(!finiteVector(position)||!Number.isFinite(count)||count<=0)return 0;
++    const kind=Object.hasOwn(profiles,options.kind)?options.kind:'debris',profile=profiles[kind],nParticles=Math.min(Math.floor(count),this.capacity);
+     this.color.setHex(color);
+-    for(let n=0;n<Math.min(count,this.capacity);n++){
++    const directed=finiteVector(options.normal)||finiteVector(options.direction);
++    this.axis.set(0,1,0);
++    if(finiteVector(options.normal))this.axis.copy(options.normal);
++    else if(finiteVector(options.direction))this.axis.copy(options.direction).negate();
++    if(this.axis.lengthSq()<1e-8)this.axis.set(0,1,0);this.axis.normalize();
++    this.tangent.set(Math.abs(this.axis.y)<.9?0:1,Math.abs(this.axis.y)<.9?1:0,0).cross(this.axis).normalize();
++    this.bitangent.crossVectors(this.axis,this.tangent);
++    for(let n=0;n<nParticles;n++){
+       const i=this.cursor++%this.capacity,k=i*3;
+-      this.positions.set([position.x,position.y,position.z],k);this.colors.set([this.color.r,this.color.g,this.color.b],k);
+-      this.velocity.set([(Math.random()-.5)*110,Math.random()*95,(Math.random()-.5)*110],k);
+-      this.duration[i]=this.life[i]=.4+Math.random()*.35;this.opacity[i]=1;
++      this.positions.set([position.x+(directed?this.axis.x*.6:0),position.y+(directed?this.axis.y*.6:0),position.z+(directed?this.axis.z*.6:0)],k);
++      const tint=profile.tint??1;this.colors.set([this.color.r*tint,this.color.g*tint,this.color.b*tint],k);
++      if(directed){
++        const angle=this.random()*Math.PI*2,spread=Math.sqrt(this.random())*.85;
++        this.launch.copy(this.axis).multiplyScalar(.5+this.random()*.5).addScaledVector(this.tangent,Math.cos(angle)*spread).addScaledVector(this.bitangent,Math.sin(angle)*spread).normalize().multiplyScalar(profile.speed*(.45+this.random()*.55));
++        this.velocity.set([this.launch.x,this.launch.y,this.launch.z],k);
++      }else this.velocity.set([(this.random()-.5)*profile.speed,this.random()*profile.up,(this.random()-.5)*profile.speed],k);
++      this.duration[i]=this.life[i]=profile.life+this.random()*profile.variation;this.opacity[i]=1;
++      this.baseSizes[i]=this.sizes[i]=profile.size*(.7+this.random()*.6);this.shapes[i]=profile.shape+([2,4].includes(profile.shape)?this.random()*.49:0);this.gravity[i]=profile.gravity;this.drag[i]=profile.drag;
+     }
++    this.emitted+=nParticles;this.byKind[kind]=(this.byKind[kind]??0)+nParticles;
++    this.lastEmission={kind,count:nParticles,position:[position.x,position.y,position.z],normal:directed?this.axis.toArray():null};
++    for(const attribute of Object.values(this.geometry.attributes))attribute.needsUpdate=true;
++    return nParticles;
+   }
+   update(dt,pixelHeight){
+-    this.active=0;this.material.uniforms.pixelHeight.value=pixelHeight;
++    dt=Number.isFinite(dt)?Math.max(0,dt):0;
++    if(Number.isFinite(pixelHeight)&&pixelHeight>0)this.material.uniforms.pixelHeight.value=pixelHeight;
++    this.active=0;
+     for(let i=0;i<this.capacity;i++){
+-      if(this.life[i]<=0)continue;this.life[i]=Math.max(0,this.life[i]-dt);this.opacity[i]=this.life[i]/this.duration[i];
+-      if(!this.life[i])continue;this.active++;const k=i*3;this.velocity[k+1]-=200*dt;
+-      for(let a=0;a<3;a++)this.positions[k+a]+=this.velocity[k+a]*dt;
++      if(this.life[i]<=0)continue;
++      const elapsed=Math.min(dt,this.life[i]),k=i*3,drag=this.drag[i],gravity=this.gravity[i];
++      // Analytic constant gravity + linear drag avoids a different trajectory
++      // at low frame rates. A zero simulation step changes no particle state.
++      if(elapsed>0){
++        const decay=Math.exp(-drag*elapsed),travel=drag>0?(1-decay)/drag:elapsed;
++        for(let a=0;a<3;a++){
++          const acceleration=a===1?-gravity:0;
++          this.positions[k+a]+=this.velocity[k+a]*travel+(drag>0?acceleration/drag*(elapsed-travel):.5*acceleration*elapsed*elapsed);
++          this.velocity[k+a]=this.velocity[k+a]*decay+acceleration*travel;
++        }
++        this.life[i]=Math.max(0,this.life[i]-elapsed);this.opacity[i]=this.life[i]/this.duration[i];
++        this.sizes[i]=this.baseSizes[i]*(this.shapes[i]===1?1+(1-this.opacity[i])*.8:1);
++      }
++      if(this.life[i]>0)this.active++;
+     }
+-    for(const a of Object.values(this.geometry.attributes))a.needsUpdate=true;
++    for(const name of ['position','alpha','particleSize'])this.geometry.attributes[name].needsUpdate=true;
+     this.points.visible=this.active>0;
+   }
+-  reset(){this.life.fill(0);this.opacity.fill(0);this.cursor=0;this.active=0;this.points.visible=false;this.geometry.attributes.alpha.needsUpdate=true;}
+-  snapshot(){return {active:this.active,capacity:this.capacity,drawCalls:this.points.visible?1:0};}
++  reset(){this.life.fill(0);this.opacity.fill(0);this.cursor=0;this.active=0;this.emitted=0;this.byKind={};this.lastEmission=null;this.points.visible=false;this.geometry.attributes.alpha.needsUpdate=true;}
++  snapshot(){return {active:this.active,capacity:this.capacity,drawCalls:this.points.visible?1:0,emitted:this.emitted,byKind:{...this.byKind},lastEmission:this.lastEmission};}
+ }
+--- v1.3/export/web/enemies.js
++++ v1.4/export/web/enemies.js
+@@ -4,9 +4,23 @@
+ import { zombieHealth } from './rules.js';
+ import { disposeSkeletons } from './runtime-assets.js';
+ 
++// Keep the established one-hit .53s windup / 1.15s cycle. Retiming the native
++// pose around its first authored impact avoids cutting a 1.8s zombie swing
++// off halfway through, without adding its second notetrack hit to gameplay.
++export function attackClipTime(clip,elapsed){
++  const duration=clip?.duration>0?clip.duration:1.15,marker=clip?.notifies?.find(n=>['fire','dog_melee'].includes(n.name)&&n.time>0&&n.time<duration)?.time??duration*.53/1.15;
++  const t=Math.max(0,Math.min(1.15,elapsed));return t<=.53?marker*t/.53:marker+(duration-marker)*(t-.53)/.62;
++}
++export function isEnemyFootstep(name){return name==='sndnt#fly_step_zombie'||/^sndnt#fly_step_quad_[lr]$/.test(name)||/^dogstep_[lr][fr]$/.test(name);}
++
+ export class Enemies {
+   constructor(scene,world,data,session,{damage,kill,hit,sound}){Object.assign(this,{scene,world,data,session,onDamage:damage,onKill:kill,onHit:hit,onSound:sound});this.list=[];this.dead=[];this.nextSpawn=0;this.serial=0;this.templates=[];this.anims={};}
+-  emitSound(z,event){this.onSound?.(event,z.root.position,{id:z.id,kind:z.kind,time:this.session.time,speed:z.speed,cause:z.deathCause});}
++  emitSound(z,event,details={}){this.onSound?.(event,z.root.position,{id:z.id,kind:z.kind,time:this.session.time,speed:z.speed,cause:z.deathCause,...details});}
++  footstep(z,name,key){
++    if(key!=='walk'||z.state!=='chase'||!isEnemyFootstep(name)||z.stepCooldown>0||!this.listenerPosition||z.root.position.distanceTo(this.listenerPosition)>500||z.root.position.distanceToSquared(z.lastStepPosition)<4)return;
++    z.stepCooldown=.11;z.lastStepPosition.copy(z.root.position);
++    this.emitSound(z,'step',{surface:this.world.surfaceAt?.(z.root.position)??'concrete',notify:name});
++  }
+   async load(){
+     const chars=this.data.characters;
+     this.templates=await Promise.all(['c_ger_honorguard_body1','c_ger_honorguard_body2'].map(k=>loadModel(chars[k])));
+@@ -39,11 +53,12 @@
+     rig.play('walk');rig.update(.01);
+     root.traverse(o=>{if(o.isMesh)o.frustumCulled=false;});
+     const z={id,kind,root,rig,speed,health:kind==='dog'?([400,900,1300,1600][Math.min(3,Math.max(0,this.session.dogRounds-1))]):zombieHealth(round,this.data.rules),state:barrier?'barricade':'chase',barrier,path:[],pathIndex:0,repath:0,attackLeft:0,attackDealt:false,tearLeft:1.1,stuck:0,lastPosition:root.position.clone(),growl:3+id%7};
++    z.stepCooldown=0;z.lastStepPosition=root.position.clone();rig.onNotify=(name,key)=>this.footstep(z,name,key);
+     if(kind==='nova')z.health=Math.trunc(z.health*.75);
+     z.maxHealth=z.health;z.soundUpdate=0;this.list.push(z);this.session.spawned++;this.emitSound(z,'spawn');return z;
+   }
+   update(dt,player){
+-    const s=this.session;
++    const s=this.session;this.listenerPosition=player;
+     if(this.autoSpawn!==false&&s.phase==='fighting'&&s.spawned<s.total&&this.list.length<24){
+       this.nextSpawn-=dt;
+       if(this.nextSpawn<=0){
+@@ -57,7 +72,11 @@
+       }
+     }
+     for(const z of [...this.list]){
+-      z.rig.update(dt);z.growl-=dt;
++      z.stepCooldown=Math.max(0,z.stepCooldown-dt);
++      if(z.state==='attack'){
++        const before=1.15-z.attackLeft,clip=z.rig.data.attack;z.rig.update(attackClipTime(clip,before+dt)-attackClipTime(clip,before));
++      }else z.rig.update(dt);
++      z.growl-=dt;
+       z.soundUpdate-=dt;if(z.soundUpdate<=0){this.emitSound(z,'update');z.soundUpdate=.1;}
+       if(z.growl<0){const event=z.kind==='dog'?(z.root.position.distanceTo(player)>320?'ambient':'sprint'):z.speed>110?'sprint':'ambient';this.emitSound(z,event);z.growl=4+s.random()*5;}
+       if(z.state==='barricade'){
+@@ -79,6 +98,10 @@
+         if(z.attackLeft<=0){z.state='chase';z.rig.play('walk');}continue;
+       }
+       if(!lure&&dist<62&&Math.abs(z.root.position.y-player.y)<50&&s.phase!=='reviving'&&this.world.lineClear(at,eye)){
++        // Commit toward the target once, so a close spawn or side approach
++        // cannot start a sideways swing; dodging after windup still works.
++        const dx=player.x-z.root.position.x,dz=player.z-z.root.position.z;
++        if(Math.hypot(dx,dz)>.001)z.root.rotation.y=Math.atan2(-dz,dx);
+         z.state='attack';z.attackLeft=1.15;z.attackDealt=false;z.rig.play('attack',false);this.emitSound(z,'attack');continue;
+       }
+       z.repath-=dt;
+@@ -126,5 +149,5 @@
+   headPosition(z){z.root.updateMatrixWorld(true);const bone=z.root.getObjectByName('j_head');return bone?bone.getWorldPosition(new THREE.Vector3()):z.root.position.clone().add(new THREE.Vector3(0,z.kind==='zombie'?63:28,0));}
+   nuke(onDeath){for(const z of [...this.list]){this.list.splice(this.list.indexOf(z),1);this.session.kills++;this.session.killed++;if(z.kind==='dog')this.lastDogDeath=z.root.position.clone();z.state='dead';z.gasDeath=false;z.deathCause='nuke';z.life=3;z.rig.play('death',false);this.dead.push(z);this.emitSound(z,'death');onDeath(z);this.onKill?.(z);}}
+   reset(){this.onSound?.('reset',null,{time:this.session.time});for(const z of [...this.list,...this.dead]){z.root.removeFromParent();z.rig.mixer.uncacheRoot(z.root);disposeSkeletons(z.root);}this.list=[];this.dead=[];this.nextSpawn=0;this.lastDogDeath=null;}
+-  snapshot(){return this.list.map(z=>({id:z.id,kind:z.kind,health:z.health,state:z.state,position:z.root.position.toArray(),pathLength:z.path.length,animation:z.rig.current}));}
++  snapshot(){return this.list.map(z=>({id:z.id,kind:z.kind,health:z.health,state:z.state,position:z.root.position.toArray(),pathLength:z.path.length,animation:z.rig.current,attackElapsed:z.state==='attack'?1.15-z.attackLeft:null,attackPoseTime:z.state==='attack'?z.rig.actions.attack?.time??0:null}));}
+ }
+--- v1.3/export/web/enemy-audio.js
++++ v1.4/export/web/enemy-audio.js
+@@ -1,25 +1,35 @@
+ // Community recording families follow pinned NZ:P zombie_core/dog_core usage.
+ // Nova's higher-pitched crawler-family adaptation is explicitly approximate.
++import { surfaceFromMaterial } from './audio-surfaces.js';
+ const prefix='enemy/nzp/';
+ const families={
+   zombie:{ambient:['zombie/w','zombie/t'],sprint:['zombie/r'],attack:['zombie/a'],teardown:['zombie/t'],behind:['zombie/r'],death:['zombie/d'],spawn:['zombie/w']},
+   nova:{ambient:['zombie/t'],sprint:['zombie/t'],attack:['zombie/a'],teardown:['zombie/t'],behind:['zombie/r'],death:['zombie/d'],spawn:['zombie/t']},
+   dog:{ambient:['@dog'],sprint:['hound/t'],attack:['hound/a'],behind:['hound/t'],death:['hound/d'],spawn:['hound/t']},
+ };
+-const priorities={ambient:0,sprint:0,spawn:0,teardown:1,barrier:1,behind:2,attack:2,death:3};
++const priorities={ambient:0,sprint:0,spawn:0,step:0,teardown:1,barrier:1,behind:2,attack:2,death:3};
+ const toArray=p=>Array.isArray(p)?p.slice():p&&[p.x,p.y,p.z];
+ 
+ export function enemyCueKeys(manifest,kind,event){
+   const bank=event==='barrier'?['barrier/barricade_destroy']:families[kind]?.[event]??[];
+   return Object.keys(manifest).filter(key=>bank.some(p=>p.startsWith('@')?key===p.slice(1):key.startsWith(prefix+p)));
+ }
++export function enemyFootstepKeys(manifest,surface,speed=0){
++  const material=surfaceFromMaterial(surface),gaits=speed>110?['sprint','run','walk']:['walk','run'];
++  for(const gait of gaits){const keys=Object.keys(manifest).filter(k=>k.startsWith('shared/fly/footsteps/'+gait+'/'+material+'/'));if(keys.length)return keys;}
++  return Object.keys(manifest).filter(k=>k.startsWith('shared/fly/footsteps/walk/concrete/'));
++}
+ 
+ export class EnemyAudio {
+-  constructor(audio,{random=Math.random,maxVoices=10}={}){this.audio=audio;this.random=random;this.maxVoices=maxVoices;this.entries=new Map();this.cooldowns=new Map();this.last=new Map();this.behindAt=0;this.accepted=0;this.suppressed=0;}
++  constructor(audio,{random=Math.random,maxVoices=10}={}){this.audio=audio;this.random=random;this.maxVoices=maxVoices;this.entries=new Map();this.cooldowns=new Map();this.last=new Map();this.stepBanks=new Map();this.behindAt=0;this.accepted=0;this.suppressed=0;this.occlusionChecks=0;}
+   stop(entry){entry.controller.abort();this.audio.stopSource(entry.source);if(this.entries.get(entry.slot)===entry)this.entries.delete(entry.slot);}
+   prune(){for(const entry of this.entries.values())if(entry.source&&!this.audio.sourceVoices.has(entry.source))this.entries.delete(entry.slot);}
+   remove(id){for(const entry of [...this.entries.values()])if(entry.id===id)this.stop(entry);for(const key of this.cooldowns.keys())if(key.startsWith(id+':'))this.cooldowns.delete(key);}
+-  reset(){for(const entry of [...this.entries.values()])this.stop(entry);this.cooldowns.clear();this.last.clear();this.behindAt=0;this.accepted=this.suppressed=0;}
++  reset(){for(const entry of [...this.entries.values()])this.stop(entry);this.cooldowns.clear();this.last.clear();this.behindAt=0;this.accepted=this.suppressed=this.occlusionChecks=0;}
++  acoustics(entry,force=false){
++    const now=this.audio.ctx?.currentTime??0;if(!force&&now<entry.acousticAt)return;
++    entry.acousticAt=now+.2;entry.occlusion=this.audio.occlusionAt(entry.position);this.occlusionChecks++;this.audio.setSourceOcclusion(entry.source,entry.occlusion);
++  }
+   emit(event,position,meta={}){
+     if(event==='reset'){this.reset();return false;}
+     if(event==='remove'){this.remove(meta.id);return false;}
+@@ -27,25 +37,28 @@
+     if(!Number.isFinite(id)||p?.length!==3||!p.every(Number.isFinite))return false;
+     this.prune();
+     const height=kind==='zombie'?48:kind==='dog'?23:20;
+-    if(event==='update'){for(const entry of this.entries.values())if(entry.id===id){const at=p.slice();at[1]+=entry.event==='barrier'?25:height;entry.position=at;audio.moveSource(entry.source,at);}return false;}
+-    p[1]+=event==='barrier'?25:height;
++    if(event==='update'){for(const entry of this.entries.values())if(entry.id===id){const at=p.slice();at[1]+=entry.event==='barrier'?25:entry.event==='step'?4:height;entry.position=at;audio.moveSource(entry.source,at);this.acoustics(entry);}return false;}
++    p[1]+=event==='barrier'?25:event==='step'?4:height;
+     if(!audio.ctx||audio.paused||!audio.enabled||!audio.acceptPlayback||audio.mix.effects===0||audio.mix.master===0)return false;
+     const now=audio.ctx.currentTime,listener=audio.listenerState;
+     const distance=listener?Math.hypot(...p.map((n,i)=>n-listener.position[i])):0;
+-    if(distance>(['ambient','sprint','spawn'].includes(event)?950:1400)){this.suppressed++;return false;}
++    if(distance>(event==='step'?500:['ambient','sprint','spawn'].includes(event)?950:1400)){this.suppressed++;return false;}
+     if(event==='ambient'&&listener&&kind!=='dog'&&distance<220&&distance>1&&now>=this.behindAt){
+       const direction=p.map((n,i)=>(n-listener.position[i])/distance);
+       if(direction.reduce((n,v,i)=>n+v*listener.forward[i],0)<-.087)event='behind';
+     }
+-    const slot=id+(event==='barrier'?':barrier':':vocal'),priority=priorities[event];
++    const slot=id+(event==='barrier'?':barrier':event==='step'?':step':':vocal'),priority=priorities[event];
+     if(priority===undefined)return false;
+     const cooldown=id+':'+event;
+     if(now<(this.cooldowns.get(cooldown)??0)){this.suppressed++;return false;}
+     const previous=this.entries.get(slot);
+     if(previous&&(previous.priority>priority||priority<=1&&previous.priority===priority)){this.suppressed++;return false;}
+-    const keys=enemyCueKeys(audio.manifest,kind,event),bank=kind+':'+event,last=this.last.get(bank),choices=keys.length>1?keys.filter(k=>k!==last):keys;
++    const stepBank=surfaceFromMaterial(meta.surface)+':'+(meta.speed>110?'sprint':'walk');
++    if(event==='step'&&!this.stepBanks.has(stepBank))this.stepBanks.set(stepBank,enemyFootstepKeys(audio.manifest,meta.surface,meta.speed));
++    const keys=event==='step'?this.stepBanks.get(stepBank):enemyCueKeys(audio.manifest,kind,event),bank=kind+':'+event+(event==='step'?':'+stepBank:''),last=this.last.get(bank),choices=keys.length>1?keys.filter(k=>k!==last):keys;
+     const key=choices[Math.min(choices.length-1,Math.floor(this.random()*choices.length))];if(!key)return false;
+     if(previous)this.stop(previous);
++    if(event==='step'&&[...this.entries.values()].filter(e=>e.event==='step').length>=3){this.suppressed++;return false;}
+     // Creature voices cannot fill the general effects ceiling or steal the
+     // final eight slots needed by movement, weapons and interaction feedback.
+     const pending=[...this.entries.values()].filter(e=>!e.source).length;
+@@ -53,20 +66,21 @@
+       const lower=[...this.entries.values()].filter(e=>e.priority<priority).sort((a,b)=>a.priority-b.priority||a.started-b.started)[0];
+       if(lower)this.stop(lower);else{this.suppressed++;return false;}
+     }
+-    const playbackRate=kind==='nova'?(event==='death'?1.18:1.25):1;
+-    const volume=event==='barrier'?.3:event==='ambient'?.38:event==='death'?.62:kind==='dog'?.63:.58;
++    const playbackRate=event==='step'?1:kind==='nova'?(event==='death'?1.18:1.25):1;
++    const volume=event==='step'?(kind==='zombie'?.26:.2):event==='barrier'?.3:event==='ambient'?.38:event==='death'?.62:kind==='dog'?.63:.58;
+     const entry={slot,id,kind,event,key,priority,position:p,started:now,controller:new AbortController(),source:null};
+-    this.entries.set(slot,entry);this.last.set(bank,key);this.cooldowns.set(cooldown,now+({attack:.55,death:3,barrier:.7,teardown:2,behind:5}[event]??2));this.accepted++;
++    this.acoustics(entry,true);
++    this.entries.set(slot,entry);this.last.set(bank,key);this.cooldowns.set(cooldown,now+({step:.11,attack:.55,death:3,barrier:.7,teardown:2,behind:5}[event]??2));this.accepted++;
+     if(event==='behind')this.behindAt=now+5;
+-    audio.native(key,volume,false,{position:p,signal:entry.controller.signal,playbackRate,shouldStart:()=>{
++    audio.native(key,volume,false,{position:p,occlusion:entry.occlusion,signal:entry.controller.signal,playbackRate,shouldStart:()=>{
+       // General effects can arrive while a recording decodes. Recheck here so
+       // completing creature requests never evict weapon or movement feedback.
+       if(audio.voices.size>=Math.max(1,audio.maxVoices-8)){this.suppressed++;return false;}return true;
+-    },event:{enemyId:id,enemyKind:kind,enemyEvent:event,playbackRate}}).then(source=>{
++    },event:{enemyId:id,enemyKind:kind,enemyEvent:event,playbackRate,occluded:entry.occlusion>0,...(event==='step'?{adaptation:'shared-native-surface-footfall',surface:surfaceFromMaterial(meta.surface)}:{})}}).then(source=>{
+       if(entry.controller.signal.aborted||this.entries.get(slot)!==entry){audio.stopSource(source);return;}
+-      entry.source=source;audio.moveSource(source,entry.position);this.prune();
++      entry.source=source;audio.moveSource(source,entry.position);audio.setSourceOcclusion(source,entry.occlusion);this.prune();
+     }).catch(error=>{this.stop(entry);console.error(error);});
+     return key;
+   }
+-  snapshot(){this.prune();return {active:this.entries.size,maxVoices:this.maxVoices,accepted:this.accepted,suppressed:this.suppressed,voices:[...this.entries.values()].map(e=>({id:e.id,kind:e.kind,event:e.event,key:e.key,pending:!e.source,position:e.position.slice()}))};}
++  snapshot(){this.prune();return {active:this.entries.size,maxVoices:this.maxVoices,footstepVoices:[...this.entries.values()].filter(e=>e.event==='step').length,accepted:this.accepted,suppressed:this.suppressed,occlusionChecks:this.occlusionChecks,voices:[...this.entries.values()].map(e=>({id:e.id,kind:e.kind,event:e.event,key:e.key,pending:!e.source,occluded:e.occlusion>0,position:e.position.slice()}))};}
+ }
+--- v1.3/export/web/game.js
++++ v1.4/export/web/game.js
+@@ -124,8 +124,8 @@
+     try{const best=Math.max(session.round,+(localStorage.getItem('kino.best')||0));localStorage.setItem('kino.best',String(best));}catch{}
+   }else if(session.phase==='reviving')announce('A second chance','QUICK REVIVE',4);
+ }
+-function effect(position,color=0x9e3023,count=7){combatParticles.emit(position,color,count);}
+-function hit(z,head){hitUntil=session.time+.12;$('hitmarker').style.color=head?'#db5140':'#eee';effect(head?enemies.headPosition(z):z.root.position.clone().add(new THREE.Vector3(0,z.kind==='zombie'?42:25,0)));}
++function effect(position,color=0x9e3023,count=7,options){combatParticles.emit(position,color,count,options);}
++function hit(z,head){hitUntil=session.time+.12;$('hitmarker').style.color=head?'#db5140':'#eee';const point=head?enemies.headPosition(z):z.root.position.clone().add(new THREE.Vector3(0,z.kind==='zombie'?42:25,0));effect(point,0x9e3023,7,{kind:'blood',direction:point.clone().sub(camera.position).normalize()});}
+ function kill(z,force,position){
+   if(z?.gasDeath){
+     const mesh=new THREE.Mesh(new THREE.SphereGeometry(75,12,8),new THREE.MeshBasicMaterial({color:0x8ca345,transparent:true,opacity:.14,depthWrite:false}));
+@@ -156,7 +156,7 @@
+   const forward=camera.getWorldDirection(new THREE.Vector3());
+   if(session.weapon.id==='thundergun_zm'){
+     for(const z of [...enemies.list]){const d=z.root.position.clone().add(new THREE.Vector3(0,40,0)).sub(camera.position);if(d.length()<600&&d.normalize().dot(forward)>.65&&world.lineClear(camera.position,z.root.position.clone().add(new THREE.Vector3(0,40,0))))enemies.hurt(z,100000,false,false,'thunder');}
+-    effect(camera.position.clone().addScaledVector(forward,100),0xb9d8e5,22);audio.impact('thundergun',camera.position.clone().addScaledVector(forward,100),.4);return true;
++    effect(camera.position.clone().addScaledVector(forward,100),0xb9d8e5,22,{kind:'energy',direction:forward});audio.impact('thundergun',camera.position.clone().addScaledVector(forward,100),.4);return true;
+   }
+   if(session.def.projectileSpeed>0){features.shoot(session.def,forward);return true;}
+   const pellets=Math.max(1,session.def.pellets);
+@@ -165,10 +165,10 @@
+     const ray=new THREE.Ray(camera.position.clone(),direction),wall=world.raycast(ray,1,6000),target=enemies.rayHit(ray,wall?.distance??6000);
+     lastShot={origin:ray.origin.toArray(),direction:direction.toArray(),wallDistance:wall?.distance??null,target:target?{id:target.z.id,head:target.head,distance:target.distance}:null};
+     if(target){const d=target.distance>session.def.range?session.def.minDamage:session.def.damage;enemies.hurt(target.z,d*(target.head?Math.max(1,session.def.headMultiplier):1),target.head,false,session.def.explosionRadius?'explosion':'bullet');}
+-    else if(wall){effect(wall.position.clone().addScaledVector(forward,-2),0xb8a388,3);audio.impact('bullet',wall.position,.12);}
++    else if(wall){effect(wall.position,0xb8a388,3,{kind:['wood','metal'].includes(wall.surface)?wall.surface:'wall',normal:wall.triangle.getNormal(new THREE.Vector3())});audio.impact('bullet',wall.position,.12);}
+     if(session.def.explosionRadius&&(target||wall)){
+       const p=target?.point??wall.position,radius=session.def.explosionRadius;
+-      effect(p,session.weapon.id==='ray_gun_zm'?0x93ed62:0xffb44e,18);audio.impact(session.weapon.id==='ray_gun_zm'?'raygun':'grenade',p,.3);
++      effect(p,session.weapon.id==='ray_gun_zm'?0x93ed62:0xffb44e,18,{kind:session.weapon.id==='ray_gun_zm'?'energy':'blast'});audio.impact(session.weapon.id==='ray_gun_zm'?'raygun':'grenade',p,.3);
+       for(const z of [...enemies.list]){const d=z.root.position.distanceTo(p);if(d<radius&&world.lineClear(p.clone().addScaledVector(direction,-3),z.root.position.clone().add(new THREE.Vector3(0,25,0))))enemies.hurt(z,THREE.MathUtils.lerp(session.def.explosionInnerDamage,session.def.explosionOuterDamage,d/radius),false,false,'explosion');}
+       const distance=player.getFeetPosition().distanceTo(p);if(distance<radius)damage(100*(1-distance/radius));
+     }
+@@ -197,7 +197,7 @@
+   if(session.phase==='reviving'||session.phase==='gameover')return;
+   const nearest=meleeTarget();
+   if(nearest){enemies.hurt(nearest,strike.damage,false,true);audio.knife('hit',strike.bowie);}
+-  else {const ray=new THREE.Ray(camera.position.clone(),camera.getWorldDirection(new THREE.Vector3())),wall=world.raycast(ray,0,94);if(wall){audio.knife('wall');effect(wall.position,0xb8a388,3);}}
++  else {const ray=new THREE.Ray(camera.position.clone(),camera.getWorldDirection(new THREE.Vector3())),wall=world.raycast(ray,0,94);if(wall){audio.knife('wall');effect(wall.position,0xb8a388,3,{kind:['wood','metal'].includes(wall.surface)?wall.surface:'wall',normal:wall.triangle.getNormal(new THREE.Vector3())});}}
+ }
+ function throwGrenade(){
+   if(!active||session.grenades<=0||session.busy||features.events.room)return false;session.grenades--;
+@@ -322,7 +322,7 @@
+         }
+         airborneTime=0;airbornePeak=newFeet.y;
+       }
+-      view.update(dt,{moving,sprint,ads:ads&&!session.def.dualWield,reloading:session.reloadLeft>0,empty:session.weapon.mag<(session.def.dualWield?2:1),time:session.time});
++      view.update(dt,{moving,sprint,speed:dt>0?Math.hypot(newFeet.x-oldFeet.x,newFeet.z-oldFeet.z)/dt:0,grounded:player.isGrounded,ads:ads&&!session.def.dualWield,reloading:session.reloadLeft>0,empty:session.weapon.mag<(session.def.dualWield?2:1),time:session.time});
+       view.pivot.visible=!session.weaponUnavailable&&!features.events.room;
+       perkDrink.update(dt,session);world.syncMachines(session);
+       if(!sprint&&session.phase!=='reviving'&&(primaryPressed||(primary&&session.def.automatic)||burstLeft>0||reloadShot)){
+@@ -357,7 +357,7 @@
+       for(const g of [...grenades]){
+         g.life-=dt;g.velocity.y-=650*dt;const travel=g.velocity.clone().multiplyScalar(dt),ray=new THREE.Ray(g.mesh.position.clone(),travel.clone().normalize()),hit=world.raycast(ray,0,travel.length()+4);
+         if(hit){g.velocity.y=Math.abs(g.velocity.y)*.4;g.velocity.x*=-.4;g.velocity.z*=-.4;}else g.mesh.position.add(travel);
+-        if(g.life<=0){effect(g.mesh.position,0xffb347,30);audio.impact('grenade',g.mesh.position,.65);for(const z of [...enemies.list]){const d=z.root.position.distanceTo(g.mesh.position);if(d<300&&world.lineClear(g.mesh.position,z.root.position.clone().add(new THREE.Vector3(0,30,0))))enemies.hurt(z,Math.max(75,1500*(1-d/300)),false,false,'explosion');}const d=camera.position.distanceTo(g.mesh.position);if(d<160)damage(180*(1-d/160));g.mesh.removeFromParent();g.mesh.geometry.dispose();g.mesh.material.dispose();grenades.splice(grenades.indexOf(g),1);}
++        if(g.life<=0){effect(g.mesh.position,0xffb347,30,{kind:'blast'});audio.impact('grenade',g.mesh.position,.65);for(const z of [...enemies.list]){const d=z.root.position.distanceTo(g.mesh.position);if(d<300&&world.lineClear(g.mesh.position,z.root.position.clone().add(new THREE.Vector3(0,30,0))))enemies.hurt(z,Math.max(75,1500*(1-d/300)),false,false,'explosion');}const d=camera.position.distanceTo(g.mesh.position);if(d<160)damage(180*(1-d/160));g.mesh.removeFromParent();g.mesh.geometry.dispose();g.mesh.material.dispose();grenades.splice(grenades.indexOf(g),1);}
+       }
+       combatParticles.update(dt,innerHeight*renderer.getPixelRatio());
+     }
+@@ -419,7 +419,7 @@
+   setRound:n=>{enemies.reset();while(session.round<n)session.nextRound();session.countdown=0;session.spawned=0;session.killed=0;},
+ });
+ try{
+-  progress('Loading game data',5);data=await fetch('game-data.json').then(r=>r.json());session=new Session(data,Math.random,{profile:settings.profile});theaterLighting=new TheaterLighting(scene,data);theaterAtmosphere=new TheaterAtmosphere(scene,data);world=new World(scene,data);await world.load(progress);theaterLighting.bind(world);
++  progress('Loading game data',5);data=await fetch('game-data.json').then(r=>r.json());session=new Session(data,Math.random,{profile:settings.profile});theaterLighting=new TheaterLighting(scene,data);theaterAtmosphere=new TheaterAtmosphere(scene,data);world=new World(scene,data);await world.load(progress);audio.setOcclusionTest((listener,source)=>world.lineClear(vector(listener),vector(source)));theaterLighting.bind(world);
+   spawn=data.entities.find(e=>e.targetname==='initial_spawn_points'&&e.script_int==='1');
+   player=new PlayerController(camera,world.physics,{spawn:vector(spawn.position),spawnIsEye:false,radius:14,height:70,eyeHeight:60,moveSpeed:190,sprintSpeed:285,crouchSpeed:95,gravity:800,jumpHeight:39,fallResetY:-800,maxSubSteps:12,groundSnapSpeed:10});
+   camera.rotation.set(0,spawn.yaw-Math.PI/2,0);world.setDoors(session);
+--- v1.3/export/web/theater-daylight.json
++++ v1.4/export/web/theater-daylight.json
+@@ -27,11 +27,11 @@
+     "opticalPolicy": "daylight-geometry.mjs; glazings .48/.32/.18, structural PNG alpha retained, nonstructural decals and sky excluded; static world shell only"
+   },
+   "opticalGeometry": {
+-    "triangles": 315418,
+-    "opaqueTriangles": 310601,
++    "triangles": 313831,
++    "opaqueTriangles": 309014,
+     "cutoutTriangles": 3237,
+     "glassTriangles": 1580,
+-    "skippedTriangles": 4348,
++    "skippedTriangles": 5935,
+     "alphaTextures": 9,
+     "unsupportedTextures": [],
+     "scope": "Native world_shell only; static prop shadows remain a separate collision/prop test."
+--- v1.3/export/web/theater-dressing.js
++++ v1.4/export/web/theater-dressing.js
+@@ -0,0 +1,123 @@
++import * as THREE from 'three';
++
++const softDecal = /^wc\/(?:glo_dec_blood_|eb_ter_trashpile_blend)/;
++export const nativeMultiplyDecalNames = Object.freeze([
++  'wc/decal_burn_scortch', 'wc/decal_burntstain_01', 'wc/decal_burntstain_02',
++  'wc/decal_darkstain_02', 'wc/decal_darkstain_04', 'wc/decal_darkstain_07',
++  'wc/decal_grime_blotchy', 'wc/decal_grime_drip', 'wc/decal_lightstain_03', 'wc/decal_wall_fillet',
++]);
++const multiplyDecals = new Set(nativeMultiplyDecalNames);
++function sourceName(material) { return material?.userData?.sourceMaterialNames?.[0] || material?.name || ''; }
++function visibleStatic(mesh) {
++  if (!mesh.isMesh || mesh.isSkinnedMesh) return false;
++  for (let p = mesh; p; p = p.parent) if (!p.visible || p.userData.dynamicBrush || p.userData.collisionOnly) return false;
++  return true;
++}
++export function softenNativeDecal(material) {
++  const shade = material.clone();
++  shade.transparent = true; shade.alphaTest = .012; shade.depthWrite = false;
++  shade.polygonOffset = true; shade.polygonOffsetFactor = -1; shade.polygonOffsetUnits = -1;
++  shade.forceSinglePass = true; shade.userData = { ...material.userData, restoredNativeDecal: true };
++  shade.needsUpdate = true;
++  return shade;
++}
++export function restoreMultiplyDecal(material) {
++  // This native RGB texture stores attenuation with an opaque white neutral
++  // background. Lighting/AO, tone mapping and fog would darken that neutral
++  // white and expose the projected triangle borders. Multiply the already-lit
++  // scene directly, preserving the original UVs and depth-tested surface shape.
++  const shade = new THREE.MeshBasicMaterial({ map: material.map, color: 0xffffff,
++    blending: THREE.MultiplyBlending, transparent: true, premultipliedAlpha: true, opacity: 1,
++    depthTest: true, depthWrite: false, side: THREE.DoubleSide,
++    forceSinglePass: true, toneMapped: false, fog: false,
++    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
++  shade.name = material.name; shade.userData = { ...material.userData, restoredMultiplyDecal: true };
++  return shade;
++}
++function withoutBakedLight(source) {
++  const geometry = new THREE.BufferGeometry();
++  for (const [name, attribute] of Object.entries(source.attributes)) if (!['kinoBaseLight', 'kinoPowerLight', 'kinoSolarLight', 'color'].includes(name)) geometry.setAttribute(name, attribute);
++  geometry.setIndex(source.index); geometry.groups = source.groups.map(g => ({ ...g }));
++  geometry.setDrawRange(source.drawRange.start, source.drawRange.count);
++  geometry.boundingBox = source.boundingBox?.clone() || null; geometry.boundingSphere = source.boundingSphere?.clone() || null;
++  geometry.name = source.name; geometry.userData = { restoredMultiplyDecal: true };
++  return geometry;
++}
++export function interpolateSourceAttribute(attribute, indices, weights, fallback = [0, 0, 0]) {
++  if (!attribute) return fallback;
++  return [0, 1, 2].map(channel => indices.reduce((sum, at, j) => sum + attribute.getComponent(at, channel) * weights[j], 0));
++}
++
++/** Soft native authored decals + bounded reconstructed overlays. Call after
++ * prepareTheaterLightField and before batching/lightfield.install. Floor source
++ * attributes are interpolated on the same triangles, including baked sunlight.
++ * No geometry or material shared with dynamic/hidden objects is mutated.
++ */
++export async function restoreTheaterDressing(root, scene, data, {
++  manager, manifest, manifestUrl = 'theater-dressing.json', loadTexture,
++} = {}) {
++  if (root.userData.theaterDressing) return root.userData.theaterDressing;
++  manifest ??= await fetch(manifestUrl).then(r => { if (!r.ok) throw Error('Theater dressing: ' + r.status); return r.json(); });
++  if (manifest.version !== 1) throw Error('Unsupported theater dressing manifest');
++  const stats = { nativeDecalMeshes: 0, nativeDecalMaterials: 0, multiplyDecalMeshes: 0, ornamentMaterials: 0, patches: 0, drawCalls: 0, triangles: 0, vertices: 0, copiedLightAttributes: [], skipped: [], source: manifest.provenance };
++  const variants = new Map(), ornaments = new Map(), sourceMeshes = new Map();
++  root.traverse(mesh => {
++    if (!visibleStatic(mesh)) return;
++    let shell = false; for (let p = mesh; p; p = p.parent) if (p.name === 'world_shell' || p.name.startsWith('world_shell_')) shell = true;
++    if (shell && !Array.isArray(mesh.material)) sourceMeshes.set(mesh.material.name, mesh);
++    if (!Array.isArray(mesh.material) && multiplyDecals.has(sourceName(mesh.material))) {
++      mesh.material = restoreMultiplyDecal(mesh.material); mesh.geometry = withoutBakedLight(mesh.geometry); mesh.renderOrder = 2; stats.multiplyDecalMeshes++; return;
++    }
++    const fix = material => {
++      if (material?.isMeshStandardMaterial && /chandelier.*:mc\/mtl_zombie_theater_chandelier_off/.test(sourceName(material)) && !material.alphaTest) {
++        // Retain the source's dielectric response: there is no reflection
++        // environment, and adding metalness would remove readable diffuse light.
++        if (!ornaments.has(material)) { const shade = material.clone(); shade.roughness = .68; shade.metalness = 0; ornaments.set(material, shade); }
++        return ornaments.get(material);
++      }
++      if (!material?.isMeshStandardMaterial || !(softDecal.test(sourceName(material)) || sourceName(material) === 'wc/decal_lightstain_01')) return material;
++      if (!variants.has(material)) variants.set(material, softenNativeDecal(material));
++      stats.nativeDecalMeshes++; return variants.get(material);
++    };
++    mesh.material = Array.isArray(mesh.material) ? mesh.material.map(fix) : fix(mesh.material);
++  });
++  stats.nativeDecalMaterials = variants.size;
++  stats.ornamentMaterials = ornaments.size;
++  const group = new THREE.Group(); group.name = 'theater_dressing';
++  const loader = loadTexture || (url => new THREE.TextureLoader(manager).loadAsync(url));
++  for (const [kind, entry] of Object.entries(manifest.textures)) {
++    const patches = manifest.patches.filter(p => p.kind === kind), positions = [], normals = [], uvs = [], colors = [];
++    const light = Object.fromEntries(['kinoBaseLight', 'kinoPowerLight', 'kinoSolarLight'].map(name => [name, []]));
++    let hasLight = false;
++    for (const patch of patches) {
++      let accepted = false;
++      for (const part of patch.parts) {
++        const source = sourceMeshes.get(part.materialName);
++        if (!source) { stats.skipped.push(patch.id + ': native floor unavailable'); continue; }
++        const attributes = source.geometry.attributes;
++        if (part.vertices.some(v => v.indices.some(i => i < 0 || i >= attributes.position.count))) throw Error('Dressing source vertex mismatch');
++        for (const vertex of part.vertices) {
++          positions.push(...vertex.position); normals.push(0, 1, 0); uvs.push(...vertex.uv);
++          colors.push(...interpolateSourceAttribute(attributes.color, vertex.indices, vertex.weights, [1, 1, 1]));
++          for (const [name, values] of Object.entries(light)) values.push(...interpolateSourceAttribute(attributes[name], vertex.indices, vertex.weights));
++        }
++        hasLight ||= !!attributes.kinoBaseLight; accepted = true;
++      }
++      if (accepted) stats.patches++;
++    }
++    if (!positions.length) continue;
++    const texture = await loader(entry.texture); texture.colorSpace = THREE.SRGBColorSpace; texture.flipY = false;
++    texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping; texture.anisotropy = 2;
++    const material = new THREE.MeshStandardMaterial({ map: texture, roughness: kind === 'debris' ? .95 : .74, metalness: 0, vertexColors: true, transparent: true, opacity: kind === 'debris' ? .9 : .94, alphaTest: .012, depthWrite: false, side: THREE.DoubleSide, forceSinglePass: true, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
++    material.name = 'restored_floor_layer_' + kind;
++    const geometry = new THREE.BufferGeometry();
++    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
++    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2)); geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
++    if (hasLight) for (const [name, values] of Object.entries(light)) { geometry.setAttribute(name, new THREE.Float32BufferAttribute(values, 3)); if (!stats.copiedLightAttributes.includes(name)) stats.copiedLightAttributes.push(name); }
++    geometry.computeBoundingBox(); geometry.computeBoundingSphere();
++    const mesh = new THREE.Mesh(geometry, material); mesh.name = 'reconstructed_' + kind + '_floor_layers'; mesh.renderOrder = 1; group.add(mesh);
++    stats.vertices += positions.length / 3; stats.triangles += positions.length / 9; stats.drawCalls++;
++  }
++  root.add(group); root.userData.theaterDressing = stats;
++  return stats;
++}
+--- v1.3/export/web/theater-irradiance.json
++++ v1.4/export/web/theater-irradiance.json
+@@ -2,6 +2,8 @@
+   "version": 1,
+   "binary": "environment/theater-irradiance.bin",
+   "byteLength": 5420196,
++  "solarBinary": "environment/theater-solar.bin",
++  "solarByteLength": 2710098,
+   "scale": 4,
+   "geometry": {
+     "432-17768c0f": {
+@@ -2810,11 +2812,11 @@
+   },
+   "method": "Reconstructed diffuse irradiance from native fixtures, direct sun and nine occluded sky directions. Optical world-shell visibility includes solid ceilings, sampled roof/fence cutouts and attenuated glazing; local fixtures additionally respect collision. Separate always-on and powered RGB fields. Static props and dynamic doors are not solar shadow casters. Not original T5 lightmaps.",
+   "opticalGeometry": {
+-    "triangles": 315418,
+-    "opaqueTriangles": 310601,
++    "triangles": 313831,
++    "opaqueTriangles": 309014,
+     "cutoutTriangles": 3237,
+     "glassTriangles": 1580,
+-    "skippedTriangles": 4348,
++    "skippedTriangles": 5935,
+     "alphaTextures": 9,
+     "unsupportedTextures": [],
+     "scope": "Native world_shell only; static prop shadows remain a separate collision/prop test."
+@@ -2824,12 +2826,12 @@
+     "vertices": 903366,
+     "uniqueSamples": 535410,
+     "raycasts": 3093413,
+-    "seconds": 20.40319975
++    "seconds": 24.241302542
+   },
+   "provenance": {
+     "worldSha256": "30ace6cb6e1b2fe711708e42204ebc5daf90be041e72f59a423f58eda3053767",
+     "collisionSha256": "964d35bda5b09d3c2a7d6e61418ca251df0bd1bf98ae2d1b8fc7703f0cbb5848",
+     "planSha256": "5ac1b58bd38239a1519f7435029f3fbbfb93e8839498608dbe3b6d874856c941",
+-    "outputSha256": "513bab917977518283124ef0242f5496ed126a84c894d64b98fe84f29b75d825"
++    "outputSha256": "574cdf0a9fd6c7b341ba5df8c2853cecdc3c42fee70c97e6a6b5b36e5719c236"
+   }
+ }
+--- v1.3/export/web/theater-light-field.js
++++ v1.4/export/web/theater-light-field.js
+@@ -1,4 +1,5 @@
+ import * as THREE from 'three';
++import { installSurfaceSunlight } from './theater-surface-light.js';
+ import { geometryFingerprint } from './environment-occlusion.js';
+ 
+ // Newly reconstructed irradiance, not extracted T5 lightmaps. The bake uses
+@@ -38,27 +39,29 @@
+ }
+ 
+ export async function prepareTheaterLightField(root, {
+-  manifest, binary, manifestUrl = 'theater-irradiance.json',
++  manifest, binary, surfaceSunlight, manifestUrl = 'theater-irradiance.json',
+ } = {}) {
+   manifest ??= await fetch(manifestUrl).then(r => { if (!r.ok) throw new Error('Theater light data: '+r.status); return r.json(); });
+   if (manifest.version !== 1) throw new Error('Unsupported theater light field');
+   binary ??= await fetch(manifest.binary).then(r => { if (!r.ok) throw new Error('Theater light buffer: '+r.status); return r.arrayBuffer(); });
+   const bytes = binary instanceof Uint8Array ? binary : new Uint8Array(binary);
+   if (!Number.isSafeInteger(manifest.byteLength) || bytes.length !== manifest.byteLength) throw new Error('Theater light buffer length mismatch');
++  let solar=null;if(manifest.solarBinary){const r=await fetch(manifest.solarBinary);if(!r.ok)throw Error('Solar light buffer: '+r.status);solar=new Uint8Array(await r.arrayBuffer());if(solar.length!==manifest.solarByteLength||solar.length*2!==bytes.length)throw Error('Solar light buffer length mismatch');}
+   const stats = { meshes:0, vertices:0, bytes:0, shaderMaterials:0 };
+   const power = { value:0 };
+   root.traverse(mesh => {
+     if (!mesh.isMesh || !mesh.geometry.userData.environmentOcclusion) return;
+     const geometry = mesh.geometry, key = geometryFingerprint(geometry.attributes.position,geometry.attributes.normal), entry = manifest.geometry[key];
+     if (!entry) return;
+-    if (!Number.isSafeInteger(entry.count) || !Number.isSafeInteger(entry.offset) || entry.count !== geometry.attributes.position.count || entry.offset < 0 || entry.offset + entry.count*6 > bytes.length) throw new Error('Theater light geometry mismatch');
++    if (!Number.isSafeInteger(entry.count) || !Number.isSafeInteger(entry.offset) || entry.count !== geometry.attributes.position.count || entry.offset < 0 || entry.offset % 6 !== 0 || entry.offset + entry.count*6 > bytes.length) throw new Error('Theater light geometry mismatch');
+     const base = new Uint8Array(entry.count*3), lit = new Uint8Array(entry.count*3);
+     for (let i=0;i<entry.count;i++) for (let c=0;c<3;c++) {
+       base[i*3+c]=bytes[entry.offset+i*6+c]; lit[i*3+c]=bytes[entry.offset+i*6+3+c];
+     }
+     geometry.setAttribute('kinoBaseLight',new THREE.BufferAttribute(base,3,true));
+     geometry.setAttribute('kinoPowerLight',new THREE.BufferAttribute(lit,3,true));
+-    stats.meshes++;stats.vertices+=entry.count;stats.bytes+=base.byteLength+lit.byteLength;
++    if(solar)geometry.setAttribute('kinoSolarLight',new THREE.BufferAttribute(solar.slice(entry.offset/2,entry.offset/2+entry.count*3),3,true));
++    stats.meshes++;stats.vertices+=entry.count;stats.bytes+=base.byteLength+lit.byteLength+(solar?entry.count*3:0);
+   });
+   return { manifest, power, stats,
+     // Compile only AFTER batching, so custom material hooks never defeat the
+@@ -67,7 +70,7 @@
+       const variants=new Map();
+       root.traverse(mesh=>{
+         if(!mesh.isMesh||!mesh.geometry.attributes.kinoBaseLight)return;
+-        const apply=m=>{if(!variants.has(m))variants.set(m,installIrradianceMaterial(m,power,manifest.scale));return variants.get(m);};
++        const apply=m=>{if(!variants.has(m)){const shade=installIrradianceMaterial(m,power,manifest.scale);if(surfaceSunlight&&solar)installSurfaceSunlight(shade,surfaceSunlight,manifest.scale);variants.set(m,shade);}return variants.get(m);};
+         mesh.material=Array.isArray(mesh.material)?mesh.material.map(apply):apply(mesh.material);
+       });
+       stats.shaderMaterials=variants.size;
+--- v1.3/export/web/theater-surface-light.js
++++ v1.4/export/web/theater-surface-light.js
+@@ -0,0 +1,50 @@
++import * as THREE from 'three';
++
++// Receiver-specific direct sunlight, separate from the coarse vertex field.
++// Each atlas tile is sampled against the native world and static furniture.
++export const surfaceReceivers=[
++  {id:'lobby',bounds:[-415,740,420,1510],height:80},
++  {id:'upper-hall',bounds:[610,560,1300,1320],height:320},
++  {id:'dining',bounds:[1030,-760,1750,300],height:-16},
++  {id:'theater',bounds:[-700,-1650,720,-240],height:-64},
++  {id:'dressing-stage',bounds:[-400,-1900,1720,-950],height:-16},
++  {id:'alley',bounds:[-1910,-1200,-1210,-190],height:0},
++];
++export function receiverAt(position,normal){
++  if(normal.y<.82)return -1;
++  return surfaceReceivers.findIndex(r=>Math.abs(position.y-r.height)<3&&position.x>=r.bounds[0]&&position.x<=r.bounds[2]&&position.z>=r.bounds[1]&&position.z<=r.bounds[3]);
++}
++
++export async function loadSurfaceSunlight(){
++  const response=await fetch('theater-surface-light.json');if(!response.ok)throw Error('Surface daylight data: '+response.status);
++  const plan=await response.json();if(plan.version!==1||!Array.isArray(plan.regions)||plan.regions.length!==surfaceReceivers.length||plan.width!==1024||plan.height!==1536||plan.tileSize!==512)throw Error('Unsupported surface daylight');
++  for(const [i,region]of plan.regions.entries()){const expected=surfaceReceivers[i];if(region.id!==expected.id||region.height!==expected.height||JSON.stringify(region.bounds)!==JSON.stringify(expected.bounds)||JSON.stringify(region.tile)!==JSON.stringify([i%2,Math.floor(i/2)]))throw Error('Surface daylight receiver mismatch');}
++  const result=await fetch(plan.binary);if(!result.ok)throw Error('Surface daylight buffer: '+result.status);
++  const raw=new Uint8Array(await result.arrayBuffer());if(raw.length!==plan.width*plan.height)throw Error('Surface daylight buffer length mismatch');
++  const texture=new THREE.DataTexture(raw,plan.width,plan.height,THREE.RedFormat,THREE.UnsignedByteType);
++  texture.minFilter=texture.magFilter=THREE.LinearFilter;texture.generateMipmaps=false;texture.needsUpdate=true;
++  return {plan,texture};
++}
++
++export function installSurfaceSunlight(material,field,scale=4){
++  const prior=material.onBeforeCompile,priorKey=material.customProgramCacheKey();
++  material.onBeforeCompile=shader=>{
++    prior(shader);
++    shader.uniforms.kinoSurfaceSun={value:field.texture};
++    shader.vertexShader='attribute vec3 kinoSolarLight;varying vec3 kinoSolar;varying vec3 kinoSurfacePosition;varying vec3 kinoSurfaceNormal;\n'+shader.vertexShader;
++    shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nkinoSolar=kinoSolarLight;kinoSurfacePosition=(modelMatrix*vec4(transformed,1.)).xyz;kinoSurfaceNormal=normalize(mat3(modelMatrix)*normal);');
++    shader.fragmentShader='uniform sampler2D kinoSurfaceSun;varying vec3 kinoSolar;varying vec3 kinoSurfacePosition;varying vec3 kinoSurfaceNormal;\n'+shader.fragmentShader;
++    const p=field.plan,sun=new THREE.Vector3(...p.sunDirection);
++    let code='\n#if defined(RE_IndirectDiffuse)\n';
++    for(const [i,r]of p.regions.entries()){
++      const [x,z,X,Z]=r.bounds;
++      code+=`${i?'else ':''}if(kinoSurfaceNormal.y>.82&&abs(kinoSurfacePosition.y-(${r.height.toFixed(2)}))<3.&&kinoSurfacePosition.x>=${x.toFixed(2)}&&kinoSurfacePosition.x<=${X.toFixed(2)}&&kinoSurfacePosition.z>=${z.toFixed(2)}&&kinoSurfacePosition.z<=${Z.toFixed(2)}){\n`;
++      code+=`vec2 localUV=(kinoSurfacePosition.xz-vec2(${x.toFixed(2)},${z.toFixed(2)}))/vec2(${(X-x).toFixed(2)},${(Z-z).toFixed(2)});\n`;
++      code+=`vec2 atlasUV=(vec2(${r.tile[0]*p.tileSize}.5,${r.tile[1]*p.tileSize}.5)+localUV*${p.tileSize-1}.0)/vec2(${p.width}.0,${p.height}.0);\n`;
++      code+=`float visibility=texture2D(kinoSurfaceSun,atlasUV).r;irradiance-=PI*${Number(scale).toFixed(3)}*kinoSolar;irradiance+=PI*visibility*${p.energy.toFixed(4)}*max(0.,dot(normalize(kinoSurfaceNormal),vec3(${sun.x.toFixed(6)},${sun.y.toFixed(6)},${sun.z.toFixed(6)})))*vec3(${p.color.map(v=>v.toFixed(5)).join(',')});}\n`;
++    }
++    code+='#endif\n';
++    shader.fragmentShader=shader.fragmentShader.replace('#include <lights_fragment_maps>','#include <lights_fragment_maps>'+code);
++  };
++  material.customProgramCacheKey=()=>priorKey+'-surface-sun-v1-'+scale;material.needsUpdate=true;
++}
+--- v1.3/export/web/theater-surface-light.json
++++ v1.4/export/web/theater-surface-light.json
+@@ -0,0 +1,134 @@
++{
++  "version": 1,
++  "binary": "environment/theater-surface-light.bin",
++  "width": 1024,
++  "height": 1536,
++  "tileSize": 512,
++  "regions": [
++    {
++      "id": "lobby",
++      "bounds": [
++        -415,
++        740,
++        420,
++        1510
++      ],
++      "height": 80,
++      "tile": [
++        0,
++        0
++      ],
++      "litPixels": 6724,
++      "meanTransmission": 0.024798126220702432
++    },
++    {
++      "id": "upper-hall",
++      "bounds": [
++        610,
++        560,
++        1300,
++        1320
++      ],
++      "height": 320,
++      "tile": [
++        1,
++        0
++      ],
++      "litPixels": 100550,
++      "meanTransmission": 0.38356781005859375
++    },
++    {
++      "id": "dining",
++      "bounds": [
++        1030,
++        -760,
++        1750,
++        300
++      ],
++      "height": -16,
++      "tile": [
++        0,
++        1
++      ],
++      "litPixels": 45,
++      "meanTransmission": 0.000171661376953125
++    },
++    {
++      "id": "theater",
++      "bounds": [
++        -700,
++        -1650,
++        720,
++        -240
++      ],
++      "height": -64,
++      "tile": [
++        1,
++        1
++      ],
++      "litPixels": 348,
++      "meanTransmission": 0.0013275146484375
++    },
++    {
++      "id": "dressing-stage",
++      "bounds": [
++        -400,
++        -1900,
++        1720,
++        -950
++      ],
++      "height": -16,
++      "tile": [
++        0,
++        2
++      ],
++      "litPixels": 18853,
++      "meanTransmission": 0.07191848754882812
++    },
++    {
++      "id": "alley",
++      "bounds": [
++        -1910,
++        -1200,
++        -1210,
++        -190
++      ],
++      "height": 0,
++      "tile": [
++        1,
++        2
++      ],
++      "litPixels": 19482,
++      "meanTransmission": 0.07431793212890625
++    }
++  ],
++  "sunDirection": [
++    0.17899029432317468,
++    0.7535633923016378,
++    0.6325382900038157
++  ],
++  "color": [
++    0.91,
++    0.86,
++    0.73
++  ],
++  "energy": 1.35,
++  "method": "512-square optical direct-sun receiver tiles. Native opaque world and static furniture, alpha-tested broken boards/fences and glazing transmission. No geometry or collision changes. Dynamic actors/doors excluded.",
++  "geometry": {
++    "triangles": 1646981,
++    "opaqueTriangles": 1642164,
++    "cutoutTriangles": 3237,
++    "glassTriangles": 1580,
++    "skippedTriangles": 169517,
++    "alphaTextures": 9,
++    "unsupportedTextures": [],
++    "scope": "Native world_shell and static native instances; dynamic doors, actors and movable entities excluded.",
++    "staticInstances": 3326
++  },
++  "provenance": {
++    "world": "30ace6cb6e1b2fe711708e42204ebc5daf90be041e72f59a423f58eda3053767",
++    "gltf": "8e7a97c65ee28dc372553b4871505089c3aec820cee2ddfaa83bded395a010ea",
++    "binary": "68fcf22ac26e1a65ce81c008128a91b3207de3261e880f261052a05d9685795f"
++  },
++  "seconds": 8.325829917
++}
+--- v1.3/export/web/weapon-motion.js
++++ v1.4/export/web/weapon-motion.js
+@@ -0,0 +1,31 @@
++// Secondary presentation only. Native XAnim poses and the gameplay camera keep
++// ownership of sights, recoil direction, shot timing and weapon-part sockets.
++const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
++const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
++export class WeaponMotion {
++  constructor(){this.reset();}
++  reset(){this.phase=0;this.weight=0;this.kick=0;this.kickVelocity=0;this.offset=[0,0,0];this.rotation=[0,0,0];}
++  fire(){this.kick=Math.min(.35,this.kick+.25);this.kickVelocity=0;}
++  update(dt,{speed=0,grounded=true,aim=0,enabled=true}={}){
++    dt=Math.max(0,finite(dt));speed=clamp(finite(speed),0,380);aim=clamp(finite(aim),0,1);
++    if(dt>0){
++      // Accumulate travelled cadence, not global time: changing speed never
++      // teleports the bob phase. Actual movement suppresses it against a wall.
++      this.phase=(this.phase+speed/190*9*dt)%(Math.PI*2);
++      const target=grounded&&enabled?Math.min(speed/190,1.5):0;
++      this.weight=target+(this.weight-target)*Math.exp(-14*dt);
++      // Exact critically damped return is stable at 30, 60 or 144 Hz and has
++      // no hard cutoff at the old 125 ms recoil boundary.
++      const rate=32,decay=Math.exp(-rate*dt),term=this.kickVelocity+rate*this.kick;
++      this.kick=(this.kick+term*dt)*decay;
++      this.kickVelocity=(this.kickVelocity-rate*term*dt)*decay;
++    }
++    const amplitude=enabled?.13*this.weight*(1-aim)**2:0;
++    this.offset[0]=Math.sin(this.phase)*amplitude;
++    this.offset[1]=Math.cos(2*this.phase)*amplitude*.7;
++    this.offset[2]=this.kick*(1-.55*aim);
++    this.rotation[0]=this.kick*.048*(1-.55*aim);
++    return this;
++  }
++  snapshot(){return {phase:this.phase,weight:this.weight,kick:this.kick,offset:[...this.offset],rotation:[...this.rotation]};}
++}
+--- v1.3/export/web/world.js
++++ v1.4/export/web/world.js
+@@ -4,13 +4,15 @@
+ import { loadCollisionWorld, CollisionWorld } from './collision-world.js';
+ import { optimizeStaticScene } from './scene-optimizer.js';
+ import { loadModel } from './animation.js';
+-import { censorFlags } from './flag-censorship.js';
++// Kino retains its original period set-dressing materials from the supplied map.
+ import { assetManager, runtimeProfile } from './runtime-assets.js';
+ import { enhanceEnvironmentMaterials } from './environment-materials.js';
+ import { applyEnvironmentOcclusion } from './environment-occlusion.js';
+ import { loadSurfaceIndex } from './surface-index.js';
+ import { prepareTheaterLightField } from './theater-light-field.js';
++import { restoreTheaterDressing } from './theater-dressing.js';
+ import { restoreTheaterFixtures } from './theater-fixtures.js';
++import { loadSurfaceSunlight } from './theater-surface-light.js';
+ import { loadTheaterDaylight, createBoxBeacon } from './theater-daylight.js';
+ 
+ export const vector=a=>new THREE.Vector3().fromArray(a);
+@@ -27,7 +29,6 @@
+       ? [await loadMap(),await loadCollision(),await fetch('navigation.bin').then(r=>r.arrayBuffer())]
+       : await Promise.all([loadMap(),loadCollision(),fetch('navigation.bin').then(r=>r.arrayBuffer())]);
+     await init();
+-    censorFlags(gltf.scene);
+     this.collision=collision;this.scene.add(gltf.scene);
+     const moving=[];
+     gltf.scene.traverse(o=>{if(o.userData?.collisionOnly)o.visible=false;if(o.userData?.dynamicBrush){moving.push(o);this.entities.set(o.userData.entityId,o);}});
+@@ -36,8 +37,10 @@
+     const materials=await enhanceEnvironmentMaterials(gltf.scene,{manager:assetManager});
+     const occlusion=await applyEnvironmentOcclusion(gltf.scene);
+     const fixtures=restoreTheaterFixtures(gltf.scene,this.data);
+-    this.lightfield=await prepareTheaterLightField(gltf.scene);
+-    this.environment={materials,occlusion,fixtures,irradiance:this.lightfield.stats};this.surfaces=await loadSurfaceIndex();
++    this.surfaceSunlight=await loadSurfaceSunlight();
++    this.lightfield=await prepareTheaterLightField(gltf.scene,{surfaceSunlight:this.surfaceSunlight});
++    const dressing=await restoreTheaterDressing(gltf.scene,this.scene,this.data,{manager:assetManager});
++    this.environment={materials,occlusion,fixtures,dressing,surfaceSunlight:this.surfaceSunlight.plan,irradiance:this.lightfield.stats};this.surfaces=await loadSurfaceIndex();
+     this.optimization=optimizeStaticScene(gltf.scene,{cellSize:768});
+     this.lightfield.install(gltf.scene);
+     this.daylight=await loadTheaterDaylight(this.scene,gltf.scene);
+@@ -112,7 +115,7 @@
+     this.setDoors(session);
+   }
+   path(a,b){const r=this.query.computePath({x:a.x,y:a.y,z:a.z},{x:b.x,y:b.y,z:b.z});return r.success?r.path.map(p=>new THREE.Vector3(p.x,p.y,p.z)):[];}
+-  raycast(ray,near=0,far=Infinity,windows=false){let hit=this.collision.rayIntersect(ray,near,far);for(const d of this.dynamic){if(!d.enabled||!d.collider||(!windows&&d.window))continue;const h=d.collider.rayIntersect(ray,near,hit?Math.min(hit.distance,far):far);if(h)hit=h;}return hit;}
++  raycast(ray,near=0,far=Infinity,windows=false){let hit=this.collision.rayIntersect(ray,near,far);if(hit)hit.surface=this.surfaces?.surfaceForHit(this.collision,hit);for(const d of this.dynamic){if(!d.enabled||!d.collider||(!windows&&d.window))continue;const h=d.collider.rayIntersect(ray,near,hit?Math.min(hit.distance,far):far);if(h)hit=h;}return hit;}
+   lineClear(a,b){const v=b.clone().sub(a),dist=v.length();return !this.raycast(new THREE.Ray(a,v.normalize()),1,Math.max(1,dist-4));}
+   interactionClear(origin,entity){
+     const target=vector(entity.position),direction=target.sub(origin),distance=direction.length();
+--- v1.3/test/combat-particles.test.mjs
++++ v1.4/test/combat-particles.test.mjs
+@@ -14,3 +14,33 @@
+   pool.emit(new THREE.Vector3(10,20,30));pool.update(0,900);const paused=pool.positions.slice();pool.update(0,900);assert.deepEqual(pool.positions,paused);
+   pool.update(1,900);assert.equal(pool.active,0);assert.equal(pool.points.visible,false);
+ });
++
++const random=()=>{let seed=1234;return ()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);};
++test('wall impacts launch into the contacted hemisphere instead of spraying through the wall',()=>{
++  const pool=new CombatParticles(new THREE.Scene(),128,random()),normal=new THREE.Vector3(-.6,0,.8),position=new THREE.Vector3(10,20,30);
++  pool.emit(position,0xb8a388,128,{kind:'wall',normal});
++  for(let i=0;i<128;i++){
++    const velocity=new THREE.Vector3().fromArray(pool.velocity,i*3),offset=new THREE.Vector3().fromArray(pool.positions,i*3).sub(position);
++    assert(velocity.dot(normal)>20);assert(offset.dot(normal)>.59);assert(pool.sizes[i]>2);
++  }
++  pool.update(.1,1125);assert.equal(pool.active,128);assert.equal(pool.snapshot().drawCalls,1);assert.equal(pool.snapshot().lastEmission.kind,'wall');
++});
++
++test('blood, dust and metal have distinct trajectories and all converge across frame rates',()=>{
++  for(const kind of ['blood','wall','metal']){
++    const samples=[30,60,120].map(hz=>{const pool=new CombatParticles(new THREE.Scene(),16,random());pool.emit(new THREE.Vector3(10,20,30),0xffffff,16,{kind,direction:new THREE.Vector3(0,0,-1)});for(let n=0;n<hz*.1;n++)pool.update(1/hz,900);return pool;});
++    for(const other of samples.slice(1))for(let i=0;i<samples[0].positions.length;i++)assert(Math.abs(samples[0].positions[i]-other.positions[i])<.0001,kind+' trajectory should not change with render rate');
++    const pool=samples[0];assert(pool.life.some(n=>n>0));const state=[pool.positions.slice(),pool.velocity.slice(),pool.life.slice()];pool.update(0,900);assert.deepEqual([pool.positions,pool.velocity,pool.life],state,'pause retains particles exactly');
++  }
++  const dust=new CombatParticles(new THREE.Scene(),1,random()),blood=new CombatParticles(new THREE.Scene(),1,random()),metal=new CombatParticles(new THREE.Scene(),1,random());
++  for(const [pool,kind] of [[dust,'wall'],[blood,'blood'],[metal,'metal']])pool.emit(new THREE.Vector3(),0xffffff,1,{kind,normal:new THREE.Vector3(0,0,1)});
++  assert(dust.sizes[0]>blood.sizes[0]);assert(metal.velocity[2]>blood.velocity[2]);assert.notEqual(blood.shapes[0],dust.shapes[0]);
++});
++
++test('invalid emissions and negative time cannot corrupt the pool, and reset removes all previous-run effects',()=>{
++  const scene=new THREE.Scene(),pool=new CombatParticles(scene,64,random()),geometry=pool.geometry,material=pool.material;
++  assert.equal(pool.emit({x:NaN,y:0,z:0}),0);assert.equal(pool.emit(new THREE.Vector3(),0xffffff,NaN),0);assert.equal(pool.emit(new THREE.Vector3(),0xffffff,-2),0);
++  for(let i=0;i<500;i++)pool.emit(new THREE.Vector3(),0xffcc77,30,{kind:'blast'});pool.update(.01,900);assert.equal(pool.active,64);assert.equal(scene.children.length,1);assert.equal(pool.geometry,geometry);assert.equal(pool.material,material);
++  const life=pool.life.slice();pool.update(-1,NaN);assert.deepEqual(pool.life,life);assert.equal(pool.material.uniforms.pixelHeight.value,900);
++  pool.reset();assert.equal(pool.snapshot().emitted,0);assert.deepEqual(pool.snapshot().byKind,{});assert.equal(pool.snapshot().lastEmission,null);assert.equal(pool.active,0);assert.equal(pool.points.visible,false);
++});
+--- v1.3/test/daylight-geometry.test.mjs
++++ v1.4/test/daylight-geometry.test.mjs
+@@ -9,3 +9,17 @@
+ test('alpha decoder preserves native PNG rows, wrap and clamping',()=>{const image=decodePngAlpha(png(2,2,[0,0,0,0,0,0,0,255,0,0,0,128,0,0,0,64]));assert.equal(sampleAlpha(image,.1,.1),0);assert.equal(sampleAlpha(image,.6,.1),1);assert.equal(sampleAlpha(image,1.1,.1),0);assert.equal(sampleAlpha(image,1.1,.1,{wrapS:33071}),1);assert.equal(sampleAlpha(image,.1,.6),128/255);assert.throws(()=>decodePngAlpha(Buffer.from('bad')));});
+ test('optical rays preserve opaque walls, sample board holes and attenuate one two-sided glass pane',t=>{const root=fixture(t),d=createDaylightGeometry(root);assert.equal(d.transmission(ray([1,0,1])),0);assert.equal(d.transmission(ray([11,0,1])),0);assert.equal(d.transmission(ray([21,0,1])),.48);assert.equal(createDaylightGeometry(root,{glass:false}).transmission(ray([21,0,1])),0);assert.equal(d.transmission(ray([30.25,0,1])),1);assert.equal(d.transmission(ray([31.75,0,1])),0);assert.equal(d.transmission(ray([41,0,1])),1);assert.equal(d.stats.triangles,10);assert.equal(d.firstHit(ray([11,0,1])).mode,'opaque');});
+ test('actual Kino roofs block sunlight while documented VIP/alley openings retain visibility',()=>{const root=path.resolve(import.meta.dirname,'../export/web'),d=createDaylightGeometry(root),sun=[.17899,.753563,.632538];assert.equal(d.stats.unsupportedTextures.length,0);for(const p of [[0,0,-650],[0,168,1256],[1340,60,-1320]])assert.equal(d.transmission(ray(p,sun)),0,p.join(','));for(const p of [[1020,385,970],[-1580,70,-540]])assert.equal(d.transmission(ray(p,sun)),1,p.join(','));assert.match(d.firstHit(ray([0,168,1256])).material,/trim_set/);});
++test('static shadow baking applies parent transforms and excludes movable brushes and collision helpers',t=>{
++ const root=fixture(t),file=path.join(root,'kino.gltf'),doc=JSON.parse(fs.readFileSync(file));
++ doc.meshes.push({name:'static_chair',primitives:[doc.meshes[0].primitives[0]]});
++ doc.scene=0;doc.scenes=[{nodes:[0]}];doc.nodes=[{translation:[100,0,0],children:[1,2,3]},
++ {name:'furniture',mesh:1,translation:[0,-5,0]},
++ {name:'movable',mesh:1,translation:[10,-5,0],extras:{dynamicBrush:true}},
++ {name:'clip',mesh:1,translation:[20,-5,0],extras:{collisionOnly:true}}];fs.writeFileSync(file,JSON.stringify(doc));
++ const original=createDaylightGeometry(root),baked=createDaylightGeometry(root,{staticProps:true});
++ assert.equal(original.transmission(ray([101,0,1])),1);assert.equal(baked.transmission(ray([101,0,1])),0);
++ assert.equal(baked.firstHit(ray([101,0,1])).point.y,5);assert.equal(baked.firstHit(ray([101,0,1])).source.object,'furniture');
++ assert.equal(baked.transmission(ray([111,0,1])),1);assert.equal(baked.transmission(ray([121,0,1])),1);assert.equal(baked.stats.staticInstances,1);
++});
++
++test('standalone multiply stains do not obstruct light while opaque compound base surfaces remain solid',()=>{for(const name of ['decal_burn_scortch','decal_burntstain_01','decal_burntstain_02','decal_darkstain_02','decal_darkstain_04','decal_darkstain_07','decal_grime_blotchy','decal_grime_drip','decal_lightstain_03','decal_wall_fillet','decal_lightstain_01'])assert.equal(daylightMaterialPolicy({name:'wc/'+name}).mode,'skip');assert.equal(daylightMaterialPolicy({name:'*8(wc/plaster:wc/decal_darkstain_04)'}).mode,'opaque');});
+--- v1.3/test/enemy-audio.test.mjs
++++ v1.4/test/enemy-audio.test.mjs
+@@ -4,12 +4,12 @@
+ import crypto from 'node:crypto';
+ import * as THREE from 'three';
+ import {GameAudio} from '../export/web/audio.js';
+-import {EnemyAudio,enemyCueKeys} from '../export/web/enemy-audio.js';
++import {EnemyAudio,enemyCueKeys,enemyFootstepKeys} from '../export/web/enemy-audio.js';
+ import {Enemies} from '../export/web/enemies.js';
+ const manifest=JSON.parse(fs.readFileSync(new URL('../export/web/audio/manifest.json',import.meta.url)));
+ const catalog=JSON.parse(fs.readFileSync(new URL('../export/web/audio/enemies/catalog.json',import.meta.url)));
+ const settle=()=>new Promise(r=>setImmediate(r));
+-class Param{constructor(){this.value=0;}setValueAtTime(v){this.value=v;}exponentialRampToValueAtTime(v){this.value=v;}}
++class Param{constructor(){this.value=0;}setValueAtTime(v){this.value=v;}exponentialRampToValueAtTime(v){this.value=v;}setTargetAtTime(v,time,constant){this.value=v;this.target={value:v,time,constant};}}
+ class AudioNode{constructor(type){this.type=type;this.connections=[];for(const k of ['gain','frequency','positionX','positionY','positionZ','playbackRate'])this[k]=new Param();}connect(n){this.connections.push(n);}disconnect(){this.connections=[];}start(){this.started=true;}stop(t){this.stopped=true;if(t===undefined)this.onended?.();}}
+ class Context{constructor(){this.state='running';this.currentTime=10;this.sampleRate=8000;this.destination={};this.nodes=[];this.listener={};}node(t){const n=new AudioNode(t);this.nodes.push(n);return n;}createGain(){return this.node('gain');}createBufferSource(){return this.node('source');}createPanner(){return this.node('panner');}createBiquadFilter(){return this.node('filter');}createBuffer(c,l){const data=Array.from({length:c},()=>new Float32Array(l));return{length:l,numberOfChannels:c,getChannelData:i=>data[i]};}async suspend(){this.state='suspended';}async resume(){this.state='running';}}
+ function setup(){const a=new GameAudio();a.manifest=manifest;a.ctx=new Context();a.master=a.ctx.createGain();a.groups={effects:a.ctx.createGain()};a.buffer=async()=>({length:8000,numberOfChannels:1});a.enemyAudio=new EnemyAudio(a,{random:()=>0});a.setListener([0,48,0]);return a;}
+@@ -60,3 +60,53 @@
+ test('Hellhound distance switches quiet recovered growl to close pursuit vocal',()=>{
+  const {e,events}=realEnemies(),z=e.spawn(new THREE.Vector3(600,0,0),null,'dog'),p=new THREE.Vector3();z.growl=0;e.update(.01,p);assert(events.some(x=>x.id===z.id&&x.event==='ambient'));z.root.position.set(180,0,0);z.growl=0;e.update(.01,p);assert.equal(events.filter(x=>x.id===z.id&&x.event==='sprint').length,1);
+ });
++
++test('wall occlusion muffles only opted-in creature voices and follows opening a doorway without restarting',async()=>{
++ const a=setup();let clear=false,queries=0;a.setOcclusionTest((listener,source)=>{queries++;assert.deepEqual(listener,[0,48,0]);assert(source.every(Number.isFinite));return clear;});
++ a.enemy('attack',[100,0,-100],meta(1));await settle();const voice=[...a.voices][0],source=voice.source,occlusion=voice.occlusion;
++ assert.equal(occlusion.filter.type,'lowpass');assert(Math.abs(occlusion.filter.frequency.value-850)<.001);assert.equal(occlusion.gain.gain.value,.35);assert.equal(voice.spatialNodes.length,1);assert.equal(a.enemyAudio.snapshot().voices[0].occluded,true);
++ clear=true;for(let i=0;i<50;i++){a.ctx.currentTime+=.01;a.enemy('update',[100+i,0,-100],meta(1));}
++ assert(queries>=3&&queries<=4,'5 Hz bounded geometry probes');assert.equal(occlusion.gain.gain.value,1);assert.equal(occlusion.filter.frequency.value,18000);assert.equal(occlusion.gain.gain.target.constant,.06);assert.equal([...a.voices][0].source,source);assert.equal(a.enemyAudio.snapshot().voices[0].occluded,false);
++ const dry=await a.native('dog',.4,false,{position:[0,0,0]});assert.equal(a.sourceVoices.get(dry).occlusion,undefined,'other callers retain dry output');
++ a.enemy('remove',null,meta(1));assert.equal(occlusion.filter.connections.length,0);assert.equal(occlusion.gain.connections.length,0);
++});
++test('a moving blocked emitter retains its most recent acoustic state when decode completes',async()=>{
++ const a=setup();let clear=false,resolve;a.setOcclusionTest(()=>clear);a.buffer=()=>new Promise(r=>resolve=r);
++ a.enemy('attack',[100,0,-100],meta(1));clear=true;a.ctx.currentTime+=.21;a.enemy('update',[200,0,-100],meta(1));resolve({length:8000,numberOfChannels:1});await settle();
++ const voice=[...a.voices][0];assert.equal(voice.spatialNodes[0].positionX.value,200);assert.equal(voice.occlusion.gain.gain.value,1);assert.equal(a.enemyAudio.snapshot().voices[0].occluded,false);
++});
++test('surface footfalls are native adaptations, cannot replace a vocal, and use at most three shared creature slots',async()=>{
++ const a=setup();assert(enemyFootstepKeys(manifest,'carpet',40).every(k=>k.includes('/run/carpet/')));assert(enemyFootstepKeys(manifest,'wood',180).every(k=>k.includes('/sprint/wood/')));
++ a.enemy('attack',[100,0,-100],meta(1));a.enemy('step',[100,0,-100],{...meta(1),surface:'wood',speed:180});for(let id=2;id<=8;id++)a.enemy('step',[100,0,-100],{...meta(id),surface:'metal',speed:40});await settle();
++ assert.equal(a.enemyAudio.snapshot().footstepVoices,3);assert.equal(a.enemyAudio.snapshot().active,4);assert(a.enemyAudio.snapshot().voices.some(v=>v.id===1&&v.event==='attack'));
++ const footsteps=a.snapshot().recentEvents.filter(e=>e.enemyEvent==='step');assert.equal(footsteps.length,3);assert(footsteps.every(e=>e.native&&e.adaptation==='shared-native-surface-footfall'&&e.playbackRate===1));assert(footsteps.every(e=>e.position[1]===4));
++ a.enemy('remove',null,meta(1));assert.equal(a.enemyAudio.snapshot().voices.filter(v=>v.id===1).length,0);await a.reset();assert.equal(a.voices.size,0);assert.equal(a.enemyAudio.snapshot().footstepVoices,0);
++});
++test('native attack motion reaches its authored impact at the old damage time and finishes before the unchanged cycle ends',()=>{
++ const definitions=JSON.parse(fs.readFileSync(new URL('../export/web/game-data.json',import.meta.url)));
++ for(const [kind,name]of [['zombie','ai_zombie_attack_v1'],['nova','ai_zombie_quad_attack'],['dog','zombie_dog_run_attack']]){
++  const {e}=realEnemies(),clip=JSON.parse(fs.readFileSync(new URL('../export/web/'+definitions.animations[name],import.meta.url)));e.anims[name]=clip;let hits=0;e.onDamage=()=>hits++;
++  const z=e.spawn(new THREE.Vector3(0,0,-40),null,kind),p=new THREE.Vector3(),marker=clip.notifies.find(n=>['fire','dog_melee'].includes(n.name)).time;e.update(.01,p);assert.equal(z.state,'attack');
++  e.update(.52,p);assert.equal(hits,0);assert(z.rig.actions.attack.time<marker);
++  e.update(.02,p);assert.equal(hits,1);assert(z.rig.actions.attack.time>=marker);assert(z.rig.actions.attack.time<marker+.04);
++  e.update(.60,p);assert.equal(z.state,'attack');assert(z.rig.actions.attack.time>clip.duration-.04,'native recovery is not cut off');assert.equal(hits,1,'later authored fire notetrack cannot double damage');
++  e.update(.02,p);assert.equal(z.state,'chase');assert.equal(hits,1);
++ }
++});
++test('retimed attacks still miss an escaped or obstructed player and cannot damage twice',()=>{
++ for(const reason of ['distance','wall']){const {e}=realEnemies();let hits=0;e.onDamage=()=>hits++;const p=new THREE.Vector3(),z=e.spawn(new THREE.Vector3(0,0,-40));e.update(.01,p);if(reason==='wall')e.world.lineClear=()=>false;else p.set(1000,0,0);e.update(.54,p);e.update(.62,p);assert.equal(hits,0,reason);assert.equal(z.state,'chase');}
++});
++test('authored footstep notifies emit once per moving step, without double-counting paired native notify names',()=>{
++ const {e,events}=realEnemies(),definitions=JSON.parse(fs.readFileSync(new URL('../export/web/game-data.json',import.meta.url)));e.anims.ai_zombie_walk_v1=JSON.parse(fs.readFileSync(new URL('../export/web/'+definitions.animations.ai_zombie_walk_v1,import.meta.url)));let probes=0;e.world.surfaceAt=()=>{probes++;return 'wood';};
++ const z=e.spawn(new THREE.Vector3(400,0,0)),p=new THREE.Vector3();for(let i=0;i<20;i++)e.update(.02,p);
++ const steps=events.filter(x=>x.event==='step');assert.equal(steps.length,1);assert.equal(steps[0].notify,'sndnt#fly_step_zombie');assert.equal(steps[0].surface,'wood');assert.equal(probes,1);
++ e.world.closest=()=>z.root.position.clone();z.lastStepPosition.copy(z.root.position);for(let i=0;i<200;i++)e.update(.02,p);assert.equal(events.filter(x=>x.event==='step').length,1,'stationary animation must not shuffle audibly');
++ z.root.position.set(800,0,0);z.lastStepPosition.set(700,0,0);e.footstep(z,'sndnt#fly_step_zombie','walk');assert.equal(probes,1,'distant feet do not raycast surfaces');
++});
++test('a close enemy faces its attack target once and does not track a dodge during the swing',()=>{
++ for(const kind of ['zombie','dog','nova'])for(const [x,z]of [[40,0],[0,40],[-40,0],[0,-40]]){
++  const {e}=realEnemies(),actor=e.spawn(new THREE.Vector3(),null,kind),player=new THREE.Vector3(x,0,z);actor.root.rotation.y=.37;
++  e.update(.01,player);assert.equal(actor.state,'attack');assert.equal(actor.root.rotation.y,Math.atan2(-z,x));
++  const committed=actor.root.rotation.y;player.set(z,0,-x);e.update(.2,player);assert.equal(actor.root.rotation.y,committed,'windup must not swivel to follow a dodge');
++ }
++});
+--- v1.3/test/theater-dressing.test.mjs
++++ v1.4/test/theater-dressing.test.mjs
+@@ -0,0 +1,12 @@
++import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import crypto from 'node:crypto';import * as THREE from 'three';
++import {restoreTheaterDressing,softenNativeDecal,restoreMultiplyDecal,interpolateSourceAttribute,nativeMultiplyDecalNames} from '../export/web/theater-dressing.js';
++const web=new URL('../export/web/',import.meta.url),plan=JSON.parse(fs.readFileSync(new URL('theater-dressing.json',web))),gltf=JSON.parse(fs.readFileSync(new URL('kino.gltf',web))),bin=fs.readFileSync(new URL('kino.bin',web));
++function accessor(i){const a=gltf.accessors[i],v=gltf.bufferViews[a.bufferView],C=a.componentType===5126?Float32Array:a.componentType===5125?Uint32Array:Uint16Array;return new C(bin.buffer,bin.byteOffset+(v.byteOffset||0)+(a.byteOffset||0),a.count*({VEC3:3,VEC2:2,SCALAR:1}[a.type]));}
++test('dressing native source and texture hashes are exact; no new image assets',()=>{const hash=b=>crypto.createHash('sha256').update(b).digest('hex');assert.equal(hash(bin),plan.provenance.geometrySha256);assert.equal(hash(fs.readFileSync(new URL('kino.gltf',web))),plan.provenance.gltfSha256);for(const t of Object.values(plan.textures))assert.equal(hash(fs.readFileSync(new URL(t.texture,web))),t.sha256);});
++test('every added vertex stays on a documented native floor triangle with preserved interpolation and UV bounds',()=>{const shell=gltf.meshes.find(m=>m.name==='world_shell');let count=0;for(const patch of plan.patches)for(const part of patch.parts){const p=shell.primitives[part.primitive],pos=accessor(p.attributes.POSITION),material=gltf.materials[p.material];assert.equal(material.name,part.materialName);assert(material.extras.sourceMaterialNames.some(n=>n.includes(plan.textures[patch.kind].material)));for(const v of part.vertices){assert(Math.abs(v.weights.reduce((a,b)=>a+b,0)-1)<1e-6);assert(v.weights.every(w=>w>=-1e-6&&w<=1.000001));assert(v.uv.every(u=>u>=-1e-6&&u<=1.000001));for(let j=0;j<3;j++){const source=v.indices.reduce((a,i,k)=>a+pos[i*3+j]*v.weights[k],0);assert(Math.abs(v.position[j]-source-(j===1?.16:0))<.0002);}count++;}}assert(count>2000);assert(count<4000);assert(plan.patches.length<=14);});
++test('soft decal clones preserve native map, UV transform and normals without mutating shared original',()=>{const original=new THREE.MeshStandardMaterial({map:new THREE.Texture(),normalMap:new THREE.Texture(),alphaTest:.45});original.map.rotation=.7;const out=softenNativeDecal(original);assert.notEqual(out,original);assert.equal(out.map,original.map);assert.equal(out.normalMap,original.normalMap);assert.equal(original.alphaTest,.45);assert.equal(original.transparent,false);assert.equal(out.transparent,true);assert.equal(out.depthWrite,false);assert.equal(out.forceSinglePass,true);assert(out.alphaTest<.02);});
++test('normalized baked light uses weighted linear components, including solar light',()=>{const a=new THREE.Uint8BufferAttribute([0,128,255,255,128,0,128,255,128],3,true),r=interpolateSourceAttribute(a,[0,1,2],[.2,.3,.5]);assert(Math.abs(r[0]-(.3+.5*128/255))<1e-6);assert(Math.abs(r[1]-(.5*128/255+.5))<1e-6);});
++test('runtime is bounded and idempotent; excludes hidden and dynamic decals and preserves source geometry',async()=>{const root=new THREE.Group(),shell=new THREE.Group();shell.name='world_shell';root.add(shell);const material=new THREE.MeshStandardMaterial({alphaTest:.45});material.name='wc/glo_dec_blood_pool_medium';const geometry=new THREE.PlaneGeometry();const native=new THREE.Mesh(geometry,material),hidden=native.clone(),dynamic=native.clone();hidden.visible=false;dynamic.userData.dynamicBrush=true;shell.add(native,hidden,dynamic);const manifest={version:1,textures:{},patches:[],provenance:{}};const stats=await restoreTheaterDressing(root,null,null,{manifest});assert.equal(stats.nativeDecalMaterials,1);assert.equal(native.geometry,geometry);assert.equal(hidden.material,material);assert.equal(dynamic.material,material);const children=root.children.length;assert.equal(await restoreTheaterDressing(root,null,null,{manifest}),stats);assert.equal(root.children.length,children);});
++test('full native plan yields four bounded batches with copied base/power/solar lighting',async()=>{const root=new THREE.Group(),shell=new THREE.Group();shell.name='world_shell';root.add(shell);const primitives=gltf.meshes.find(m=>m.name==='world_shell').primitives,used=new Set(plan.patches.flatMap(p=>p.parts.map(s=>s.primitive)));for(const index of used){const p=primitives[index],geometry=new THREE.BufferGeometry(),positions=accessor(p.attributes.POSITION);geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));for(const name of ['kinoBaseLight','kinoPowerLight','kinoSolarLight','color'])geometry.setAttribute(name,new THREE.Float32BufferAttribute(new Float32Array(positions.length).fill(name==='kinoSolarLight'?.23:.4),3));const material=new THREE.MeshStandardMaterial();material.name=gltf.materials[p.material].name;shell.add(new THREE.Mesh(geometry,material));}const stats=await restoreTheaterDressing(root,null,null,{manifest:plan,loadTexture:async()=>new THREE.Texture()});assert.equal(stats.drawCalls,4);assert.equal(stats.patches,10);assert.equal(stats.triangles,878);assert.equal(stats.skipped.length,0);for(const mesh of root.getObjectByName('theater_dressing').children){assert.equal(mesh.geometry.attributes.kinoSolarLight.count,mesh.geometry.attributes.position.count);assert(Math.abs(mesh.geometry.attributes.kinoSolarLight.getX(0)-.23)<1e-6);assert(mesh.geometry.boundingSphere.radius>0);assert.equal(mesh.material.depthWrite,false);}assert.equal(shell.children.length,used.size);});
++test('white-neutral darkstain uses native RGB multiplication without fog, light, tone-map or depth occlusion',async()=>{const root=new THREE.Group(),geometry=new THREE.PlaneGeometry(),material=new THREE.MeshStandardMaterial({map:new THREE.Texture()});material.name='wc/decal_darkstain_04';geometry.setAttribute('kinoBaseLight',new THREE.Float32BufferAttribute(new Float32Array(12).fill(.2),3));const mesh=new THREE.Mesh(geometry,material);root.add(mesh);const originalPositions=geometry.attributes.position;const stats=await restoreTheaterDressing(root,null,null,{manifest:{version:1,textures:{},patches:[],provenance:{}}});assert.equal(stats.multiplyDecalMeshes,1);assert(mesh.material.isMeshBasicMaterial);assert.equal(mesh.material.blending,THREE.MultiplyBlending);assert.equal(mesh.material.premultipliedAlpha,true);assert.equal(mesh.material.map,material.map);assert.equal(mesh.material.fog,false);assert.equal(mesh.material.toneMapped,false);assert.equal(mesh.material.vertexColors,false);assert.equal(mesh.material.depthWrite,false);assert.equal(mesh.material.opacity,1);assert.equal(mesh.geometry.attributes.position,originalPositions);assert.equal(mesh.geometry.index,geometry.index);assert(!mesh.geometry.attributes.kinoBaseLight);assert(geometry.attributes.kinoBaseLight);assert.equal(material.transparent,false);});
++test('exact audited decal class is restored while compound opaque bases remain untouched',async()=>{const root=new THREE.Group(),geometry=new THREE.PlaneGeometry(),meshes=[];for(const name of [...nativeMultiplyDecalNames,'*24n(wc/eb_art_ceiling_plaster01:wc/decal_darkstain_04)','wc/decal_lightstain_01']){const material=new THREE.MeshStandardMaterial();material.name=name;const mesh=new THREE.Mesh(geometry,material);root.add(mesh);meshes.push({mesh,material});}const stats=await restoreTheaterDressing(root,null,null,{manifest:{version:1,textures:{},patches:[],provenance:{}}});assert.equal(stats.multiplyDecalMeshes,10);for(const {mesh,material}of meshes.slice(0,10)){assert(mesh.material.isMeshBasicMaterial);assert.equal(material.transparent,false);}assert.equal(meshes[10].mesh.material,meshes[10].material);assert.equal(meshes[10].mesh.material.transparent,false);assert.equal(meshes[11].mesh.material.transparent,true);assert(meshes[11].mesh.material.isMeshStandardMaterial);});
+--- v1.3/test/theater-lighting.test.mjs
++++ v1.4/test/theater-lighting.test.mjs
+@@ -288,3 +288,16 @@
+   const shader={fragmentShader:'#include <lights_fragment_maps>'};a.material.onBeforeCompile(shader);
+   assert.match(shader.fragmentShader,/irradiance \+= PI/);assert.equal(a.material.emissiveIntensity,material.emissiveIntensity);
+ });
++
++test('separate solar samples stay aligned with baked vertices and count toward the memory budget',async t=>{
++ const original=globalThis.fetch;t.after(()=>globalThis.fetch=original);
++ const root=new THREE.Group(),g=triangle();root.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial()));
++ const input=lightData([g]),solar=Uint8Array.from([1,2,3,4,5,6,7,8,9]);
++ Object.assign(input.manifest,{solarBinary:'solar.bin',solarByteLength:9});
++ globalThis.fetch=async()=>({ok:true,arrayBuffer:async()=>solar.buffer});
++ const field=await prepareTheaterLightField(root,input);
++ assert.deepEqual(Array.from(g.attributes.kinoSolarLight.array),Array.from(solar));
++ assert.equal(g.attributes.kinoSolarLight.normalized,true);assert.equal(field.stats.bytes,27);
++ globalThis.fetch=async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});
++ await assert.rejects(prepareTheaterLightField(new THREE.Group(),input),/Solar light buffer length mismatch/);
++});
+--- v1.3/test/theater-surface-light.test.mjs
++++ v1.4/test/theater-surface-light.test.mjs
+@@ -0,0 +1,41 @@
++import {test} from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import crypto from 'node:crypto';
++import * as THREE from 'three';
++import {surfaceReceivers,receiverAt,installSurfaceSunlight,loadSurfaceSunlight} from '../export/web/theater-surface-light.js';
++import {installIrradianceMaterial} from '../export/web/theater-light-field.js';
++const plan=JSON.parse(fs.readFileSync(new URL('../export/web/theater-surface-light.json',import.meta.url)));
++test('receiver selection excludes walls, floors above and the uncharted map',()=>{
++ assert.equal(receiverAt(new THREE.Vector3(0,80,1100),new THREE.Vector3(0,1,0)),0);
++ assert.equal(receiverAt(new THREE.Vector3(0,80,1100),new THREE.Vector3(1,0,0)),-1);
++ assert.equal(receiverAt(new THREE.Vector3(0,304,1100),new THREE.Vector3(0,1,0)),-1);
++ assert.equal(receiverAt(new THREE.Vector3(0,-64,-700),new THREE.Vector3(0,1,0)),3);
++ assert.equal(receiverAt(new THREE.Vector3(99999,0,0),new THREE.Vector3(0,1,0)),-1);
++});
++test('surface sunlight composes with powered irradiance and safely expresses below-zero elevations',()=>{
++ const power={value:.5},shade=installIrradianceMaterial(new THREE.MeshStandardMaterial(),power,3.25),texture=new THREE.Texture();
++ installSurfaceSunlight(shade,{plan,texture},3.25);
++ const shader={uniforms:{},vertexShader:THREE.ShaderLib.standard.vertexShader,fragmentShader:THREE.ShaderLib.standard.fragmentShader};shade.onBeforeCompile(shader);
++ assert.equal(shader.uniforms.kinoPower,power);assert.equal(shader.uniforms.kinoSurfaceSun.value,texture);
++ assert.match(shader.fragmentShader,/y-\(-64\.00\)/);assert.doesNotMatch(shader.fragmentShader,/y--/);
++ assert.equal((shader.fragmentShader.match(/irradiance-=PI\*3.250\*kinoSolar/g)||[]).length,6);
++ assert.match(shader.fragmentShader,/vKinoBaseLight \+ kinoPower \* vKinoPowerLight/);
++ assert.match(shader.vertexShader,/kinoSolar=kinoSolarLight/);
++});
++test('packaged sun atlas matches all receivers, its source buffers and its bounded texture budget',()=>{
++ const root=new URL('../export/web/',import.meta.url),bytes=fs.readFileSync(new URL(plan.binary,root));
++ const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
++ assert.equal(bytes.length,1572864);assert.equal(hash(bytes),plan.provenance.binary);
++ assert.equal(hash(fs.readFileSync(new URL('kino.bin',root))),plan.provenance.world);
++ assert.equal(hash(fs.readFileSync(new URL('kino.gltf',root))),plan.provenance.gltf);
++ for(const [i,r]of plan.regions.entries()) {assert.deepEqual(r.bounds,surfaceReceivers[i].bounds);assert.equal(r.height,surfaceReceivers[i].height);assert(r.litPixels>0);assert(r.litPixels<512*512);}
++ assert.equal(plan.geometry.unsupportedTextures.length,0);assert(plan.geometry.staticInstances>3000);
++});
++test('malformed receiver data and truncated atlas fail before rendering',async t=>{
++ const original=globalThis.fetch;t.after(()=>globalThis.fetch=original);
++ globalThis.fetch=async()=>({ok:true,json:async()=>({...plan,regions:plan.regions.map((r,i)=>i===0?{...r,height:99}:r)})});
++ await assert.rejects(loadSurfaceSunlight(),/receiver mismatch/);
++ globalThis.fetch=async url=>url.endsWith('.json')?{ok:true,json:async()=>plan}:{ok:true,arrayBuffer:async()=>new ArrayBuffer(4)};
++ await assert.rejects(loadSurfaceSunlight(),/length mismatch/);
++});
+--- v1.3/test/weapon-motion.test.mjs
++++ v1.4/test/weapon-motion.test.mjs
+@@ -0,0 +1,43 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import * as THREE from 'three';
++import {WeaponMotion} from '../export/web/weapon-motion.js';
++import {ViewWeapon,Rig} from '../export/web/animation.js';
++import {NativeAimPose} from '../export/web/weapon-pose.js';
++const close=(a,b,tolerance=1e-6)=>assert(Math.abs(a-b)<tolerance,`${a} != ${b}`);
++
++test('locomotion phase follows actual travel continuously across walk, sprint, walls and air',()=>{
++  const motion=new WeaponMotion();motion.update(1,{speed:190});
++  const phase=motion.phase,before=motion.offset.slice();motion.update(0,{speed:285});
++  assert.deepEqual(motion.offset,before);assert.equal(motion.phase,phase,'changing speed cannot jump the pose');
++  motion.update(.01,{speed:285});close(motion.phase-phase,.135);
++  const stop=motion.phase;motion.update(.5,{speed:0});close(motion.phase,stop);assert(motion.weight<.002,'held input against a wall produces no sustained bob');
++  motion.update(.5,{speed:285,grounded:false});assert(motion.weight<.00001,'airborne travel does not become a walking cycle');
++});
++
++test('secondary recoil has the same recovery at 30, 60 and 144 Hz without altering the aim camera',()=>{
++  const results=[30,60,144].map(hz=>{const motion=new WeaponMotion();motion.fire();for(let i=0;i<hz/2;i++)motion.update(1/hz,{speed:190});return motion.snapshot();});
++  for(const sample of results.slice(1)){close(sample.kick,results[0].kick,1e-10);close(sample.phase,results[0].phase);close(sample.offset[0],results[0].offset[0]);}
++  assert(results[0].kick<.000001,'recoil returns fully to rest within half a second');
++  const motion=new WeaponMotion();for(let i=0;i<40;i++)motion.fire();assert(motion.kick<=.35,'rapid automatic fire cannot drive the weapon through the camera');
++  let previous=motion.kick;for(let i=0;i<100;i++){motion.update(.005);assert(motion.kick>=0&&motion.kick<=previous);previous=motion.kick;}
++});
++
++test('pause, ADS, motion setting and equip reset preserve steady native sight alignment',()=>{
++  const motion=new WeaponMotion();motion.fire();motion.update(.04,{speed:190});const before=motion.snapshot();motion.update(0,{speed:190});assert.deepEqual(motion.snapshot(),before);
++  motion.update(.03,{speed:190,aim:1});close(motion.offset[0],0);close(motion.offset[1],0);assert(motion.offset[2]<motion.kick,'aiming attenuates only secondary kick');
++  motion.update(.1,{speed:285,enabled:false});close(motion.offset[0],0);close(motion.offset[1],0);
++  motion.reset();assert.deepEqual(motion.offset,[0,0,0]);assert.equal(motion.kick,0);assert.equal(motion.phase,0);
++});
++
++function reloadFixture(){
++  const notes=[],view=new ViewWeapon(new THREE.Scene(),{});view.ready=true;view.def={adsInTime:.2,adsOutTime:.2};view.root=new THREE.Group();view.rig=new Rig(view.root,name=>notes.push(name));view.knives={};view.aimPose=new NativeAimPose(view.root);
++  view.rig.add('idleAnim',{name:'idle',fps:30,duration:1,bones:[],notifies:[]});
++  view.rig.add('reloadAnim',{name:'reload',fps:30,duration:1,bones:[],notifies:[{time:.4,name:'mag-in'},{time:.99,name:'finished'}]});
++  view.reloadProps={begin(){},set(){}};view.reload(false,1);return {view,notes};
++}
++
++test('an early cancelled reload cannot play the next magazine sound, while a natural ending keeps its last notify',()=>{
++  const early=reloadFixture();early.view.update(.39,{reloading:true});early.view.update(.02,{reloading:false});assert.deepEqual(early.notes,[]);assert.equal(early.view.mode,'idle');early.view.update(1);assert.deepEqual(early.notes,[]);
++  const completed=reloadFixture();completed.view.update(.98,{reloading:true});assert.deepEqual(completed.notes,['mag-in']);completed.view.update(.03,{reloading:false});assert.deepEqual(completed.notes,['mag-in','finished']);assert.equal(completed.view.mode,'idle');
++});

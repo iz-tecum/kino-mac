@@ -1,0 +1,665 @@
+{
+  "version": 1,
+  "binary": "environment/contact-occlusion.bin",
+  "byteLength": 903366,
+  "method": "New static-world contact occlusion sampled against the existing collision BVH, multiplied into linear vertex colors. Not original T5 lightmaps. Dynamic brushes, alpha surfaces and helper meshes excluded.",
+  "parameters": {
+    "rays": 16,
+    "reach": 160,
+    "floor": 0.52,
+    "strength": 0.68,
+    "bias": 2.5
+  },
+  "geometry": {
+    "432-17768c0f": {
+      "offset": 0,
+      "count": 432,
+      "sourceMaterial": "wc/eb_art_ceiling_metal01"
+    },
+    "24501-8a7c85cd": {
+      "offset": 432,
+      "count": 24501,
+      "sourceMaterial": "wc/eb_art_ceiling_plaster01"
+    },
+    "20052-79025ed2": {
+      "offset": 24933,
+      "count": 20052,
+      "sourceMaterial": "wc/eb_art_wall_metal_painted_chipped01"
+    },
+    "9774-1397d6a8": {
+      "offset": 44985,
+      "count": 9774,
+      "sourceMaterial": "wc/eb_art_wall_plaster_chipped_orange"
+    },
+    "166836-ce65aca6": {
+      "offset": 54759,
+      "count": 166836,
+      "sourceMaterial": "wc/udr_wall_metal_oldbrush_silver"
+    },
+    "1551-58e6a1ee": {
+      "offset": 221595,
+      "count": 1551,
+      "sourceMaterial": "wc/rus_metal_panel"
+    },
+    "126-0703a5f0": {
+      "offset": 223146,
+      "count": 126,
+      "sourceMaterial": "wc/eb_art_trim_wood_panel_ornate"
+    },
+    "36240-d72b2485": {
+      "offset": 223272,
+      "count": 36240,
+      "sourceMaterial": "wc/eb_art_trim_wood_plain"
+    },
+    "3651-b6c6453b": {
+      "offset": 259512,
+      "count": 3651,
+      "sourceMaterial": "wc/eb_art_wall_plaster_dirty"
+    },
+    "4107-7e221b30": {
+      "offset": 263163,
+      "count": 4107,
+      "sourceMaterial": "wc/zombie_concrete_cracked"
+    },
+    "38247-a3832fb8": {
+      "offset": 267270,
+      "count": 38247,
+      "sourceMaterial": "wc/eb_art_trim_concrete_beveld"
+    },
+    "1092-8d156c2c": {
+      "offset": 305517,
+      "count": 1092,
+      "sourceMaterial": "wc/cub_art_plaster_beige_wall03"
+    },
+    "6984-b23f2a13": {
+      "offset": 306609,
+      "count": 6984,
+      "sourceMaterial": "wc/mtl_theater_door_main"
+    },
+    "12240-475d888f": {
+      "offset": 313593,
+      "count": 12240,
+      "sourceMaterial": "wc/mtl_theater_carpet_1"
+    },
+    "4629-a45545e7": {
+      "offset": 325833,
+      "count": 4629,
+      "sourceMaterial": "wc/mtl_theater_carpet_4"
+    },
+    "33144-28ce81b8": {
+      "offset": 330462,
+      "count": 33144,
+      "sourceMaterial": "wc/eb_art_floor_wood_hardwood02"
+    },
+    "12414-7ed052d3": {
+      "offset": 363606,
+      "count": 12414,
+      "sourceMaterial": "wc/eb_art_trim_rock_rough"
+    },
+    "25662-a79af428": {
+      "offset": 376020,
+      "count": 25662,
+      "sourceMaterial": "wc/mtl_theater_column_set_1"
+    },
+    "17367-6a407f9e": {
+      "offset": 401682,
+      "count": 17367,
+      "sourceMaterial": "wc/mtl_theater_trim_set_2"
+    },
+    "4692-86da010e": {
+      "offset": 419049,
+      "count": 4692,
+      "sourceMaterial": "wc/rus_art_wall_brick_red"
+    },
+    "12816-0944a464": {
+      "offset": 423741,
+      "count": 12816,
+      "sourceMaterial": "wc/eb_art_floor_concrete_tile03"
+    },
+    "723-659a77ed": {
+      "offset": 436557,
+      "count": 723,
+      "sourceMaterial": "wc/mtl_theater_gold_tile_trim"
+    },
+    "13524-9d15557c": {
+      "offset": 437280,
+      "count": 13524,
+      "sourceMaterial": "wc/mtl_theater_carpet_2"
+    },
+    "2502-570ca877": {
+      "offset": 450804,
+      "count": 2502,
+      "sourceMaterial": "wc/cub_art_plaster_beige_wall05"
+    },
+    "3651-5d9cf312": {
+      "offset": 453306,
+      "count": 3651,
+      "sourceMaterial": "wc/eb_art_trim_plaster_dirt"
+    },
+    "3240-1ee37e50": {
+      "offset": 456957,
+      "count": 3240,
+      "sourceMaterial": "wc/eb_art_ceiling_metal_rust01"
+    },
+    "252-2aa75ed6": {
+      "offset": 460197,
+      "count": 252,
+      "sourceMaterial": "wc/cub_art_plaster_worn"
+    },
+    "1500-f560dcdb": {
+      "offset": 460449,
+      "count": 1500,
+      "sourceMaterial": "wc/cub_concrete_sidewalk01"
+    },
+    "3636-f1a1bd9a": {
+      "offset": 461949,
+      "count": 3636,
+      "sourceMaterial": "wc/mtl_theater_trim_set_1"
+    },
+    "20163-e5053877": {
+      "offset": 465585,
+      "count": 20163,
+      "sourceMaterial": "wc/eb_art_trim_wood_molding"
+    },
+    "1278-5b529be3": {
+      "offset": 485748,
+      "count": 1278,
+      "sourceMaterial": "wc/global_color_black"
+    },
+    "2379-30383c97": {
+      "offset": 487026,
+      "count": 2379,
+      "sourceMaterial": "wc/rus_gantry_generic"
+    },
+    "8256-a5c7bab9": {
+      "offset": 489405,
+      "count": 8256,
+      "sourceMaterial": "wc/eb_art_wall_brick_plain02"
+    },
+    "33678-64a98850": {
+      "offset": 497661,
+      "count": 33678,
+      "sourceMaterial": "wc/rus_art_trim_metal_beam"
+    },
+    "561-b811a102": {
+      "offset": 531339,
+      "count": 561,
+      "sourceMaterial": "wc/jun_art_tile_medium_white01"
+    },
+    "29769-f9f73b1e": {
+      "offset": 531900,
+      "count": 29769,
+      "sourceMaterial": "wc/mtl_zombie_drum_rebar"
+    },
+    "91578-3b655049": {
+      "offset": 561669,
+      "count": 91578,
+      "sourceMaterial": "wc/global_black"
+    },
+    "12606-75da1066": {
+      "offset": 653247,
+      "count": 12606,
+      "sourceMaterial": "wc/zombie_trim_metal3"
+    },
+    "3228-89453072": {
+      "offset": 665853,
+      "count": 3228,
+      "sourceMaterial": "wc/eb_ter_asphalt_old"
+    },
+    "1851-6ab65bcc": {
+      "offset": 669081,
+      "count": 1851,
+      "sourceMaterial": "wc/glo_dirt_burnt"
+    },
+    "20325-b0486f65": {
+      "offset": 670932,
+      "count": 20325,
+      "sourceMaterial": "wc/jungle_woodpanel_wall"
+    },
+    "2457-83cf9654": {
+      "offset": 691257,
+      "count": 2457,
+      "sourceMaterial": "wc/mtl_theater_gold_tile_base"
+    },
+    "165-dfdfc146": {
+      "offset": 693714,
+      "count": 165,
+      "sourceMaterial": "wc/rus_art_door_metal_indus_old"
+    },
+    "10401-796db104": {
+      "offset": 693879,
+      "count": 10401,
+      "sourceMaterial": "wc/udr_wall_metal_panel_green"
+    },
+    "780-a02eba1e": {
+      "offset": 704280,
+      "count": 780,
+      "sourceMaterial": "wc/eb_art_window_warehouse01"
+    },
+    "5121-22b5f649": {
+      "offset": 705060,
+      "count": 5121,
+      "sourceMaterial": "wc/mtl_theater_ceilingtile_2"
+    },
+    "1941-401e169e": {
+      "offset": 710181,
+      "count": 1941,
+      "sourceMaterial": "wc/eb_art_trim_wood_panels"
+    },
+    "882-6f1e838d": {
+      "offset": 712122,
+      "count": 882,
+      "sourceMaterial": "wc/jun_art_trim_wood_cmolding"
+    },
+    "15396-5826226a": {
+      "offset": 713004,
+      "count": 15396,
+      "sourceMaterial": "wc/udr_base_wall_metal"
+    },
+    "72-2bd3b056": {
+      "offset": 728400,
+      "count": 72,
+      "sourceMaterial": "wc/mtl_zombie_teleport_mainframe_shaft"
+    },
+    "75-3f4f3c6b": {
+      "offset": 728472,
+      "count": 75,
+      "sourceMaterial": "wc/cub_art_concrete_painted_wall05"
+    },
+    "1152-d44b3c59": {
+      "offset": 728547,
+      "count": 1152,
+      "sourceMaterial": "wc/eb_art_ceiling_metal02"
+    },
+    "18-8b1eb43a": {
+      "offset": 729699,
+      "count": 18,
+      "sourceMaterial": "wc/eb_art_door_wood_rita"
+    },
+    "168-aafc34ca": {
+      "offset": 729717,
+      "count": 168,
+      "sourceMaterial": "wc/eb_art_roof_brick_slate02"
+    },
+    "3234-0329509c": {
+      "offset": 729885,
+      "count": 3234,
+      "sourceMaterial": "wc/eb_art_wall_concrete_gritty"
+    },
+    "45372-a98d43c8": {
+      "offset": 733119,
+      "count": 45372,
+      "sourceMaterial": "wc/eb_art_wall_metal_oldbrush_silver"
+    },
+    "885-a5f3eff5": {
+      "offset": 778491,
+      "count": 885,
+      "sourceMaterial": "wc/eb_art_window_white_grimy"
+    },
+    "216-83c9720d": {
+      "offset": 779376,
+      "count": 216,
+      "sourceMaterial": "wc/jun_art_ceiling_acoustic_dirty01"
+    },
+    "912-d2ad30c2": {
+      "offset": 779592,
+      "count": 912,
+      "sourceMaterial": "wc/jun_art_metal_brushed"
+    },
+    "6-ca04b3d6": {
+      "offset": 780504,
+      "count": 6,
+      "sourceMaterial": "wc/rus_door_metal02"
+    },
+    "1746-d1398204": {
+      "offset": 780510,
+      "count": 1746,
+      "sourceMaterial": "wc/udr_floor_metal_rivets"
+    },
+    "75-1e6724d9": {
+      "offset": 782256,
+      "count": 75,
+      "sourceMaterial": "wc/udr_trim_metal"
+    },
+    "23061-408ce065": {
+      "offset": 782331,
+      "count": 23061,
+      "sourceMaterial": "wc/zombie_door_wood2_noscorch"
+    },
+    "15-dda4b1f9": {
+      "offset": 805392,
+      "count": 15,
+      "sourceMaterial": "wc/eb_art_door_wood_ornate"
+    },
+    "48-8048b861": {
+      "offset": 805407,
+      "count": 48,
+      "sourceMaterial": "wc/eb_art_facade_concrete04"
+    },
+    "462-e87de442": {
+      "offset": 805455,
+      "count": 462,
+      "sourceMaterial": "wc/eb_art_floor_concrete_tile02"
+    },
+    "450-584aa658": {
+      "offset": 805917,
+      "count": 450,
+      "sourceMaterial": "wc/eb_art_floor_concrete_tile_dirty"
+    },
+    "3816-dad880e2": {
+      "offset": 806367,
+      "count": 3816,
+      "sourceMaterial": "wc/eb_art_floor_wood_core"
+    },
+    "108-ae658c71": {
+      "offset": 810183,
+      "count": 108,
+      "sourceMaterial": "wc/eb_art_roof_brick_slate04"
+    },
+    "144-e8fe4b1d": {
+      "offset": 810291,
+      "count": 144,
+      "sourceMaterial": "wc/eb_art_shutter_wood_green"
+    },
+    "2043-af5615f1": {
+      "offset": 810435,
+      "count": 2043,
+      "sourceMaterial": "wc/eb_art_trim_brick_side"
+    },
+    "72-4d66805d": {
+      "offset": 812478,
+      "count": 72,
+      "sourceMaterial": "wc/eb_art_trim_concrete_ornate_group01"
+    },
+    "78-0da08e35": {
+      "offset": 812550,
+      "count": 78,
+      "sourceMaterial": "wc/eb_art_trim_top_drkred"
+    },
+    "252-c27bfa04": {
+      "offset": 812628,
+      "count": 252,
+      "sourceMaterial": "wc/eb_art_wall_brick_gritty"
+    },
+    "33234-1d91e3c8": {
+      "offset": 812880,
+      "count": 33234,
+      "sourceMaterial": "wc/global_rope_lbrown"
+    },
+    "3288-24c52fcd": {
+      "offset": 846114,
+      "count": 3288,
+      "sourceMaterial": "wc/jun_art_plywood_dirty"
+    },
+    "36-c1dac5c1": {
+      "offset": 849402,
+      "count": 36,
+      "sourceMaterial": "wc/jun_art_wood_plywood_dark03"
+    },
+    "69-a634d1f4": {
+      "offset": 849438,
+      "count": 69,
+      "sourceMaterial": "wc/jungle_woodpanel_wall_dry"
+    },
+    "2220-eff19807": {
+      "offset": 849507,
+      "count": 2220,
+      "sourceMaterial": "wc/mtl_anim_zombie_asylum_dbl_doors"
+    },
+    "7326-d164ec8f": {
+      "offset": 851727,
+      "count": 7326,
+      "sourceMaterial": "wc/mtl_theater_red_velvet"
+    },
+    "60-4853bb0b": {
+      "offset": 859053,
+      "count": 60,
+      "sourceMaterial": "wc/pent_art_curtains01"
+    },
+    "456-9014d8e7": {
+      "offset": 859113,
+      "count": 456,
+      "sourceMaterial": "wc/pent_art_jfk_frame_zombie01"
+    },
+    "912-2e6311a1": {
+      "offset": 859569,
+      "count": 912,
+      "sourceMaterial": "wc/pent_art_jfk_frame_zombie02"
+    },
+    "126-2cf8f2f0": {
+      "offset": 860481,
+      "count": 126,
+      "sourceMaterial": "wc/pent_art_jfk_frame_zombie03"
+    },
+    "54-b1cb8a8f": {
+      "offset": 860607,
+      "count": 54,
+      "sourceMaterial": "wc/pent_art_jfk_frame_zombie04"
+    },
+    "42-b0c8bb51": {
+      "offset": 860661,
+      "count": 42,
+      "sourceMaterial": "wc/pent_art_light_fluorescent03"
+    },
+    "30-ccb6ff9c": {
+      "offset": 860703,
+      "count": 30,
+      "sourceMaterial": "wc/pent_art_pictures_assrtd04"
+    },
+    "63-5704c90d": {
+      "offset": 860733,
+      "count": 63,
+      "sourceMaterial": "wc/pent_art_wall_baseboard01"
+    },
+    "276-7050af6d": {
+      "offset": 860796,
+      "count": 276,
+      "sourceMaterial": "wc/pent_art_wall_wood02"
+    },
+    "129-93420b28": {
+      "offset": 861072,
+      "count": 129,
+      "sourceMaterial": "wc/pent_art_wood_panels01"
+    },
+    "366-90b9a956": {
+      "offset": 861201,
+      "count": 366,
+      "sourceMaterial": "wc/rus_art_metal_paintchip_gray"
+    },
+    "3294-fa266d48": {
+      "offset": 861567,
+      "count": 3294,
+      "sourceMaterial": "wc/rus_art_plywood_light_02"
+    },
+    "864-8dbd738b": {
+      "offset": 864861,
+      "count": 864,
+      "sourceMaterial": "wc/rus_art_roof_brick_slate"
+    },
+    "312-0eb31341": {
+      "offset": 865725,
+      "count": 312,
+      "sourceMaterial": "wc/rus_crate_wood_square01"
+    },
+    "20997-d9157ccf": {
+      "offset": 866037,
+      "count": 20997,
+      "sourceMaterial": "wc/zombie_wall_shuri_int_lacquer_blc"
+    },
+    "360-1c59f641": {
+      "offset": 887034,
+      "count": 360,
+      "sourceMaterial": "wc/pent_art_wall_wood01_glossy"
+    },
+    "1926-d26ae650": {
+      "offset": 887394,
+      "count": 1926,
+      "sourceMaterial": "wc/global_metal"
+    },
+    "906-b3512200": {
+      "offset": 889320,
+      "count": 906,
+      "sourceMaterial": "wc/global_metal01"
+    },
+    "2586-795ad7ad": {
+      "offset": 890226,
+      "count": 2586,
+      "sourceMaterial": "wc/jun_art_metal_black"
+    },
+    "60-1c61c821": {
+      "offset": 892812,
+      "count": 60,
+      "sourceMaterial": "wc/global_color_white"
+    },
+    "42-33222ab6": {
+      "offset": 892872,
+      "count": 42,
+      "sourceMaterial": "wc/global_white"
+    },
+    "252-b419871f": {
+      "offset": 892914,
+      "count": 252,
+      "sourceMaterial": "wc/incandescent_white"
+    },
+    "810-4a0f3863": {
+      "offset": 893166,
+      "count": 810,
+      "sourceMaterial": "wc/mtl_zombie_teleporter_glow2"
+    },
+    "5292-79469b47": {
+      "offset": 893976,
+      "count": 5292,
+      "sourceMaterial": "wc/mtl_zombie_teleport_mainframe_body"
+    },
+    "42-4d3f3168": {
+      "offset": 899268,
+      "count": 42,
+      "sourceMaterial": "wc/pent_art_floor_tile06_glossy"
+    },
+    "312-fbba738c": {
+      "offset": 899310,
+      "count": 312,
+      "sourceMaterial": "wc/mtl_lightning_chamber_main"
+    },
+    "360-3cda5c42": {
+      "offset": 899622,
+      "count": 360,
+      "sourceMaterial": "wc/eb_art_wall_plaster_tile_sub_red"
+    },
+    "384-93d21d84": {
+      "offset": 899982,
+      "count": 384,
+      "sourceMaterial": "wc/pent_art_wall_whitepaint01"
+    },
+    "57-75de8a86": {
+      "offset": 900366,
+      "count": 57,
+      "sourceMaterial": "wc/pent_art_jfk_frame_zombie05"
+    },
+    "732-92523e96": {
+      "offset": 900423,
+      "count": 732,
+      "sourceMaterial": "wc/mtl_p_jun_rubble02_brick"
+    },
+    "744-08a77f52": {
+      "offset": 901155,
+      "count": 744,
+      "sourceMaterial": "wc/mtl_p_jun_rubble02_concrete"
+    },
+    "1008-9c012960": {
+      "offset": 901899,
+      "count": 1008,
+      "sourceMaterial": "wc/mtl_p_jun_rubble03_concrete"
+    },
+    "69-a4fe454b": {
+      "offset": 902907,
+      "count": 69,
+      "sourceMaterial": "wc/zombie_posters_anatomy"
+    },
+    "9-dccc9c87": {
+      "offset": 902976,
+      "count": 9,
+      "sourceMaterial": "wc/eb_dec_pipe_stain01"
+    },
+    "12-1b51df5c": {
+      "offset": 902985,
+      "count": 12,
+      "sourceMaterial": "wc/jun_dec_blast_crater01"
+    },
+    "6-cc96bad7": {
+      "offset": 902997,
+      "count": 6,
+      "sourceMaterial": "wc/chalk_weapon_explosives"
+    },
+    "6-50389242": {
+      "offset": 903003,
+      "count": 6,
+      "sourceMaterial": "wc/chalk_weapon_ithaca"
+    },
+    "6-fefa6660": {
+      "offset": 903009,
+      "count": 6,
+      "sourceMaterial": "wc/chalk_weapon_m14"
+    },
+    "6-ee5e6c7e": {
+      "offset": 903015,
+      "count": 6,
+      "sourceMaterial": "wc/chalk_weapon_m16"
+    },
+    "6-3538c9eb": {
+      "offset": 903021,
+      "count": 6,
+      "sourceMaterial": "wc/chalk_weapon_mp40"
+    },
+    "6-dc4edf29": {
+      "offset": 903027,
+      "count": 6,
+      "sourceMaterial": "wc/chalk_weapon_mp5"
+    },
+    "6-68776a0a": {
+      "offset": 903033,
+      "count": 6,
+      "sourceMaterial": "wc/chalk_weapon_mpl"
+    },
+    "6-5f682c89": {
+      "offset": 903039,
+      "count": 6,
+      "sourceMaterial": "wc/chalk_weapon_pm63"
+    },
+    "6-5e258039": {
+      "offset": 903045,
+      "count": 6,
+      "sourceMaterial": "wc/chalk_weapon_rottweil72"
+    },
+    "279-e005d5dc": {
+      "offset": 903051,
+      "count": 279,
+      "sourceMaterial": "wc/mtl_theater_chalkmap"
+    },
+    "30-1ac6daae": {
+      "offset": 903330,
+      "count": 30,
+      "sourceMaterial": "wc/mtl_theater_wall_scrawl"
+    },
+    "6-f7f1f6d0": {
+      "offset": 903360,
+      "count": 6,
+      "sourceMaterial": "wc/wishing_chalk"
+    }
+  },
+  "provenance": {
+    "worldSha256": "30ace6cb6e1b2fe711708e42204ebc5daf90be041e72f59a423f58eda3053767",
+    "collisionSha256": "964d35bda5b09d3c2a7d6e61418ca251df0bd1bf98ae2d1b8fc7703f0cbb5848",
+    "outputSha256": "655453c81702bd2659285fc5a7fd96faa62c7203533f58aa777047416f49e1a2"
+  },
+  "stats": {
+    "meshes": 127,
+    "vertices": 903366,
+    "uniqueSamples": 554717,
+    "raycasts": 8875472,
+    "min": 0.5215686274509804,
+    "max": 1,
+    "mean": 0.726503122331196,
+    "bakeSeconds": 30.268166084
+  }
+}

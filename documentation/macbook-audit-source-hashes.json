@@ -1,0 +1,12 @@
+{
+  "work/desktop-packaging/main.mjs": "72a7bdbae5bdd84e2155789262cc5f4d25ea0c5c79f8e1dccbd434c228fdae94",
+  "work/desktop-packaging/scripts/window-size.mjs": "fefd11700ac94544eda19334f3cd799ac7e98b002b1268f8c51dc92958ed81b7",
+  "work/desktop-packaging/scripts/bundle-macos.py": "99ec73d005019630f909de542f0b139c409dfb4446b85042295869ca7c3f39a4",
+  "work/reference/kino/export/web/game.js": "d0e2ab92da209647b3592eee6031cff2cfecfe7f3aebc3525c3d018ada633958",
+  "work/reference/kino/export/web/laptop-input.js": "d1eca613f95351c92979e7c0e849feb4a7bae0203be9f92c0f00bb64bdc49214",
+  "work/reference/kino/export/web/desktop-settings.js": "ec4e0324f480690451d69fa0f29eb6ea077dd5cd52b9b415a865eb7940832976",
+  "work/reference/kino/export/web/display-performance.js": "98276ce1150fbb8f2dcea81ef2a6fa2d9714890a8d367918e426f857fde92316",
+  "work/reference/kino/export/web/input-timing.js": "129e6e118675ab797c62263e51bd9941a3446fb1a628cce32ffa70db2e2e74ac",
+  "work/reference/kino/export/web/aim-input.js": "2ae6883897b7c133ade565e0f9a027228108bdbc961332d8bb0e13c6e0d095b7",
+  "work/desktop-packaging/scripts/local-fetch.mjs": "2eba901de828ecb494404769b238f4c39c783103b2e1a0113cb978daa281afac"
+}

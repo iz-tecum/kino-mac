@@ -1,0 +1,720 @@
+{
+  "version": "1.8.0",
+  "map": "Kino der Toten",
+  "profile": "Classic four-perk solo; optional Reimagined recovery only",
+  "evidence_base": "evidence/current-v1.8",
+  "release_verification_status": "Browser checks, wrapper units and final r3 ARM64 acceptance passed. Intel startup timed out before ready; no verified Intel gameplay.",
+  "features": [
+    {
+      "feature": "Laptop graphics and bounded display resolution",
+      "relevant_files_assets": [
+        "desktop-settings.js",
+        "display-performance.js",
+        "game.js"
+      ],
+      "observed_initial_state": "v1.7 density caps still allowed render work to grow with window area.",
+      "intended_behavior": "Explicit Laptop preset; preserve chosen presets while bounding render pixels on initial load, resize and display-density changes.",
+      "dependencies": "WebGL rendering; display dimensions; existing lower-effect scene paths. Physical laptop speed is not inferred.",
+      "final_status": "implemented; browser verified",
+      "verification_state": "v1.8 current evidence",
+      "verification_evidence": [
+        "laptop-settings/report.json",
+        "v9-final/unit.log",
+        "packaged-v9-r3-arm-check/report.json"
+      ]
+    },
+    {
+      "feature": "Readable text and comfort choice",
+      "relevant_files_assets": [
+        "desktop-settings.js",
+        "desktop-settings.css",
+        "index.html"
+      ],
+      "observed_initial_state": "Small settings text; separate flash/bob switches; no text-size setting.",
+      "intended_behavior": "Standard/Large/Larger text and explicit Comfort choice that reduces flashes, disables walking bob and enlarges text without changing unrelated settings.",
+      "dependencies": "Native DOM text; existing reduced-flash and walking-motion settings.",
+      "final_status": "implemented; browser and visual verification",
+      "verification_state": "v1.8 current evidence",
+      "verification_evidence": [
+        "laptop-settings/report.json",
+        "v9-menu/report.json"
+      ]
+    },
+    {
+      "feature": "Plain menu and accessible settings navigation",
+      "relevant_files_assets": [
+        "index.html",
+        "desktop-settings.js",
+        "desktop-settings.css",
+        "game.js"
+      ],
+      "observed_initial_state": "Existing cinematic menu and small control list; global game key handling interfered with menu keyboard use.",
+      "intended_behavior": "Plain Play/Resume/New game/Settings actions, readable controls, focus outlines, modal Tab loop, Escape close and focus return.",
+      "dependencies": "Browser keyboard focus and DOM layout; no screen-reader certification.",
+      "final_status": "implemented; browser verified",
+      "verification_state": "v1.8 current evidence",
+      "verification_evidence": [
+        "v9-menu/report.json",
+        "laptop-settings/report.json"
+      ]
+    },
+    {
+      "feature": "Keyboard fire and optional hold/toggle controls",
+      "relevant_files_assets": [
+        "laptop-input.js",
+        "game.js",
+        "desktop-settings.js"
+      ],
+      "observed_initial_state": "Q aim available; fire required mouse; crouch/sprint held; wheel switching always enabled.",
+      "intended_behavior": "Z keyboard fire plus mouse fire; configurable crouch/sprint Hold or Toggle and optional wheel switching; preserve Q aim and native weapon actions.",
+      "dependencies": "Existing gameplay input and weapon rules; no physical trackpad/peripheral claim.",
+      "final_status": "implemented; browser and ARM native verified",
+      "verification_state": "v1.8 current evidence",
+      "verification_evidence": [
+        "v9-laptop-input/report.json",
+        "v9-final/q-aim/report.json",
+        "v9-final/input/report.json",
+        "packaged-v9-r3-arm-check/report.json"
+      ]
+    },
+    {
+      "feature": "Idle, blur and sleep/wake lifecycle",
+      "relevant_files_assets": [
+        "game.js",
+        "desktop/main.mjs"
+      ],
+      "observed_initial_state": "Existing pause/blur cleanup; native system sleep was not explicitly bridged to the renderer.",
+      "intended_behavior": "Freeze and clear input, require manual resume after system events, and reduce idle rendering work.",
+      "dependencies": "Native wrapper powerMonitor bridge; emitted-event test is not physical lid/sleep testing.",
+      "final_status": "implemented; controlled browser and ARM native verified",
+      "verification_state": "v1.8 current evidence",
+      "verification_evidence": [
+        "v9-laptop-input/report.json",
+        "v9-final/lifecycle/report.json",
+        "packaged-v9-r3-arm-check/report.json"
+      ]
+    },
+    {
+      "feature": "Unavailable graphics startup message and retry",
+      "relevant_files_assets": [
+        "game.js"
+      ],
+      "observed_initial_state": "Renderer construction could fail outside the loading error handler and leave loading visible indefinitely.",
+      "intended_behavior": "Clear failure message and usable Retry when WebGL context creation fails.",
+      "dependencies": "Injected Chrome graphics failure; not certification of an unsupported physical GPU.",
+      "final_status": "implemented; deliberate failure/retry passed",
+      "verification_state": "v1.8 current evidence",
+      "verification_evidence": [
+        "v9-graphics-unavailable/report.json"
+      ]
+    },
+    {
+      "feature": "Universal Mac architecture delivery",
+      "relevant_files_assets": [
+        "desktop packaging",
+        "desktop/main.mjs"
+      ],
+      "observed_initial_state": "Previous delivered app used ARM64.",
+      "intended_behavior": "Package ARM64 and Intel slices with the same local game and security policy.",
+      "dependencies": "Universal ARM64/Intel slices and strict signature verified. ARM64 native acceptance passed. Intel startup reached 42% material restoration but not ready within 120 seconds; no native Intel hardware test.",
+      "final_status": "ARM64 verified; Intel startup limitation, gameplay unverified",
+      "verification_state": "v1.8 current evidence",
+      "verification_evidence": [
+        "packaged-v9-r3-arm-check/report.json",
+        "packaged-v9-r3-intel-check/report.json"
+      ]
+    },
+    {
+      "feature": "Bounded local asset transport",
+      "relevant_files_assets": [
+        "desktop/main.mjs",
+        "desktop/scripts/local-fetch.mjs"
+      ],
+      "observed_initial_state": "Earlier Intel diagnostic lost a kino.gltf request with a reset.",
+      "intended_behavior": "Bound concurrent local transfers to twelve through completion/cancellation, narrowly retry a reset before headers once and retain range/body/cancellation semantics.",
+      "dependencies": "Local desktop asset transport. Passing transport units does not prove completed Intel startup.",
+      "final_status": "implemented; nine wrapper tests and final ARM64 acceptance passed",
+      "verification_state": "v1.8 r3 current evidence",
+      "verification_evidence": [
+        "wrapper-v9-unit.log",
+        "packaged-v9-r3-arm-check/report.json"
+      ]
+    }
+  ],
+  "inherited_features": [
+    {
+      "feature": "Weapon sound event recovery",
+      "observed_initial_state": "85 unresolved names among 137 distinct base/upgraded notifies.",
+      "intended_behavior": "Resolve source-supported actions; preserve explicit missing-recording fallbacks.",
+      "dependencies": "Recovered map, native assets and current solo state",
+      "final_status": "repaired",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../current-v1.7/v8-audio/report.json",
+        "../current-v1.7/v8-audio/weapon-coverage.json",
+        "../current-v1.7/v8-audio/validation-summary.json"
+      ]
+    },
+    {
+      "feature": "Creature sound and native zombie impacts",
+      "observed_initial_state": "Community vocals already connected; native head/electric effects unused.",
+      "intended_behavior": "Retain creature routing and add source-native confirmed lethal effects once.",
+      "dependencies": "Recovered map, native assets and current solo state",
+      "final_status": "repaired; creature voice bank substituted",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../current-v1.7/v8-final/creatureaudio/report.json",
+        "../current-v1.7/v8-audio/report.json"
+      ]
+    },
+    {
+      "feature": "Box location information",
+      "observed_initial_state": "Authored cage props absent; lobby compound chalk layer flattened to wood by exporter.",
+      "intended_behavior": "Current location after power; relocation/FireSale patterns, readable native boards, reduced flashes.",
+      "dependencies": "Recovered map, native assets and current solo state",
+      "final_status": "implemented",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../current-v1.7/v8-box-locator/report.json",
+        "../../documentation-v1.7/REFERENCE-COMPARISON.md"
+      ]
+    },
+    {
+      "feature": "Machine props and visit clock",
+      "observed_initial_state": "Both cable variants visible, inactive stage cage and static clock hands.",
+      "intended_behavior": "One cable state, power/link indicator and simulation-clock countdown.",
+      "dependencies": "Recovered map, native assets and current solo state",
+      "final_status": "repaired",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../current-v1.7/v8-machines/report.json",
+        "../current-v1.7/v8-machines/visual-review.json"
+      ]
+    },
+    {
+      "feature": "Projection HUD and transport inputs",
+      "observed_initial_state": "Return banner existed; objective could remain unrelated; return did not clear all held inputs.",
+      "intended_behavior": "Readable objective countdown; transport clears fire, aim, movement, reload and melee.",
+      "dependencies": "Recovered map, native assets and current solo state",
+      "final_status": "repaired",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../current-v1.7/v8-gameplay/report.json",
+        "../current-v1.7/v8-final/qa-input"
+      ]
+    },
+    {
+      "feature": "Pack-a-Punch inventory custody",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Auto-select remaining gun; reserved/lost slots cannot be selected; replacement cannot overwrite custody.",
+      "dependencies": "Immediate fallback omits native knuckle action.",
+      "final_status": "repaired",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Pack-a-Punch price/process/retrieval",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "5000 points once; 4.35s processing; 15s retrieval; native upgraded model and full ammo on claim.",
+      "dependencies": "Internal object reserves return slot; native choreography remains approximate.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Pack-a-Punch expiry/down/death/reset",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Lost offer cannot be recovered; Max Ammo leaves lost ammo zero; down blocks claim; timely revive permits it; gameover/reset clear offer.",
+      "dependencies": "Sole-gun deposit leaves no usable primary; native first-person combat-knife fallback absent.",
+      "final_status": "repaired",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Free-slot purchase during PaP custody",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Late sole-gun deposit may be followed by a wall/box acquisition in the free slot after forced return. Price/grant is validated before charge/removal. Original claim or expiry never overwrites the new gun.",
+      "dependencies": "Timely original reaccess is a controlled direct-position test because Classic cooldown prevents a legitimate second visit before expiry; native knuckle/knife choreography remains absent.",
+      "final_status": "repaired",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Native doors and power",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Actual keyboard/collision route from spawn through four paid doors to power.",
+      "dependencies": "Granted currency, disabled spawning, invulnerability and accelerated time isolate route.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Teleporter access and return",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Stage-lobby-stage links, pad departure, projection visit, 90s post-return cooldown, relink required.",
+      "dependencies": "30s link deadline lacks reliable retail proof and remains a retained adaptation; Classic forced visit return preserved.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Transport input cleanup",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Forced return clears Q, held fire/movement, reload and melee.",
+      "dependencies": "Controlled automation, not physical-device certification.",
+      "final_status": "repaired",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Classic four perks",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Jug2500/QR500/Speed3000/DoubleTap2000; completed bottle grant; interrupted bottle no grant.",
+      "dependencies": "Optional recovery profile changes regeneration only.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Quick Revive retirement",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Three completed purchases; third owned life retained; machine/clip retirement and reset.",
+      "dependencies": "Prior browser lifecycle evidence; no new broad perk behavior claimed.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Five traps",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Native hazard volumes, 1000 cost, 40s active, 60s cooldown; Jug electric16 above100health, lethal at/below100; fire25.",
+      "dependencies": "Native FX approximate; personal trap-kill statistics remain an existing adaptation.",
+      "final_status": "repaired",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Mystery Box",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "950/FireSale10, native23-entry pool, Monkey Bombs, offer, teddy refund/relocation.",
+      "dependencies": "Separate root/locator regressions; not newly implemented by this audit.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Box locator boards",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Native authored lamps with power/teddy/FireSale states.",
+      "dependencies": "See locator evidence rather than this gameplay test.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Six ordinary powerups",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Nuke, InstaKill, DoublePoints, MaxAmmo, Carpenter, FireSale; pickup lifetime and occlusion.",
+      "dependencies": "No full original powerup presentation or Death Machine implementation.",
+      "final_status": "repaired",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Hidden rooms and rare drops",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Four native return rooms, integer66..99 drop roll, global authored marker, one-shot consumption.",
+      "dependencies": "Unsupported minigun outcome produces no drop; source table is not asserted as original-retail Kino behavior.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Film reels/projector",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Three randomized reels in distinct rooms, one carried, projector installation, screen lowering, native atlas.",
+      "dependencies": "Atlas animation replaces full original film interpreter.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Meteor115 music",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Three fragments activate recovered115music.",
+      "dependencies": "All ambient dialogue/Easter eggs are not present.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Automatic turrets",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Powered1500 purchase,30s visible-target fire, repeated active use not charged.",
+      "dependencies": "Targeting/damage/mechanics sounds approximate; no45s cooldown because README identifies it as mod addition.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Claymores/Monkey Bombs",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Separate supplies, placement/fuse/sensor/lure/blast and replenishment.",
+      "dependencies": "Native first-person gestures/effects incomplete.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Native weapons/upgrades/attachments",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "32base weapons, upgrades, dual models, M16/AUG attachments, projectile flight and blade recovery.",
+      "dependencies": "Dual guns share ammo; camo/recoil/penetration fidelity incomplete.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Grenades",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Throw, fuse, bounce and blast.",
+      "dependencies": "No full native cooking/action/model implementation.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Enemies and waves",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Zombies, Hellhounds, Nova crawlers, barricades, waves and dog rounds.",
+      "dependencies": "AI/collision/ragdolls approximate; creature recordings are credited community replacements.",
+      "final_status": "working; approximation",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Radios/portrait dialogue/camera feeds",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Authored geometry does not imply implemented interaction or recordings.",
+      "dependencies": "Do not claim complete original map scripting.",
+      "final_status": "not implemented",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Networking and saved runs",
+      "observed_initial_state": "Existing implementation audited against recovered data and supplied mod distinctions.",
+      "intended_behavior": "Solo local-session game; settings/best score separate.",
+      "dependencies": "No multiplayer or interrupted-run resume.",
+      "final_status": "not implemented",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../../documentation-v1.7/GAMEPLAY.md",
+        "../../documentation-v1.7/GAMEPLAY-FEATURE-AUDIT.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Controls, graphics and native animation",
+      "observed_initial_state": "Working v1.6 controls, native animation and reconstructed sunlight.",
+      "intended_behavior": "Retain Q aiming/reload attachment fixes/daylight and comfort settings.",
+      "dependencies": "Recovered map, native assets and current solo state",
+      "final_status": "working",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../current-v1.7/v8-final/presentation/report.json",
+        "../current-v1.7/v8-final/qa-input",
+        "../current-v1.6"
+      ]
+    },
+    {
+      "feature": "Playable round cycle/economy",
+      "observed_initial_state": "Working solo round loop.",
+      "intended_behavior": "Fight, earn, buy, reload and advance ordinary waves.",
+      "dependencies": "Recovered map, native assets and current solo state",
+      "final_status": "working",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../current-v1.7/v8-final/normal-progression/report.json",
+        "../current-v1.7/v8-final/core/suite-summary.json"
+      ]
+    },
+    {
+      "feature": "Restart/loading and packaging",
+      "observed_initial_state": "Working v1.6 wrapper and restart.",
+      "intended_behavior": "Self-contained native/source launch; loading retry; safe repeated runs.",
+      "dependencies": "Recovered map, native assets and current solo state",
+      "final_status": "working",
+      "verification_state": "Inherited v1.7 feature record; detailed feature evidence is historical unless included in the current grouped regression below.",
+      "verification_evidence": [
+        "../current-v1.7/v8-final/lifecycle/report.json",
+        "../current-v1.7/source-v8-launch.json",
+        "../current-v1.7/packaged-v8-check/report.json",
+        "../current-v1.7/zip-roundtrip-v8.json",
+        "../current-v1.7/install-v8.json"
+      ]
+    }
+  ],
+  "current_validation": {
+    "unit_tests": 314,
+    "browser_suites": [
+      {
+        "name": "qa",
+        "checks": 25,
+        "passed": 25,
+        "errors": 0,
+        "report": "v9-final/core/qa-report.json"
+      },
+      {
+        "name": "routes",
+        "checks": 4,
+        "passed": 4,
+        "errors": 0,
+        "report": "v9-final/core/routes-report.json"
+      },
+      {
+        "name": "extras",
+        "checks": 6,
+        "passed": 6,
+        "errors": 0,
+        "report": "v9-final/core/extras-report.json"
+      },
+      {
+        "name": "completion",
+        "checks": 19,
+        "passed": 19,
+        "errors": 0,
+        "report": "v9-final/core/completion-report.json"
+      },
+      {
+        "name": "melee",
+        "checks": 15,
+        "passed": 15,
+        "errors": 0,
+        "report": "v9-final/core/melee-report.json"
+      },
+      {
+        "name": "zombies",
+        "checks": 20,
+        "passed": 20,
+        "errors": 0,
+        "report": "v9-final/core/zombies-report.json"
+      },
+      {
+        "name": "Menu",
+        "checks": 8,
+        "passed": 8,
+        "errors": 0,
+        "report": "v9-menu/report.json"
+      },
+      {
+        "name": "Laptop settings",
+        "checks": 8,
+        "passed": 8,
+        "errors": 0,
+        "report": "laptop-settings/report.json"
+      },
+      {
+        "name": "Laptop controls",
+        "checks": 11,
+        "passed": 11,
+        "errors": 0,
+        "report": "v9-laptop-input/report.json"
+      },
+      {
+        "name": "Q aim",
+        "checks": 15,
+        "passed": 15,
+        "errors": 0,
+        "report": "v9-final/q-aim/report.json"
+      },
+      {
+        "name": "Existing input",
+        "checks": 7,
+        "passed": 7,
+        "errors": 0,
+        "report": "v9-final/input/report.json"
+      },
+      {
+        "name": "Loading/restarts",
+        "checks": 6,
+        "passed": 6,
+        "errors": 0,
+        "report": "v9-final/lifecycle/report.json"
+      },
+      {
+        "name": "Weapons",
+        "checks": 32,
+        "passed": 32,
+        "errors": 0,
+        "report": "v9-final/weapons/report.json"
+      },
+      {
+        "name": "Presentation",
+        "checks": 206,
+        "passed": 206,
+        "errors": 0,
+        "report": "v9-final/presentation/report.json"
+      }
+    ],
+    "browser_grouped_checks": 382,
+    "graphics_unavailable_retry": true,
+    "core_runtime_hash_changed": false,
+    "method": "Automated rules, controlled real browser input/rendering and layout inspection. No target MacBook or physical peripheral test.",
+    "unit_report": "v9-final/unit.log",
+    "graphics_unavailable_report": "v9-graphics-unavailable/report.json",
+    "grouping_note": "382 is the sum of grouped assertions across 14 listed browser suites, not unique features, individual frames, human play sessions or the separate unavailable-WebGL test.",
+    "core_report": "v9-final/core/suite-summary.json",
+    "native_arm64": {
+      "report": "evidence/current-v1.8/packaged-v9-r3-arm-check/report.json",
+      "success": true,
+      "launches": 2,
+      "local_requests": 3648,
+      "unexpected_errors": 0,
+      "signature_verified": true,
+      "application_version": "1.8.0",
+      "arch": "arm64",
+      "server_shutdown_passed": true
+    },
+    "native_intel": {
+      "status": "limitation; startup did not reach ready or play within 120 seconds",
+      "report": "evidence/current-v1.8/packaged-v9-r3-intel-check/report.json",
+      "success": false,
+      "local_requests": 695,
+      "unexpected_errors": 0,
+      "launches_completed": 0,
+      "failure": "TimeoutError: page.waitForFunction: Timeout 120000ms exceeded.",
+      "last_observed_loading_stage": "Restoring theater materials and lighting",
+      "last_observed_progress": "42%",
+      "loading_evidence": "evidence/current-v1.8/r3-intel-loading-state.json",
+      "full_intel_gameplay_verified": false,
+      "physical_intel_hardware_tested": false,
+      "performance_claim": null
+    },
+    "wrapper_unit_tests": {
+      "passed": 9,
+      "failed": 0,
+      "report": "evidence/current-v1.8/wrapper-v9-unit.log",
+      "separate_from_runtime_unit_count": true
+    },
+    "r3_archive": {
+      "report": "evidence/current-v1.8/zip-roundtrip-v9-r3.json",
+      "crc_passed": true,
+      "safe_paths_no_duplicates": true,
+      "strict_signature_verified": true,
+      "runtime_files_matching_source": 6128,
+      "both_architecture_slices_present": true,
+      "note": "Archive structure and architecture presence do not establish Intel gameplay compatibility."
+    },
+    "historical_native_evidence": [
+      {
+        "report": "evidence/current-v1.8/packaged-v9-arm-check/report.json",
+        "scope": "Earlier successful ARM run before final transport revision; superseded for candidate acceptance and current performance."
+      },
+      {
+        "report": "evidence/current-v1.8/packaged-v9-intel-check-final/report.json",
+        "scope": "Earlier failed asset-reset attempt before final transport revision; retained history, not current candidate result."
+      }
+    ]
+  },
+  "historical_evidence_scope": "The separate v1.7 upgraded-weapon, audio, Moon, trap, machine, ordinary-round and deeper PaP reports remain evidence/current-v1.7. They were not all rerun this turn. Current presentation and core coverage do not equal a fresh complete 64-weapon audio/gameplay audit.",
+  "remaining_limitations": [
+    "No full retail BO1 parity; Classic four-perk solo reconstruction.",
+    "Original T5 lightmaps and compound layer UV data missing; lighting approximated.",
+    "Exact creature bank and some native weapon/machine/character recordings missing.",
+    "Native sole-gun knife presentation and knuckle choreography incomplete; buying a second gun during custody is repaired.",
+    "Radios, portrait dialogue, camera feeds, Mule Kick, co-op, saved runs and gamepad absent/incomplete.",
+    "No physical MacBook or native Intel Mac hardware tested this turn. No thermal, battery, physical Apple peripheral or human audio-listening validation.",
+    "Original T5 recoil/penetration, ragdolls and some first-person equipment choreography remain reconstruction approximations.",
+    "Final r3 Intel startup did not reach ready within 120 seconds at 42% material restoration; Intel gameplay remains unverified despite zero unexpected request/script errors in that attempt."
+  ],
+  "candidate": "r3"
+}

@@ -1,0 +1,159 @@
+{
+  "refreshed": {
+    "project/.tools": {
+      "files": 179,
+      "copied": 2,
+      "staleRemoved": []
+    },
+    "project/test": {
+      "files": 44,
+      "copied": 0,
+      "staleRemoved": []
+    },
+    "desktop": {
+      "files": 23,
+      "copiedInFinalRefresh": 0,
+      "equal": true
+    }
+  },
+  "exportedGameParity": {
+    "files": 9139,
+    "bytes": 1934021668,
+    "stagedFiles": 9139,
+    "missing": [],
+    "extra": [],
+    "changed": [],
+    "equal": true
+  },
+  "patch": {
+    "files": 25,
+    "bytes": 125030,
+    "sha256": "2b813b9273a4ae874850e301c33210299ed54ef2765235a3d91512732dd99132",
+    "entries": [
+      {
+        "path": "project/.tools/test-graphics-unavailable.mjs",
+        "change": "added"
+      },
+      {
+        "path": "project/.tools/test-input-refinement.mjs",
+        "change": "modified"
+      },
+      {
+        "path": "project/.tools/test-laptop-input-v9.mjs",
+        "change": "added"
+      },
+      {
+        "path": "project/.tools/test-laptop-menu-v9.mjs",
+        "change": "added"
+      },
+      {
+        "path": "project/.tools/test-laptop-settings.mjs",
+        "change": "added"
+      },
+      {
+        "path": "project/.tools/test-q-aim.mjs",
+        "change": "modified"
+      },
+      {
+        "path": "project/.tools/test-surface-light-runtime.mjs",
+        "change": "modified"
+      },
+      {
+        "path": "project/export/web/desktop-settings.css",
+        "change": "modified"
+      },
+      {
+        "path": "project/export/web/desktop-settings.js",
+        "change": "modified"
+      },
+      {
+        "path": "project/export/web/display-performance.js",
+        "change": "added"
+      },
+      {
+        "path": "project/export/web/game.js",
+        "change": "modified"
+      },
+      {
+        "path": "project/export/web/index.html",
+        "change": "modified"
+      },
+      {
+        "path": "project/export/web/laptop-input.js",
+        "change": "added"
+      },
+      {
+        "path": "project/test/desktop-settings.test.mjs",
+        "change": "modified"
+      },
+      {
+        "path": "project/test/display-performance.test.mjs",
+        "change": "added"
+      },
+      {
+        "path": "project/test/laptop-input.test.mjs",
+        "change": "added"
+      },
+      {
+        "path": "desktop/main.mjs",
+        "change": "modified"
+      },
+      {
+        "path": "desktop/package.json",
+        "change": "modified"
+      },
+      {
+        "path": "desktop/scripts/bundle-macos.py",
+        "change": "modified"
+      },
+      {
+        "path": "desktop/scripts/check-electron.mjs",
+        "change": "modified"
+      },
+      {
+        "path": "desktop/scripts/local-fetch.mjs",
+        "change": "added"
+      },
+      {
+        "path": "desktop/scripts/sign-universal.py",
+        "change": "added"
+      },
+      {
+        "path": "desktop/scripts/window-size.mjs",
+        "change": "added"
+      },
+      {
+        "path": "desktop/test/local-fetch.test.mjs",
+        "change": "added"
+      },
+      {
+        "path": "desktop/test/window-size.test.mjs",
+        "change": "added"
+      }
+    ],
+    "appliesCleanlyToV1_7": true
+  },
+  "newLocalFetch": {
+    "source": "2eba901de828ecb494404769b238f4c39c783103b2e1a0113cb978daa281afac",
+    "staged": "2eba901de828ecb494404769b238f4c39c783103b2e1a0113cb978daa281afac",
+    "transport": "Native HTTP, shared 12-connection maximum, streaming and cancellation support, one bounded reset retry"
+  },
+  "scope": "Source refresh and text patch only; documentation/evidence and archives not modified.",
+  "status": "complete",
+  "stagedWrapperTests": {
+    "passed": 9,
+    "failed": 0,
+    "command": "node --test desktop/test/*.test.mjs",
+    "scope": "seven real local HTTP/socket and cancellation tests; two window sizing tests"
+  },
+  "priorPatchesUnchanged": [
+    "SOURCE-CHANGES.patch",
+    "V1.2-CHANGES.patch",
+    "V1.3-CHANGES.patch",
+    "V1.4-CHANGES.patch",
+    "V1.5-CHANGES.patch",
+    "V1.6-CHANGES.patch",
+    "V1.7-CHANGES.patch"
+  ],
+  "buildInstructionsSha256": "f453feacce46b44b4983962e307d259467e8f7acbf2393cfface3b22b9399a36"
+}

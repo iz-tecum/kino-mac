@@ -1,0 +1,2168 @@
+{
+  "version": 1,
+  "description": "Original Kino fixture positions/colors with reconstructed missing aim, occluded static illumination and restrained period practicals.",
+  "worldspawn": {
+    "maxlightgridcolors": "32000",
+    "exposure": "1.234",
+    "treescatteramount": "0",
+    "treescatterintensity": "0",
+    "ambientintensity": "1",
+    "sunshadowintensity": "8",
+    "sunlight": "13",
+    "_ambientcolor": "0.5960 0.6078 0.6196",
+    "_sunshadowcolor": "0.8 0.8235 0.8509",
+    "suncolor": "0.82 0.76 0.62",
+    "newsun": "1",
+    "sundirection": "-48.9 -74.2 0",
+    "skyboxmodel": "skybox_zombie_theater",
+    "classname": "worldspawn",
+    "id": 0,
+    "yaw": 0
+  },
+  "sun": {
+    "direction": [
+      0.17899029432317468,
+      0.7535633923016378,
+      0.6325382900038157
+    ],
+    "color": [
+      0.91,
+      0.86,
+      0.73
+    ],
+    "energy": 1.35
+  },
+  "sky": {
+    "color": [
+      0.54,
+      0.67,
+      0.83
+    ],
+    "energy": 0.72,
+    "samples": 9
+  },
+  "sources": [
+    {
+      "id": "entity-2728",
+      "position": [
+        -174.9,
+        517.3,
+        869.6
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 1320,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2728 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2729",
+      "position": [
+        -329.4,
+        516.8,
+        985.1
+      ],
+      "color": [
+        0.82,
+        0.76,
+        0.67
+      ],
+      "sourceColor": [
+        0.82,
+        0.76,
+        0.67
+      ],
+      "powered": true,
+      "radius": 858.0000000000001,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2729 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2730",
+      "position": [
+        542.5,
+        737,
+        9.8
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 1210,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2730 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2731",
+      "position": [
+        519.5,
+        778.5,
+        -889.3
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 1210,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2731 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2733",
+      "position": [
+        311.6,
+        514.8,
+        1128.9
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 880.0000000000001,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2733 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2734",
+      "position": [
+        109.5,
+        523.5,
+        1313.5
+      ],
+      "color": [
+        0.82,
+        0.76,
+        0.67
+      ],
+      "sourceColor": [
+        0.82,
+        0.76,
+        0.67
+      ],
+      "powered": true,
+      "radius": 1100,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2734 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2735",
+      "position": [
+        -504.5,
+        813,
+        -900.8
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 1210,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2735 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2736",
+      "position": [
+        -478,
+        828.5,
+        -253.8
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 1210,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2736 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2738",
+      "position": [
+        -87.5,
+        0,
+        -217
+      ],
+      "color": [
+        0.929412,
+        0.847059,
+        0.513726
+      ],
+      "sourceColor": [
+        0.929412,
+        0.847059,
+        0.513726
+      ],
+      "powered": false,
+      "radius": 379.5,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2738 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2739",
+      "position": [
+        4,
+        93.5,
+        763
+      ],
+      "color": [
+        0.321960785,
+        0.6807845,
+        0.8160784999999999
+      ],
+      "sourceColor": [
+        0.00392157,
+        0.721569,
+        0.992157
+      ],
+      "powered": false,
+      "radius": 660,
+      "falloff": 180,
+      "energy": 1.05,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2739 position; missing target means aiming/radiometry reconstructed. Cold work-light saturation reduced for retail reference; raw color preserved in sourceColor."
+    },
+    {
+      "id": "entity-2740",
+      "position": [
+        -532,
+        189.5,
+        -1357
+      ],
+      "color": [
+        1,
+        1,
+        1
+      ],
+      "sourceColor": [
+        1,
+        1,
+        1
+      ],
+      "powered": false,
+      "radius": 379.5,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2740 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2743",
+      "position": [
+        1510,
+        241.5,
+        2242.5
+      ],
+      "color": [
+        0.901961,
+        1,
+        0.972549
+      ],
+      "sourceColor": [
+        0.901961,
+        1,
+        0.972549
+      ],
+      "powered": false,
+      "radius": 330,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2743 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2744",
+      "position": [
+        198,
+        705.5,
+        -273.8
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 1100,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2744 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2745",
+      "position": [
+        742.5,
+        377,
+        9.8
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 880.0000000000001,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2745 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2746",
+      "position": [
+        734.5,
+        305,
+        -894.2
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 660,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2746 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2747",
+      "position": [
+        -758,
+        244.5,
+        -253.7
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 880.0000000000001,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2747 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2748",
+      "position": [
+        -730,
+        244.5,
+        -571.7
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 880.0000000000001,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2748 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2749",
+      "position": [
+        -446,
+        807.5,
+        -595.8
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 1210,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2749 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2750",
+      "position": [
+        -732,
+        368.5,
+        -901.7
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 880.0000000000001,
+      "falloff": 450,
+      "energy": 2.3,
+      "direction": [
+        0,
+        -1,
+        0
+      ],
+      "angle": 57,
+      "provenance": "Original light entity 2750 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2752",
+      "position": [
+        316.1,
+        425.3,
+        639.9
+      ],
+      "color": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "sourceColor": [
+        0.992157,
+        0.976471,
+        0.866667
+      ],
+      "powered": true,
+      "radius": 660,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2752 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2754",
+      "position": [
+        1671,
+        366,
+        176
+      ],
+      "color": [
+        0.964706,
+        0.811765,
+        0.521569
+      ],
+      "sourceColor": [
+        0.964706,
+        0.811765,
+        0.521569
+      ],
+      "powered": true,
+      "radius": 660,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2754 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2755",
+      "position": [
+        1617,
+        232,
+        2
+      ],
+      "color": [
+        0.964706,
+        0.811765,
+        0.521569
+      ],
+      "sourceColor": [
+        0.964706,
+        0.811765,
+        0.521569
+      ],
+      "powered": true,
+      "radius": 660,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2755 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2757",
+      "position": [
+        1857,
+        101,
+        -288
+      ],
+      "color": [
+        0.964706,
+        0.811765,
+        0.521569
+      ],
+      "sourceColor": [
+        0.964706,
+        0.811765,
+        0.521569
+      ],
+      "powered": true,
+      "radius": 330,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2757 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2760",
+      "position": [
+        1244.3,
+        146,
+        -735
+      ],
+      "color": [
+        0.964706,
+        0.811765,
+        0.521569
+      ],
+      "sourceColor": [
+        0.964706,
+        0.811765,
+        0.521569
+      ],
+      "powered": true,
+      "radius": 330,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2760 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2764",
+      "position": [
+        896,
+        118,
+        -1536
+      ],
+      "color": [
+        0.792157,
+        0.701961,
+        0.521569
+      ],
+      "sourceColor": [
+        0.792157,
+        0.701961,
+        0.521569
+      ],
+      "powered": true,
+      "radius": 330,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2764 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2765",
+      "position": [
+        896,
+        134,
+        -1536
+      ],
+      "color": [
+        0.992157,
+        0.937255,
+        0.619608
+      ],
+      "sourceColor": [
+        0.992157,
+        0.937255,
+        0.619608
+      ],
+      "powered": true,
+      "radius": 330,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2765 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2768",
+      "position": [
+        1407,
+        104,
+        -988
+      ],
+      "color": [
+        0.792157,
+        0.701961,
+        0.521569
+      ],
+      "sourceColor": [
+        0.792157,
+        0.701961,
+        0.521569
+      ],
+      "powered": true,
+      "radius": 330,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2768 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2769",
+      "position": [
+        1152,
+        104,
+        -1183
+      ],
+      "color": [
+        0.792157,
+        0.701961,
+        0.521569
+      ],
+      "sourceColor": [
+        0.792157,
+        0.701961,
+        0.521569
+      ],
+      "powered": true,
+      "radius": 330,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2769 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2770",
+      "position": [
+        1152,
+        134,
+        -1183
+      ],
+      "color": [
+        0.992157,
+        0.937255,
+        0.619608
+      ],
+      "sourceColor": [
+        0.992157,
+        0.937255,
+        0.619608
+      ],
+      "powered": true,
+      "radius": 330,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2770 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2778",
+      "position": [
+        -1329,
+        208,
+        384
+      ],
+      "color": [
+        0.792157,
+        0.701961,
+        0.521569
+      ],
+      "sourceColor": [
+        0.792157,
+        0.701961,
+        0.521569
+      ],
+      "powered": true,
+      "radius": 198,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2778 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "entity-2779",
+      "position": [
+        1016.5,
+        236,
+        -512.3
+      ],
+      "color": [
+        0.964706,
+        0.811765,
+        0.521569
+      ],
+      "sourceColor": [
+        0.964706,
+        0.811765,
+        0.521569
+      ],
+      "powered": true,
+      "radius": 330,
+      "falloff": 180,
+      "energy": 1.4,
+      "direction": null,
+      "angle": 180,
+      "provenance": "Original light entity 2779 position; missing target means aiming/radiometry reconstructed. Original color preserved."
+    },
+    {
+      "id": "fixture-0",
+      "fixture": "i_p_glo_stage_light_on",
+      "position": [
+        200.30644463012868,
+        407.48833817243576,
+        -1748.4325533509254
+      ],
+      "direction": [
+        -0.013838055856919648,
+        -0.8534761264447276,
+        -0.5209481834107917
+      ],
+      "color": [
+        0.56,
+        0.72,
+        0.85
+      ],
+      "powered": false,
+      "radius": 650,
+      "falloff": 220,
+      "energy": 3.1,
+      "angle": 52,
+      "glowRadius": 4.5,
+      "shaft": true,
+      "provenance": "Existing i_p_glo_stage_light_on matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "fixture-1",
+      "fixture": "i_p_glo_stage_light_on",
+      "position": [
+        9.516104966402054,
+        88.12596836686134,
+        804.9018877744675
+      ],
+      "direction": [
+        -0.8627282482137548,
+        0.07547898902582818,
+        -0.5000028919413013
+      ],
+      "color": [
+        0.56,
+        0.72,
+        0.85
+      ],
+      "powered": false,
+      "radius": 650,
+      "falloff": 220,
+      "energy": 3.1,
+      "angle": 52,
+      "glowRadius": 4.5,
+      "shaft": true,
+      "provenance": "Existing i_p_glo_stage_light_on matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "fixture-2",
+      "fixture": "i_p_glo_stage_light_on",
+      "position": [
+        -299.9999992506318,
+        398.80191773176193,
+        -1566.024379849434
+      ],
+      "direction": [
+        1.1712326377654178e-8,
+        -0.5000000067305869,
+        -0.8660253998985324
+      ],
+      "color": [
+        0.56,
+        0.72,
+        0.85
+      ],
+      "powered": false,
+      "radius": 650,
+      "falloff": 220,
+      "energy": 3.1,
+      "angle": 52,
+      "glowRadius": 4.5,
+      "shaft": true,
+      "provenance": "Existing i_p_glo_stage_light_on matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "fixture-3",
+      "fixture": "i_lights_sconce_off",
+      "position": [
+        366.29998779296875,
+        319.29998779296875,
+        924.2999880314663
+      ],
+      "direction": null,
+      "color": [
+        1,
+        0.66,
+        0.32
+      ],
+      "powered": true,
+      "radius": 290,
+      "falloff": 140,
+      "energy": 1.65,
+      "angle": 180,
+      "glowRadius": 2.4,
+      "shaft": false,
+      "glowPositions": [
+        [
+          367.54998768862606,
+          319.29998779296875,
+          915.5499880165603
+        ],
+        [
+          367.54998789731144,
+          319.29998779296875,
+          933.0499880165603
+        ]
+      ],
+      "provenance": "Existing i_lights_sconce_off matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "fixture-4",
+      "fixture": "i_p_glo_stage_light_on",
+      "position": [
+        -390.1439729258418,
+        -57.063627138733864,
+        -765.6609008014202
+      ],
+      "direction": [
+        -0.9735580432461716,
+        0.19489638006305549,
+        -0.11916432968385432
+      ],
+      "color": [
+        0.56,
+        0.72,
+        0.85
+      ],
+      "powered": false,
+      "radius": 650,
+      "falloff": 220,
+      "energy": 3.1,
+      "angle": 52,
+      "glowRadius": 4.5,
+      "shaft": true,
+      "provenance": "Existing i_p_glo_stage_light_on matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "fixture-5",
+      "fixture": "i_lights_sconce_off",
+      "position": [
+        -368.29998779296875,
+        253,
+        1202.3000479538973
+      ],
+      "direction": null,
+      "color": [
+        1,
+        0.66,
+        0.32
+      ],
+      "powered": true,
+      "radius": 290,
+      "falloff": 140,
+      "energy": 1.65,
+      "angle": 180,
+      "glowRadius": 2.4,
+      "shaft": false,
+      "glowPositions": [
+        [
+          -369.5499874104941,
+          253,
+          1211.0500480085366
+        ],
+        [
+          -369.5499881754434,
+          253,
+          1193.5500480085366
+        ]
+      ],
+      "provenance": "Existing i_lights_sconce_off matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "fixture-6",
+      "fixture": "i_lights_sconce_on",
+      "position": [
+        -368.50000114434914,
+        232.62448236272104,
+        1351.5037082662896
+      ],
+      "direction": null,
+      "color": [
+        1,
+        0.66,
+        0.32
+      ],
+      "powered": false,
+      "radius": 290,
+      "falloff": 140,
+      "energy": 1.65,
+      "angle": 180,
+      "glowRadius": 2.4,
+      "shaft": false,
+      "glowPositions": [
+        [
+          -369.7500011817422,
+          224.45565339294603,
+          1348.3679899229403
+        ],
+        [
+          -369.75000110695606,
+          240.7933114108198,
+          1354.6394264354105
+        ]
+      ],
+      "provenance": "Existing i_lights_sconce_on matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "fixture-7",
+      "fixture": "i_lights_sconce_off",
+      "position": [
+        -368.5,
+        319.29998779296875,
+        923.9999991257722
+      ],
+      "direction": null,
+      "color": [
+        1,
+        0.66,
+        0.32
+      ],
+      "powered": true,
+      "radius": 290,
+      "falloff": 140,
+      "energy": 1.65,
+      "angle": 180,
+      "glowRadius": 2.4,
+      "shaft": false,
+      "glowPositions": [
+        [
+          -369.74999961752536,
+          319.29998779296875,
+          932.7499991804115
+        ],
+        [
+          -369.75000038247464,
+          319.29998779296875,
+          915.2499991804115
+        ]
+      ],
+      "provenance": "Existing i_lights_sconce_off matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "fixture-8",
+      "fixture": "i_lights_sconce_off",
+      "position": [
+        -368.29998779296875,
+        253,
+        1061.8000479538973
+      ],
+      "direction": null,
+      "color": [
+        1,
+        0.66,
+        0.32
+      ],
+      "powered": true,
+      "radius": 290,
+      "falloff": 140,
+      "energy": 1.65,
+      "angle": 180,
+      "glowRadius": 2.4,
+      "shaft": false,
+      "glowPositions": [
+        [
+          -369.5499874104941,
+          253,
+          1070.5500480085366
+        ],
+        [
+          -369.5499881754434,
+          253,
+          1053.0500480085366
+        ]
+      ],
+      "provenance": "Existing i_lights_sconce_off matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "fixture-9",
+      "fixture": "i_p_glo_stage_light_on",
+      "position": [
+        522.1976116299629,
+        -46.88207820057869,
+        -728.9068080186844
+      ],
+      "direction": [
+        0.9397721534974195,
+        0.1762137756872156,
+        -0.292877115474867
+      ],
+      "color": [
+        0.56,
+        0.72,
+        0.85
+      ],
+      "powered": false,
+      "radius": 650,
+      "falloff": 220,
+      "energy": 3.1,
+      "angle": 52,
+      "glowRadius": 4.5,
+      "shaft": true,
+      "provenance": "Existing i_p_glo_stage_light_on matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "fixture-10",
+      "fixture": "i_lights_sconce_off",
+      "position": [
+        366.29998779296875,
+        253,
+        1202.3000490666227
+      ],
+      "direction": null,
+      "color": [
+        1,
+        0.66,
+        0.32
+      ],
+      "powered": true,
+      "radius": 290,
+      "falloff": 140,
+      "energy": 1.65,
+      "angle": 180,
+      "glowRadius": 2.4,
+      "shaft": false,
+      "glowPositions": [
+        [
+          367.54998768862606,
+          253,
+          1193.5500490517165
+        ],
+        [
+          367.54998789731144,
+          253,
+          1211.0500490517165
+        ]
+      ],
+      "provenance": "Existing i_lights_sconce_off matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "fixture-11",
+      "fixture": "i_lights_sconce_off",
+      "position": [
+        366.29998779296875,
+        253,
+        1061.8000490666227
+      ],
+      "direction": null,
+      "color": [
+        1,
+        0.66,
+        0.32
+      ],
+      "powered": true,
+      "radius": 290,
+      "falloff": 140,
+      "energy": 1.65,
+      "angle": 180,
+      "glowRadius": 2.4,
+      "shaft": false,
+      "glowPositions": [
+        [
+          367.54998768862606,
+          253,
+          1053.0500490517165
+        ],
+        [
+          367.54998789731144,
+          253,
+          1070.5500490517165
+        ]
+      ],
+      "provenance": "Existing i_lights_sconce_off matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "fixture-12",
+      "fixture": "i_p_glo_stage_light_on",
+      "position": [
+        585.3363095521927,
+        -10.22257275879383,
+        -1332.9326339960098
+      ],
+      "direction": [
+        0.26783366524960667,
+        0.21478680990126325,
+        -0.939218693410326
+      ],
+      "color": [
+        0.56,
+        0.72,
+        0.85
+      ],
+      "powered": false,
+      "radius": 650,
+      "falloff": 220,
+      "energy": 3.1,
+      "angle": 52,
+      "glowRadius": 4.5,
+      "shaft": true,
+      "provenance": "Existing i_p_glo_stage_light_on matrix; lens position and lamp radiometry reconstructed."
+    },
+    {
+      "id": "pendant-2727",
+      "position": [
+        177,
+        314,
+        768
+      ],
+      "color": [
+        1,
+        0.67,
+        0.36
+      ],
+      "powered": true,
+      "radius": 320,
+      "falloff": 180,
+      "energy": 1.65,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2,
+      "provenance": "Original suspended lamp entity 2727; warm incandescent approximation."
+    },
+    {
+      "id": "pendant-2766",
+      "position": [
+        -768,
+        338,
+        45
+      ],
+      "color": [
+        1,
+        0.67,
+        0.36
+      ],
+      "powered": true,
+      "radius": 320,
+      "falloff": 180,
+      "energy": 1.65,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2,
+      "provenance": "Original suspended lamp entity 2766; warm incandescent approximation."
+    },
+    {
+      "id": "pendant-2767",
+      "position": [
+        -768,
+        65,
+        45
+      ],
+      "color": [
+        1,
+        0.67,
+        0.36
+      ],
+      "powered": true,
+      "radius": 320,
+      "falloff": 180,
+      "energy": 1.65,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2,
+      "provenance": "Original suspended lamp entity 2767; warm incandescent approximation."
+    },
+    {
+      "id": "vanity-1",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1209.0000002893082,
+        60,
+        -1648.3
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-4",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1604.9601704597474,
+        75.69999694824219,
+        -1410.0758075475692
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-7",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1528.3,
+        36,
+        -1598.9999999379907
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-10",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1528.3,
+        60,
+        -1526.9999999379907
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-13",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1528.3,
+        59.999999545401565,
+        -1206.9999997727007
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-16",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1033.0000002893082,
+        48,
+        -1648.3
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-19",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1057.0000002893082,
+        60,
+        -1648.3
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-22",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1129.0000002893082,
+        60,
+        -1648.3
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-25",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1528.3,
+        48,
+        -1218.9999999379907
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-28",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1528.3,
+        62,
+        -1358.9999999379907
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-31",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1528.3,
+        62,
+        -1418.9999999379907
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-34",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1528.3,
+        62,
+        -1454.9999999379907
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-37",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1528.3,
+        60,
+        -1502.9999999379907
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-40",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1528.3,
+        60,
+        -1550.9999999379907
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-43",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        800.3,
+        398,
+        1223.0000000620093
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-46",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        800.3,
+        386,
+        1199.0000000620093
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-49",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        800.3,
+        398,
+        1271.0000000620093
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-52",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1349.0000004545984,
+        59.999999545401565,
+        -1648.3
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-55",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1397.0000002893082,
+        60,
+        -1648.3
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-58",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1257.0000002893082,
+        60,
+        -1648.3
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-61",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1337.0000002893082,
+        48,
+        -1648.3
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-64",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1287.7,
+        60,
+        -1388.0000002272993
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-67",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1287.7,
+        60,
+        -1436.0000002272993
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-70",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1287.7,
+        60,
+        -1208.0000002272993
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-73",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1287.7,
+        60,
+        -1244.0000002272993
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-76",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1640.1262245178223,
+        40.545606875419615,
+        -1409.447834610939
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-79",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1528.3,
+        60,
+        -1122.9999999379907
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "vanity-82",
+      "fixture": "i_zombie_theater_dresslight1",
+      "position": [
+        1528.3,
+        60,
+        -1134.9999999379907
+      ],
+      "color": [
+        1,
+        0.7,
+        0.4
+      ],
+      "powered": true,
+      "radius": 130,
+      "falloff": 65,
+      "energy": 0.24,
+      "direction": null,
+      "angle": 180,
+      "glowRadius": 2.2,
+      "noAccent": true,
+      "provenance": "Intact native vanity bulb; sparse warm powered circuit reconstructed."
+    },
+    {
+      "id": "bounce-lobby-front-primitive-174-patch-233-1",
+      "position": [
+        42.6281200568457,
+        113.24934094524814,
+        1287.7177908415235
+      ],
+      "color": [
+        0.84,
+        0.81,
+        0.72
+      ],
+      "powered": false,
+      "radius": 310,
+      "falloff": 160,
+      "energy": 0.20159999999999997,
+      "direction": null,
+      "angle": 180,
+      "noAccent": true,
+      "provenance": "Reconstructed indirect sun reflection near verified Lobby receiver; optical visibility prevents cross-wall spill."
+    },
+    {
+      "id": "bounce-lobby-ceiling-damage-1",
+      "position": [
+        407.0732282341585,
+        454.4176344864864,
+        890.4534962221064
+      ],
+      "color": [
+        0.84,
+        0.81,
+        0.72
+      ],
+      "powered": false,
+      "radius": 310,
+      "falloff": 160,
+      "energy": 0.42,
+      "direction": null,
+      "angle": 180,
+      "noAccent": true,
+      "provenance": "Reconstructed indirect sun reflection near verified Lobby receiver; optical visibility prevents cross-wall spill."
+    },
+    {
+      "id": "bounce-lobby-east-breach-1",
+      "position": [
+        416.1020193180269,
+        267.177239928572,
+        1110.0120922617866
+      ],
+      "color": [
+        0.84,
+        0.81,
+        0.72
+      ],
+      "powered": false,
+      "radius": 310,
+      "falloff": 160,
+      "energy": 0.42,
+      "direction": null,
+      "angle": 180,
+      "noAccent": true,
+      "provenance": "Reconstructed indirect sun reflection near verified Lobby edge receiver; optical visibility prevents cross-wall spill."
+    },
+    {
+      "id": "bounce-theater-roof-west-1",
+      "position": [
+        -437.07807876738974,
+        193.6291408052333,
+        -1183.6279093243797
+      ],
+      "color": [
+        0.84,
+        0.81,
+        0.72
+      ],
+      "powered": false,
+      "radius": 310,
+      "falloff": 160,
+      "energy": 0.42,
+      "direction": null,
+      "angle": 180,
+      "noAccent": true,
+      "provenance": "Reconstructed indirect sun reflection near verified Theater receiver; optical visibility prevents cross-wall spill."
+    },
+    {
+      "id": "bounce-theater-roof-east-1",
+      "position": [
+        -71.80677799453422,
+        5.317740510073918,
+        -999.6958091914427
+      ],
+      "color": [
+        0.84,
+        0.81,
+        0.72
+      ],
+      "powered": false,
+      "radius": 310,
+      "falloff": 160,
+      "energy": 0.42,
+      "direction": null,
+      "angle": 180,
+      "noAccent": true,
+      "provenance": "Reconstructed indirect sun reflection near verified Theater receiver; optical visibility prevents cross-wall spill."
+    },
+    {
+      "id": "bounce-vip-roof-breach-1",
+      "position": [
+        1058.1437249694027,
+        377.7646430555941,
+        856.3720869372871
+      ],
+      "color": [
+        0.84,
+        0.81,
+        0.72
+      ],
+      "powered": false,
+      "radius": 310,
+      "falloff": 160,
+      "energy": 0.42,
+      "direction": null,
+      "angle": 180,
+      "noAccent": true,
+      "provenance": "Reconstructed indirect sun reflection near verified Upper hall / VIP receiver; optical visibility prevents cross-wall spill."
+    },
+    {
+      "id": "bounce-vip-roof-breach-2",
+      "position": [
+        976.1020221693557,
+        369.16884207434657,
+        913.1567888986125
+      ],
+      "color": [
+        0.84,
+        0.81,
+        0.72
+      ],
+      "powered": false,
+      "radius": 310,
+      "falloff": 160,
+      "energy": 0.42,
+      "direction": null,
+      "angle": 180,
+      "noAccent": true,
+      "provenance": "Reconstructed indirect sun reflection near verified Upper hall / VIP receiver; optical visibility prevents cross-wall spill."
+    },
+    {
+      "id": "bounce-dining-roof-damage-1",
+      "position": [
+        1148.7680250206017,
+        472.704144700061,
+        -392.5482150363085
+      ],
+      "color": [
+        0.84,
+        0.81,
+        0.72
+      ],
+      "powered": false,
+      "radius": 310,
+      "falloff": 160,
+      "energy": 0.42,
+      "direction": null,
+      "angle": 180,
+      "noAccent": true,
+      "provenance": "Reconstructed indirect sun reflection near verified Speed Cola room receiver; optical visibility prevents cross-wall spill."
+    }
+  ],
+  "replacements": [
+    "New radiometry and light/shadow bake; original T5 lightmaps unavailable.",
+    "Spotlight target entities absent; ceiling spots aim down by deliberate approximation.",
+    "Original period fixtures and set dressing retained; missing fixture 2715 restored from supplied geometry."
+  ]
+}

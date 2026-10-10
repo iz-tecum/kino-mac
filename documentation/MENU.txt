@@ -1,0 +1,77 @@
+KINO 1.8 — SIMPLER MENU AND LAPTOP LAYOUT
+
+The title screen now uses the game name, Solo Zombies, Play and Settings.
+The pause screen uses Resume, New game and Settings. The promotional tagline,
+decorative program card and large theatrical framing were removed. Existing
+credits remain. Eight essential controls stay visible, including Q to aim and
+Left mouse / Z to fire; complete controls remain in Settings.
+
+The menu is sized for smaller laptop windows and supports the existing text-size
+setting. Its action buttons, status and essential controls enlarge with the
+selected text size. Keyboard focus is outlined clearly. The menu has a named
+heading and a semantic controls list; loading/status updates are announced.
+All existing game/settings IDs and loading/retry hooks are preserved.
+
+The settings component, maintained in desktop-settings.js, supplies dialog
+semantics, contained Tab navigation, Escape-to-close and focus return. Closing
+Settings leaves an active run paused. The panel scrolls vertically on narrow
+windows. Its background is opaque, avoiding faint menu text behind labels and
+the unnecessary laptop compositor work of the previous background blur.
+
+Executed menu verification
+Eight real headless-Chrome checks passed with zero script, shader or asset
+errors. The checks cover 1280x800 title/pause, 1440x900 pause/settings, keyboard
+Play/Resume, focus order and modal containment, all previous settings, and the
+140% Larger text setting. At 1280x800, all menu actions and essential controls
+fit without scrolling even at 140%. At 560x660, the settings panel scrolls
+vertically without horizontal overflow, and the keyboard can reach Done.
+
+Evidence in the source package is under evidence/current-v1.8/v9-menu/:
+report.json; 01-title-1280x800.png; 02-pause-1280x800.png;
+03-pause-1440x900.png; 04-settings-1440x900.png;
+05-large-text-menu-1280x800.png; 06-settings-narrow-top.png;
+07-settings-narrow-bottom.png.
+
+The screenshots were actually opened and visually inspected. A transient
+post-resize duplicate header was recorded in before-blur-removal/; the final
+menu run no longer showed it. A final opacity-only change followed that run;
+it does not alter menu geometry or behavior. The inherited Q-control suite
+captures the final opaque panel again; that image was also visually inspected. Retained preliminary runs are labelled
+and are not additional independent feature counts.
+
+Scope
+These are automated browser layout/input checks at the named CSS viewport
+sizes on the development Mac. They do not certify a physical MacBook, Intel
+GPU, trackpad gesture comfort, screen reader behavior, physical peripherals,
+or sustained laptop performance. Separate packaging/performance reports state
+the machines and runtime actually checked.
+
+Changed files owned by the menu pass
+project/export/web/index.html
+project/.tools/test-laptop-menu-v9.mjs (new acceptance harness)
+project/.tools/test-q-aim.mjs (only help/capitalization assertions updated;
+actual aim, fire, switch, pause and cleanup checks retained)
+project/.tools/test-input-refinement.mjs (atomic observation of the reload timer
+and progress cue before screenshot encoding; original behavior assertions retained)
+project/.tools/test-surface-light-runtime.mjs (expected Retry loading label updated
+to match plain sentence case; loading/retry assertions unchanged)
+
+Root-owned game.js supplies plain Resume/Play again labels and new keyboard
+controls; desktop-settings.js/.css supplies settings and accessibility behavior.
+The menu edit does not change combat rules, assets, sound or map geometry.
+
+Follow-up checks on frozen runtime
+Q aiming15/15, input/refinement7/7, loading/restart6/6, all32 base weapons,
+and206 native presentation checks passed with zero unexpected browser errors.
+The loading fixture deliberately fails one required file, checks the explicit
+error, restores that file and activates Retry successfully. Its expected404
+events are kept separate from unexpected errors.
+
+Reports: evidence/current-v1.8/v9-final/menu-followup-summary.json and the
+q-aim/, input/, lifecycle/, weapons/ and presentation/ report.json files.
+The initial Q/retry cases failed obsolete copy expectations after the menu
+wording changed. The initial input case read reload progress after a screenshot
+finished encoding and after the reload completed; the accepted harness reads
+the authoritative timer and progress atomically before encoding. These attempts
+are preserved separately. No gameplay assertion or game timing was relaxed.
+All browsers were closed before separate native performance acceptance.

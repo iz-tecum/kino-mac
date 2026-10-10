@@ -1,0 +1,277 @@
+{
+  "version": 1,
+  "coordinateSystem": "three-y-up",
+  "provenance": {
+    "gltfSha256": "8e7a97c65ee28dc372553b4871505089c3aec820cee2ddfaa83bded395a010ea",
+    "worldSha256": "30ace6cb6e1b2fe711708e42204ebc5daf90be041e72f59a423f58eda3053767",
+    "collisionSha256": "964d35bda5b09d3c2a7d6e61418ca251df0bd1bf98ae2d1b8fc7703f0cbb5848"
+  },
+  "sunDirection": [
+    0.17899,
+    0.753563,
+    0.632538
+  ],
+  "instructions": "Editable search regions only, never whole open portals. The builder ray-tests native roof boards/glass/walls and narrows each selected shaft. No geometry or collision is modified.",
+  "regions": [
+    {
+      "id": "lobby-front-primitive-174-patch-223",
+      "room": "Lobby",
+      "type": "native-glass-pane",
+      "center": [
+        -100.5,
+        357,
+        1496
+      ],
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "tangent": [
+        1,
+        0,
+        0
+      ],
+      "width": 55,
+      "height": 100,
+      "bias": 3,
+      "spacing": 8,
+      "sourcePatch": "primitive-174-patch-223",
+      "sourceMaterial": "wc/dec_glass01",
+      "nativeBounds": {
+        "min": [
+          -128,
+          307,
+          1496
+        ],
+        "max": [
+          -73,
+          407,
+          1496
+        ]
+      },
+      "maxShafts": 1
+    },
+    {
+      "id": "lobby-front-primitive-174-patch-233",
+      "room": "Lobby",
+      "type": "native-glass-pane",
+      "center": [
+        100.5,
+        357,
+        1497
+      ],
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "tangent": [
+        1,
+        0,
+        0
+      ],
+      "width": 55,
+      "height": 100,
+      "bias": 3,
+      "spacing": 8,
+      "sourcePatch": "primitive-174-patch-233",
+      "sourceMaterial": "wc/dec_glass01",
+      "nativeBounds": {
+        "min": [
+          73,
+          307,
+          1497
+        ],
+        "max": [
+          128,
+          407,
+          1497
+        ]
+      },
+      "maxShafts": 1
+    },
+    {
+      "id": "lobby-ceiling-damage",
+      "room": "Lobby",
+      "center": [
+        320,
+        532,
+        920
+      ],
+      "width": 240,
+      "height": 340,
+      "bias": 40,
+      "type": "sampled-roof-or-sky-region",
+      "normal": [
+        0,
+        1,
+        0
+      ],
+      "tangent": [
+        1,
+        0,
+        0
+      ],
+      "spacing": 16,
+      "boundsAreSampleEnvelope": true,
+      "maxShafts": 1
+    },
+    {
+      "id": "lobby-east-breach",
+      "room": "Lobby edge",
+      "center": [
+        460,
+        532,
+        1190
+      ],
+      "width": 150,
+      "height": 160,
+      "bias": 160,
+      "type": "sampled-roof-or-sky-region",
+      "normal": [
+        0,
+        1,
+        0
+      ],
+      "tangent": [
+        1,
+        0,
+        0
+      ],
+      "spacing": 16,
+      "boundsAreSampleEnvelope": true,
+      "maxShafts": 1
+    },
+    {
+      "id": "theater-roof-west",
+      "room": "Theater",
+      "center": [
+        -270,
+        936,
+        -580
+      ],
+      "width": 320,
+      "height": 300,
+      "bias": 140,
+      "type": "sampled-roof-or-sky-region",
+      "normal": [
+        0,
+        1,
+        0
+      ],
+      "tangent": [
+        1,
+        0,
+        0
+      ],
+      "spacing": 16,
+      "boundsAreSampleEnvelope": true,
+      "maxShafts": 1
+    },
+    {
+      "id": "theater-roof-east",
+      "room": "Theater",
+      "center": [
+        240,
+        936,
+        -350
+      ],
+      "width": 360,
+      "height": 460,
+      "bias": 140,
+      "type": "sampled-roof-or-sky-region",
+      "normal": [
+        0,
+        1,
+        0
+      ],
+      "tangent": [
+        1,
+        0,
+        0
+      ],
+      "spacing": 16,
+      "boundsAreSampleEnvelope": true,
+      "maxShafts": 1
+    },
+    {
+      "id": "vip-roof-breach",
+      "room": "Upper hall / VIP",
+      "center": [
+        1060,
+        464,
+        860
+      ],
+      "width": 620,
+      "height": 420,
+      "bias": 70,
+      "type": "sampled-roof-or-sky-region",
+      "normal": [
+        0,
+        1,
+        0
+      ],
+      "tangent": [
+        1,
+        0,
+        0
+      ],
+      "spacing": 16,
+      "boundsAreSampleEnvelope": true,
+      "maxShafts": 2
+    },
+    {
+      "id": "dining-roof-damage",
+      "room": "Speed Cola room",
+      "center": [
+        1410,
+        620,
+        -420
+      ],
+      "width": 650,
+      "height": 720,
+      "bias": 180,
+      "type": "sampled-roof-or-sky-region",
+      "normal": [
+        0,
+        1,
+        0
+      ],
+      "tangent": [
+        1,
+        0,
+        0
+      ],
+      "spacing": 16,
+      "boundsAreSampleEnvelope": true,
+      "maxShafts": 1
+    },
+    {
+      "id": "alley-sky",
+      "room": "Alley",
+      "center": [
+        -1570,
+        500,
+        -540
+      ],
+      "width": 300,
+      "height": 540,
+      "bias": 430,
+      "type": "sampled-roof-or-sky-region",
+      "normal": [
+        0,
+        1,
+        0
+      ],
+      "tangent": [
+        1,
+        0,
+        0
+      ],
+      "spacing": 16,
+      "boundsAreSampleEnvelope": true,
+      "maxShafts": 1
+    }
+  ]
+}

@@ -1,0 +1,1948 @@
+--- v1.1/.tools/test-aug-pump.mjs
++++ v1.2/.tools/test-aug-pump.mjs
+@@ -0,0 +1,43 @@
++import { chromium } from 'playwright-core';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import { resolveChromeExecutable } from './browser-path.mjs';
++const out='artifacts/v3-weapons/aug-pump';fs.mkdirSync(out,{recursive:true});
++const before=fs.readFileSync('export/web/animation.js','utf8').replace('entries=retargetAugPump(gun,def,entries);','');
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const page=await browser.newPage({viewport:{width:1440,height:500}}),checks=[],errors=[];
++page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
++page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
++try{
++  await page.route('**/animation-before-pump.js',route=>route.fulfill({contentType:'text/javascript',body:before}));
++  await page.route('**/aug-pump-test.html',route=>route.fulfill({contentType:'text/html',body:`<!doctype html><style>body{margin:0;background:#16191d;color:#ddd;font:16px sans-serif}header{display:flex;height:40px;align-items:center}header span{width:50%;padding-left:20px}canvas{display:block}</style><header><span>Before: inconsistent native pump basis</span><span>After: pump matches bind and sprint basis</span></header><script type="importmap">{"imports":{"three":"/vendor/three.module.js","three/addons/":"/vendor/jsm/"}}</script><script type="module">
++  import * as THREE from 'three';import {ViewWeapon} from '/animation.js';import {ViewWeapon as Before} from '/animation-before-pump.js';
++  const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(1440,450);renderer.setScissorTest(true);document.body.append(renderer.domElement);
++  const data=await fetch('/game-data.json').then(r=>r.json()),scenes=[new THREE.Scene(),new THREE.Scene()],camera=new THREE.PerspectiveCamera(60,1.6,.01,200);
++  for(const scene of scenes){scene.background=new THREE.Color(0x20252b);scene.add(new THREE.HemisphereLight(0xffffff,0x8899aa,1.2));const light=new THREE.DirectionalLight(0xffefce,1);light.position.set(0,4,2);scene.add(light);}
++  const views=[new Before(scenes[0],data),new ViewWeapon(scenes[1],data)];
++  const parts=()=>views.map(v=>{const bones={};v.root.traverse(b=>{if(b.isBone)bones[b.name]={position:b.position.toArray(),rotation:b.quaternion.toArray(),scale:b.scale.toArray()};});return {bones,view:v.snapshot()};});
++  const base=data.weapons.aug_acog_zm,defs={base,rifle:{...base,...base.upgrade,id:base.id,upgraded:true},attachment:{...base.upgrade.attachment,upgraded:true,attachmentActive:true}};
++  window.lab={views,defs,parts,draw:()=>{for(let i=0;i<2;i++){renderer.setViewport(i*720,0,720,450);renderer.setScissor(i*720,0,720,450);renderer.render(scenes[i],camera);}}};
++  </script>`}));
++  await page.goto('http://127.0.0.1:5173/aug-pump-test.html');await page.waitForFunction(()=>window.lab,null,{timeout:60000});
++  for(const variant of ['base','rifle','attachment']){
++    await page.evaluate(variant=>Promise.all(lab.views.map(v=>v.equip(lab.defs[variant]))),variant);
++    await page.evaluate(()=>{for(const v of lab.views)v.update(3);});
++    const poses=variant==='attachment'?[['idleAnim',0],['reloadStartAnim',.4],['reloadAnim',.4],['reloadEndAnim',.8],['reloadEndAnim',2],['sprintInAnim',.15]]:[['idleAnim',0],['reloadAnim',1],['reloadEmptyAnim',1.4],['reloadEmptyAnim',5],['sprintInAnim',.15]];
++    for(const [key,time] of poses){
++      const state=await page.evaluate(({key,time})=>{for(const v of lab.views){v.rig.play('idleAnim',true,1,0);v.rig.update(0);if(key.startsWith('reload'))v.reloadProps.begin(key==='reloadEndAnim'?'end':key==='reloadStartAnim'?'start':'shell');else v.reloadProps.set(false);v.rig.play(key,false,1,0);v.rig.update(time);v.applyAim(true);}lab.draw();return lab.parts();},{key,time});
++      for(const [name,bone] of Object.entries(state[1].bones))if(name!=='tag_pump2')assert.deepEqual(bone,state[0].bones[name],variant+' '+key+' preserves '+name);
++      const pump=state[1].bones.tag_pump2;
++      if(variant==='base')assert.deepEqual(pump,state[0].bones.tag_pump2,'ordinary AUG remains identical');
++      else{const q=pump.rotation,dot=Math.abs(q[2]*-Math.SQRT1_2+q[3]*Math.SQRT1_2);assert(2*Math.acos(Math.min(1,dot))<.001,variant+' '+key+' aligned pump');}
++      const name=`${variant}-${key}-${time}`;await page.screenshot({path:`${out}/${name}.png`});checks.push({name,passed:true,state});console.log('PASS',name);
++    }
++    // Exercise the public cancellation path after a reload, restoring its idle.
++    const interrupted=await page.evaluate(()=>{for(const v of lab.views){v.reload(false,v.def.reloadTime);v.update(.3,{reloading:true});v.update(.5,{reloading:false});v.update(.5);}lab.draw();return lab.parts();});
++    assert.equal(interrupted[1].view.mode,'idle');if(variant!=='base')assert(Math.abs(interrupted[1].bones.tag_pump2.rotation[0])<.001);
++    await page.screenshot({path:`${out}/${variant}-interrupted.png`});checks.push({name:variant+' interrupted reload',passed:true,state:interrupted});
++  }
++  assert.equal(errors.length,0,errors.join('\n'));
++}catch(error){checks.push({passed:false,error:String(error),stack:error.stack});console.error(error);process.exitCode=1;}
++finally{fs.writeFileSync(`${out}/report.json`,JSON.stringify({method:'Side-by-side native viewmodel browser render. Left omits only the targeted AUG pump basis retarget; right is current runtime. Normal AUG, upgraded rifle, and Masterkey clips plus interrupted reloads are sampled. All other bone transforms must be identical.',checks,errors},null,2));await browser.close();}
+--- v1.1/.tools/test-normal-rounds.mjs
++++ v1.2/.tools/test-normal-rounds.mjs
+@@ -5,7 +5,7 @@
+ import fs from 'node:fs';
+ import assert from 'node:assert/strict';
+ import {resolveChromeExecutable} from './browser-path.mjs';
+-const out='artifacts/normal-rounds';fs.mkdirSync(out,{recursive:true});
++const out=process.env.KINO_NORMAL_ROUNDS_OUT||'artifacts/normal-rounds';fs.mkdirSync(out,{recursive:true});
+ const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
+ const page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[],events=[];
+ page.on('pageerror',e=>errors.push(String(e)));
+--- v1.1/.tools/build-theater-light-plan.mjs
++++ v1.2/.tools/build-theater-light-plan.mjs
+@@ -0,0 +1,67 @@
++import fs from 'node:fs';
++import path from 'node:path';
++import * as THREE from 'three';
++const root=path.resolve(import.meta.dirname,'../export/web');
++const data=JSON.parse(fs.readFileSync(path.join(root,'game-data.json')));
++const gltf=JSON.parse(fs.readFileSync(path.join(root,'kino.gltf')));
++const sources=[];
++for(const e of data.entities.filter(e=>e.classname==='light')){
++  const event=e.script_mixer_event||'';
++  // Event-specific teleporter, projector and fire-trap pulses are handled by
++  // their gameplay systems, not baked as permanently powered room lamps.
++  if(['pl1','sip','ft1'].includes(event))continue;
++  const color=(e.script_light2_color||e._color||'1 .8 .6').trim().split(/\s+/).map(Number);
++  if(color.every(n=>n===0))continue;
++  const ceiling=/^tl/.test(event), powered=ceiling||event==='ZPO'||e.targetname==='light_off';
++  sources.push({id:'entity-'+e.id,position:e.position,color,powered,
++    radius:Number(e.radius)*(ceiling?2.2:1.65),falloff:ceiling?450:180,
++    energy:ceiling?2.3:1.4,direction:ceiling?[0,-1,0]:null,angle:ceiling?57:180,
++    provenance:'Original light entity '+e.id+' position and color; missing target means aiming/radiometry reconstructed.'});
++}
++const matrix=new THREE.Matrix4(),point=new THREE.Vector3(),direction=new THREE.Vector3();
++let counter=0;
++for(const node of gltf.nodes){
++  const name=node.name||'';
++  if(!node.matrix)continue;
++  const work=name==='i_p_glo_stage_light_on',sconce=/^i_lights_sconce_(on|off)$/.test(name);
++  if(!work&&!sconce)continue;
++  matrix.fromArray(node.matrix);
++  point.set(0,work?-3:12,work?14:16).applyMatrix4(matrix);
++  direction.set(0,0,1).transformDirection(matrix);
++  sources.push({id:'fixture-'+counter++,fixture:name,position:point.toArray(),direction:work?direction.toArray():null,
++    color:work?[.56,.72,.85]:[1,.66,.32],powered:sconce&&!name.endsWith('_on'),
++    radius:work?650:290,falloff:work?220:140,energy:work?3.1:1.65,angle:work?52:180,
++    glowRadius:work?4.5:2.4,shaft:work,
++    glowPositions:sconce?[-7,7].map(x=>new THREE.Vector3(x,12,15).applyMatrix4(matrix).toArray()):undefined,
++    provenance:'Existing '+name+' matrix; lens position and lamp radiometry reconstructed.'});
++}
++// Existing bulbs in the wardrobe/vanity have aged tungsten warmth. Only a few
++// low-output sources are needed; the original prop geometry remains untouched.
++for(const e of data.entities.filter(e=>e.model==='lights_hang_single')){
++  if(sources.some(s=>new THREE.Vector3(...s.position).distanceTo(new THREE.Vector3(...e.position))<70))continue;
++  sources.push({id:'pendant-'+e.id,position:[e.position[0],e.position[1]-8,e.position[2]],color:[1,.67,.36],powered:true,
++    radius:320,falloff:180,energy:1.65,direction:null,angle:180,glowRadius:2,
++    provenance:'Original suspended lamp entity '+e.id+'; warm incandescent approximation.'});
++}
++// Intact wall-mounted vanity bulbs: retain the broken/fallen components. A
++// sparse surviving circuit keeps the room's wartime wear and avoids a modern
++// uniformly glowing mirror. Bulb locations are native; energized selection is
++// an explicitly reconstructed lighting treatment.
++let vanity=0;
++for(const node of gltf.nodes.filter(n=>n.name==='i_zombie_theater_dresslight1'&&n.matrix)){
++  matrix.fromArray(node.matrix);point.set(0,0,5.2).applyMatrix4(matrix);
++  direction.set(0,0,1).transformDirection(matrix);
++  if(point.y<28||Math.abs(direction.y)>.35||vanity++%3!==0)continue;
++  sources.push({id:'vanity-'+vanity,fixture:node.name,position:point.toArray(),color:[1,.70,.40],powered:true,
++    radius:130,falloff:65,energy:.24,direction:null,angle:180,glowRadius:2.2,noAccent:true,
++    provenance:'Intact native vanity bulb; sparse warm powered circuit reconstructed.'});
++}
++const world=data.entities.find(e=>e.classname==='worldspawn');
++const [pitch,yaw]=world.sundirection.split(' ').map(n=>Number(n)*Math.PI/180);
++// CoD forward maps from (x,y,z) to Three (x,z,-y); negative pitch points up.
++const sunDirection=[Math.cos(pitch)*Math.cos(yaw),-Math.sin(pitch),-Math.cos(pitch)*Math.sin(yaw)];
++const plan={version:1,description:'Original Kino fixture positions/colors with reconstructed missing aim, occluded static illumination and restrained period practicals.',
++  worldspawn:world,sun:{direction:sunDirection,color:[.82,.76,.62],energy:.6},sources,
++  replacements:['New radiometry and light/shadow bake; original T5 lightmaps unavailable.','Spotlight target entities absent; ceiling spots aim down by deliberate approximation.','Original period fixtures and set dressing retained; missing fixture 2715 restored from supplied geometry.']};
++fs.writeFileSync(path.join(root,'theater-light-plan.json'),JSON.stringify(plan,null,2)+'\n');
++console.log(JSON.stringify({sources:sources.length,always:sources.filter(s=>!s.powered).length,powered:sources.filter(s=>s.powered).length,sunDirection}));
+--- v1.1/.tools/test-enemy-audio.mjs
++++ v1.2/.tools/test-enemy-audio.mjs
+@@ -0,0 +1,32 @@
++import {chromium} from 'playwright-core';
++import {resolveChromeExecutable} from './browser-path.mjs';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++const out=process.env.KINO_ENEMY_AUDIO_OUT??'artifacts/v3-enemy-audio';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const page=await browser.newPage({viewport:{width:1440,height:900}}),checks=[],errors=[];let decoded=[],spatial=[];
++page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+' '+r.url());});page.on('requestfailed',r=>errors.push(r.url()+' '+r.failure()?.errorText));
++const pass=(name,detail)=>{checks.push({name,passed:true,detail});console.log('PASS',name);};
++const state=()=>page.evaluate(()=>kino.debug.audioState());
++const step=t=>page.evaluate(n=>kino.debug.step(n),t);
++const cue=(id,event)=>page.waitForFunction(({id,event})=>kino.debug.audioState().recentEvents.some(e=>e.enemyId===id&&e.enemyEvent===event),{id,event},{timeout:12000});
++async function fresh(){await page.evaluate(()=>{kino.debug.reset();kino.debug.setActive(true);kino.debug.setInvulnerable(true);kino.debug.setAutoSpawn(false);kino.debug.teleportPlayer([0,100,1120]);kino.debug.lookAt([0,150,800]);});await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);await step(.8);}
++try{
++ await page.goto(process.env.KINO_URL??'http://127.0.0.1:5173/');await page.waitForFunction(()=>globalThis.kino?.debug.getState().ready,null,{timeout:180000});await page.click('#start');await fresh();
++ decoded=await page.evaluate(async()=>{const {GameAudio}=await import('./audio.js'),a=new GameAudio();await a.load();a.ctx=new AudioContext();const keys=[...Object.keys(a.manifest).filter(k=>k.startsWith('enemy/nzp/')),'dog'];try{return await Promise.all(keys.map(async key=>{const b=await a.buffer(key),pcm=b.getChannelData(0);let power=0,peak=0;for(const v of pcm){power+=v*v;peak=Math.max(peak,Math.abs(v));}return{key,duration:b.duration,channels:b.numberOfChannels,sampleRate:b.sampleRate,rms:Math.sqrt(power/pcm.length),peak};}));}finally{await a.ctx.close();}});
++ assert.equal(decoded.length,48);assert(decoded.every(d=>d.duration>0&&d.rms>0&&d.peak>0&&Number.isFinite(d.peak)));pass('47 credited creature/community cues and native dog growl decode to nonzero PCM',decoded.length);
++ spatial=await page.evaluate(async()=>{const {GameAudio}=await import('./audio.js'),results=[];for(const config of [{x:-240,z:-240},{x:240,z:-240},{x:-900,z:-900},{x:-240,z:-240,mute:true}]){const a=new GameAudio();await a.load();a.ctx=new OfflineAudioContext(2,144000,48000);a.master=a.ctx.createGain();a.master.gain.value=config.mute?0:.42;a.master.connect(a.ctx.destination);a.setListener([0,0,0]);await a.native('enemy/nzp/zombie/a0',.58,false,{position:[config.x,0,config.z]});const b=await a.ctx.startRendering();results.push({...config,rms:[0,1].map(c=>{let power=0;for(const n of b.getChannelData(c))power+=n*n;return Math.sqrt(power/b.length);})});}return results;});
++ assert(spatial[0].rms[0]>spatial[0].rms[1]*1.1);assert(spatial[1].rms[1]>spatial[1].rms[0]*1.1);assert(spatial[2].rms[0]<spatial[0].rms[0]*.3);assert.deepEqual(spatial[3].rms,[0,0]);pass('Actual recorded creature HRTF output follows direction, distance and master mute (automated PCM)',spatial);
++ for(const kind of ['zombie','dog','nova']){
++  await fresh();const id=await page.evaluate(kind=>{const p=kino.debug.getState().player.feet;return kino.debug.spawnEnemy([p[0]+10,p[1],p[2]-42],kind);},kind);await step(.03);await cue(id,'attack');const attack=(await state()).recentEvents.find(e=>e.enemyId===id&&e.enemyEvent==='attack');assert.equal(attack.enemyKind,kind);assert.equal(attack.sourceType,'community-recording');assert.equal(attack.native,false);assert.equal(attack.playbackRate,kind==='nova'?1.25:1);assert(attack.position.length===3);assert.match(attack.key,kind==='dog'?/\/hound\/a/:/\/zombie\/a/);
++  await page.evaluate(id=>kino.debug.damageEnemy(id),id);await cue(id,'death');const death=(await state()).recentEvents.find(e=>e.enemyId===id&&e.enemyEvent==='death');assert.match(death.key,kind==='dog'?/\/hound\/d/:/\/zombie\/d/);assert.equal(death.playbackRate,kind==='nova'?1.18:1);const voices=(await state()).enemy.voices.filter(e=>e.id===id);assert(voices.length<=1);assert(voices.every(e=>e.event==='death'));pass(kind+' actual attack and kill emit distinct spatial state recordings with one actor vocal',{attack,death});
++ }
++ await fresh();const barrier=await page.evaluate(()=>kino.debug.spawnCandidates()[0]);assert(barrier);const barrierId=await page.evaluate(b=>{kino.debug.setBoards(b.id,6);kino.debug.teleportPlayer(b.inside);return kino.debug.spawnBarrierEnemy(b.id);},barrier);await step(1.2);await cue(barrierId,'barrier');await cue(barrierId,'teardown');const tear=(await state()).recentEvents.filter(e=>e.enemyId===barrierId);assert(tear.some(e=>e.key==='enemy/nzp/barrier/barricade_destroy'));assert(tear.some(e=>e.enemyEvent==='teardown'&&e.key.includes('/zombie/t')));pass('Actual boarded-window tear emits wood break and actor teardown vocal',tear);
++ await fresh();const spawnId=await page.evaluate(()=>{const p=kino.debug.getState().player.feet;return kino.debug.spawnEnemy([p[0]+220,p[1],p[2]-220],'zombie');});await cue(spawnId,'spawn');const before=(await state()).enemy.voices.find(v=>v.id===spawnId);await step(.35);const after=(await state()).enemy.voices.find(v=>v.id===spawnId);assert(before&&after);assert(Math.hypot(...before.position.map((n,i)=>n-after.position[i]))>1);pass('Live chase updates the playing emitter position',{before,after});
++ await fresh();await page.evaluate(()=>{const p=kino.debug.getState().player.feet;for(let i=0;i<24;i++)kino.debug.spawnEnemy([p[0]+140+i*2,p[1],p[2]-120],'zombie');});await page.waitForFunction(()=>kino.debug.audioState().enemy.active>0);const crowd=await state();assert(crowd.enemy.active<=10);assert(crowd.enemy.suppressed>=14);assert(crowd.voices<=40);pass('24 simultaneous creature spawns stay within the ten-voice subpool',crowd.enemy);
++ await page.keyboard.down('KeyW');await step(.6);await page.keyboard.up('KeyW');await page.waitForFunction(()=>kino.debug.audioState().recentEvents.some(e=>e.key.startsWith('shared/fly/footsteps/')),null,{timeout:12000});const feet=(await state()).recentEvents.filter(e=>e.key.startsWith('shared/fly/footsteps/'));assert(feet.some(e=>e.native));pass('Native player movement still plays while creature audio is active',feet);
++ await page.evaluate(()=>kino.debug.pause());await page.waitForFunction(()=>kino.debug.audioState().state==='suspended');const paused=await state();await page.waitForTimeout(300);const held=await state();assert.equal(held.enemy.active,paused.enemy.active);assert.equal(held.recentEvents.length,paused.recentEvents.length);await page.evaluate(()=>kino.debug.resume());await page.waitForFunction(()=>kino.debug.audioState().state==='running');assert((await state()).enemy.active<=10);pass('Pause suspends creature playback and resume does not duplicate actor voices');
++ await page.evaluate(()=>kino.debug.reset());await page.waitForTimeout(200);const cleaned=await state();assert.equal(cleaned.enemy.active,0);assert.equal(cleaned.voices,0);assert.equal(cleaned.spatialVoices,0);assert.equal(cleaned.pendingVoices,0);assert.equal(cleaned.musicVoices,0);pass('Run reset leaves no creature, effect, music or pending source',cleaned);
++ assert.equal(errors.length,0,errors.join('\n'));pass('No browser script, decode, shader or network errors');
++}catch(e){checks.push({name:'Failure',passed:false,error:String(e),stack:e.stack});console.error(e);process.exitCode=1;await page.screenshot({path:out+'/failure.png'}).catch(()=>{});}
++finally{fs.writeFileSync(out+'/browser-report.json',JSON.stringify({checks,errors,decoded,spatial,audio:await state().catch(()=>null)},null,2));await browser.close();}
+--- v1.1/.tools/test-weapon-poses.mjs
++++ v1.2/.tools/test-weapon-poses.mjs
+@@ -0,0 +1,77 @@
++import { chromium } from 'playwright-core';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import { resolveChromeExecutable } from './browser-path.mjs';
++
++const out=process.env.KINO_WEAPON_POSES_DIR??'artifacts/v3-weapons';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[],checks=[],poses=[],weapons=[];
++const pass=(name,detail)=>{checks.push({name,passed:true,detail});console.log('PASS',name);};
++page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
++page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
++const step=(seconds,options={})=>page.evaluate(({seconds,options})=>{for(let t=0;t<seconds;t+=1/120)lab.view.update(Math.min(1/120,seconds-t),options);lab.draw();return lab.view.snapshot();},{seconds,options});
++const snap=name=>page.screenshot({path:`${out}/${name}.png`});
++try{
++  await page.route('**/weapon-pose-test.html',route=>route.fulfill({contentType:'text/html',body:`<!doctype html><style>body{margin:0}canvas{display:block}</style><script type="importmap">{"imports":{"three":"/vendor/three.module.js","three/addons/":"/vendor/jsm/"}}</script><script type="module">
++  import * as THREE from 'three';import {ViewWeapon} from '/animation.js';
++  const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);document.body.append(renderer.domElement);
++  const scene=new THREE.Scene();scene.background=new THREE.Color(0x20252b);scene.add(new THREE.HemisphereLight(0xffffff,0x8899aa,1.2));
++  const light=new THREE.DirectionalLight(0xffefce,1);light.position.set(0,4,2);scene.add(light);
++  const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.01,200),data=await fetch('/game-data.json').then(r=>r.json());
++  const notes=[],view=new ViewWeapon(scene,data,(name)=>notes.push(name));
++  await view.equip(data.weapons.m1911_zm);window.lab={view,data,notes,draw:()=>renderer.render(scene,camera)};lab.draw();
++  </script>`}));
++  await page.goto('http://127.0.0.1:5173/weapon-pose-test.html');await page.waitForFunction(()=>window.lab,null,{timeout:120000});
++  const definitions=await page.evaluate(()=>Object.entries(lab.data.weapons).flatMap(([id,b])=>[{...b,id,upgraded:false},{...b,...b.upgrade,id,upgraded:true}]));
++  for(const def of definitions){
++    const key=def.id+(def.upgraded?'-upgraded':'');await page.evaluate(def=>lab.view.equip(def),def);
++    const hip=await step(def.raiseTime+.1);assert.equal(hip.mode,'idle',key);assert(hip.canFire,key+' is ready');
++    const aimed=await step(Math.max(.1,def.adsInTime)+.02,{ads:!def.dualWield});assert.equal(aimed.aim,def.dualWield?0:1,key+' ADS');
++    assert(aimed.gun.every(Number.isFinite),key+' finite gun transform');
++    const capture=['ithaca_zm','ray_gun_zm','m1911_zm','pm63_zm'].includes(def.id)&&(!def.upgraded||def.dualWield);
++    if(capture)await snap(key+'-ads');
++    const lowered=await step(Math.max(.01,def.adsOutTime)/2,{ads:false});if(capture)await snap(key+'-lowering');
++    await step(Math.max(.1,def.adsOutTime)+.1);await page.evaluate(()=>lab.view.shoot({hand:'left',empty:true}));
++    const shot=await step(.025);if(def.dualWield)assert.equal(shot.animation,'leftLastShotAnim',key+' left final shot');
++    await step(2);await page.evaluate(def=>{lab.notes.length=0;lab.view.reload(true,def.reloadEmptyTime||def.reloadTime);},def);
++    await step(.5,{reloading:true});if(capture)await snap(key+'-empty-reload');
++    await step(Math.max(def.reloadEmptyTime,def.reloadTime)+.1,{reloading:true});await step(.1);
++    if(def.id==='cz75dw_zm'&&!def.upgraded){const notes=await page.evaluate(()=>lab.notes);assert.equal(notes.filter(n=>n==='sndnt#fly_cz75_mag_out').length,2);pass('dual CZ75 emits both staggered magazine-out notifies',notes);}
++    const sprint=await step(def.sprintInTime+def.sprintLoopTime+.1,{sprint:true});assert.equal(sprint.mode,'sprint',key+' sprint');assert(!sprint.canFire);
++    const exit=await step(.001);assert.equal(exit.mode,'sprintOut',key+' starts authored sprint exit');assert(!exit.canFire);
++    const ready=await step(def.sprintOutTime+.1);assert(ready.canFire,key+' exits sprint');assert.equal(ready.mode,'idle');
++    poses.push({key,hip,aimed,lowered,shot,sprint,ready});
++  }
++  pass('64 native base/upgraded viewmodels: equip, ADS, release, empty reload, dual last shot, sprint recovery',{count:poses.length});
++  await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>globalThis.kino?.debug.getState().ready,null,{timeout:120000});await page.click('#start');
++  const state=()=>page.evaluate(()=>kino.debug.getState());
++  const ready=async()=>{await page.waitForFunction(()=>kino.debug.getState().viewmodelReady,null,{timeout:20000});await page.evaluate(()=>kino.debug.step(2));};
++  for(const def of definitions){
++    await page.evaluate(id=>{kino.debug.reset();kino.debug.setActive(true);kino.debug.setInvulnerable(true);kino.debug.setAutoSpawn(false);kino.debug.giveWeapon(id);},def.id);await ready();
++    if(def.upgraded){await page.evaluate(()=>{const ents=kino.debug.getEntities();kino.debug.grantPoints(5000);kino.debug.teleportPlayer(ents.find(e=>e.targetname==='use_elec_switch').position);assertUse();kino.debug.teleportPlayer(ents.find(e=>e.targetname==='zombie_vending_upgrade').position);assertUse();kino.debug.step(4.5);assertUse();function assertUse(){if(!kino.debug.interact())throw Error('upgrade setup interaction failed');}});await ready();}
++    assert.equal((await state()).weapon.mag,def.clipSize);assert(await page.evaluate(()=>kino.debug.shoot()));
++    assert.equal((await state()).weapon.mag,def.clipSize-1);await page.keyboard.press('KeyR');await page.evaluate(()=>kino.debug.step(12));
++    const result=await state();assert.equal(result.weapon.mag,def.clipSize,def.name+' gameplay reload');weapons.push({id:def.id,upgraded:def.upgraded,mag:result.weapon.mag,passed:true});
++  }
++  pass('64 native base/upgraded guns fire and reload through the actual gameplay path',{count:weapons.length});
++  for(const id of ['mp40_zm','ray_gun_zm']){
++    await page.evaluate(id=>{kino.debug.reset();kino.debug.setActive(true);kino.debug.setInvulnerable(true);kino.debug.setAutoSpawn(false);kino.debug.giveWeapon(id);},id);await ready();
++    const result=await page.evaluate(()=>{
++      const key=(type,code)=>window.dispatchEvent(new KeyboardEvent(type,{code,bubbles:true}));
++      key('keydown','KeyW');key('keydown','ShiftLeft');kino.debug.step(.35);const sprint=kino.debug.weaponVisual(),mag=kino.debug.getState().weapon.mag,blockedSprint=!kino.debug.shoot();
++      key('keyup','ShiftLeft');key('keyup','KeyW');kino.debug.step(.001);const exit=kino.debug.weaponVisual(),blockedExit=!kino.debug.shoot(),exitMag=kino.debug.getState().weapon.mag;
++      kino.debug.step(.5);return {sprint,exit,mag,exitMag,blockedSprint,blockedExit,firesAfter:kino.debug.shoot(),final:kino.debug.weaponVisual()};
++    });
++    assert(result.blockedSprint&&result.blockedExit&&result.firesAfter,id+' sprint readiness integrated');assert.equal(result.mag,result.exitMag);pass(id+' gameplay blocks premature sprint firing and recovers',result);
++  }
++  await page.evaluate(()=>{kino.debug.giveWeapon('ithaca_zm');});await ready();
++  const interrupted=await page.evaluate(()=>{
++    for(let i=0;i<6;i++){kino.debug.shoot();kino.debug.step(.9);}kino.debug.reload();kino.debug.step(1.1);
++    const before=kino.debug.getState(),queued=!kino.debug.shoot();kino.debug.step(2);const after=kino.debug.getState();
++    return {before,queued,after,view:kino.debug.weaponVisual()};
++  });
++  assert(interrupted.queued);assert.equal(interrupted.after.weapon.mag+interrupted.after.weapon.reserve,interrupted.before.weapon.mag+interrupted.before.weapon.reserve-1);assert(!interrupted.after.reloadLeft);pass('gameplay shotgun interruption retains its queued shot after native reload-end animation',{before:interrupted.before.weapon,after:interrupted.after.weapon,view:interrupted.view});
++  await page.evaluate(()=>{kino.debug.teleportPlayer([-115,100,1254]);kino.debug.lookAt([0,180,850]);kino.debug.step(1);kino.debug.pause();document.getElementById('menu').hidden=true;document.body.classList.remove('menu-open');});await snap('gameplay-stakeout-final');
++  assert.equal(errors.length,0,errors.join('\n'));pass('no browser rendering, loading, or script errors');
++}catch(error){checks.push({passed:false,error:String(error),stack:error.stack});console.error(error);process.exitCode=1;await snap('failure').catch(()=>{});}
++finally{fs.writeFileSync(`${out}/report.json`,JSON.stringify({method:'Debug-assisted animation lab plus actual gameplay integration; controlled time, upgrades and invulnerability are test setup, not a survival playthrough.',checks,poses,weapons,errors},null,2));await browser.close();}
+--- v1.1/.tools/test-reload-props.mjs
++++ v1.2/.tools/test-reload-props.mjs
+@@ -0,0 +1,35 @@
++import { chromium } from 'playwright-core';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import { resolveChromeExecutable } from './browser-path.mjs';
++const out='artifacts/v3-weapons/reload-props';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const page=await browser.newPage({viewport:{width:1440,height:900}}),checks=[],errors=[];
++page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
++page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
++const step=(dt,options={})=>page.evaluate(({dt,options})=>{lab.view.update(dt,options);lab.draw();return lab.view.snapshot();},{dt,options});
++try{
++  await page.route('**/reload-props-test.html',route=>route.fulfill({contentType:'text/html',body:`<!doctype html><style>body{margin:0}canvas{display:block}</style><script type="importmap">{"imports":{"three":"/vendor/three.module.js","three/addons/":"/vendor/jsm/"}}</script><script type="module">
++  import * as THREE from 'three';import {ViewWeapon} from '/animation.js';
++  const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);document.body.append(renderer.domElement);
++  const scene=new THREE.Scene();scene.background=new THREE.Color(0x20252b);scene.add(new THREE.HemisphereLight(0xffffff,0x8899aa,1.2));
++  const light=new THREE.DirectionalLight(0xffefce,1);light.position.set(0,4,2);scene.add(light);
++  const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.01,200),data=await fetch('/game-data.json').then(r=>r.json()),view=new ViewWeapon(scene,data);
++  await view.equip(data.weapons.ithaca_zm);window.lab={view,data,draw:()=>renderer.render(scene,camera),pick:()=>{const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(842/1440*2-1,1-450/900*2),camera);return ray.intersectObject(view.root,true).map(hit=>({mesh:hit.object.name,point:hit.point.toArray()}));}};lab.draw();
++  </script>`}));
++  await page.goto('http://127.0.0.1:5173/reload-props-test.html');await page.waitForFunction(()=>window.lab,null,{timeout:60000});
++  const definitions=await page.evaluate(()=>Object.entries(lab.data.weapons).flatMap(([id,b])=>[{...b,id,upgraded:false},{...b,...b.upgrade,id,upgraded:true},...(b.upgrade?.attachment?[{...b.upgrade.attachment,attachmentActive:true}]:[])]).filter(d=>d.segmentedReload&&(d.pellets>1||(d.projectileSpeed>0&&d.projectileType==='grenade'))));
++  for(const def of definitions){
++    const key=def.id+(def.upgraded?'-upgraded':'');await page.evaluate(def=>lab.view.equip(def),def);const idle=await step(def.raiseTime+1);assert(!idle.reloadProps.visible);assert(idle.reloadProps.tags.length>0,key+' tagged reload prop');
++    const duration=def.reloadStartTime>0?def.reloadStartTime:def.reloadTime,stage=def.reloadStartTime>0?'start':'shell';
++    const cue=await page.evaluate(({duration,stage})=>{lab.view.reload(false,duration,stage);const clip=lab.view.rig.data[lab.view.rig.current];return clip.notifies.find(n=>n.name==='rmbnt#reload_clipin'||n.name.endsWith('_shell_in'))?.time/clip.duration*duration;},{duration,stage});
++    assert(cue>0,key+' native insertion cue');const loading=await step(cue/2,{reloading:true});assert(loading.reloadProps.visible,key+' prop visible in loading hand');
++    await page.screenshot({path:`${out}/${key}-loading.png`});const inserted=await step(cue/2+.005,{reloading:true});assert(!inserted.reloadProps.visible,key+' inserted prop is hidden');
++    await step(duration+1);await page.evaluate(()=>lab.view.reload(false,.4,'end'));const ended=await step(.1,{reloading:true});assert(!ended.reloadProps.visible);await step(1);
++    await page.evaluate(()=>lab.view.reload(false,.5,'shell'));assert((await step(.01,{reloading:true})).reloadProps.visible);const cancelled=await step(.01);assert(!cancelled.reloadProps.visible,key+' interrupted reload clears prop');
++    if(def.id==='ithaca_zm'&&!def.upgraded){await step(.4,{ads:true});await step(.1,{ads:false});const hits=await page.evaluate(()=>lab.pick());assert(!hits.some(h=>h.mesh==='surf3'),'the former floating shell is no longer pickable above the barrel');await page.screenshot({path:`${out}/stakeout-lowering-corrected.png`});}
++    checks.push({name:key,passed:true,tags:idle.reloadProps.tags,cue,loading,inserted,cancelled});console.log('PASS',key);
++  }
++  assert.equal(errors.length,0,errors.join('\n'));
++}catch(error){checks.push({passed:false,error:String(error),stack:error.stack});console.error(error);process.exitCode=1;}
++finally{fs.writeFileSync(`${out}/report.json`,JSON.stringify({method:'Actual native viewmodels rendered in an isolated animation fixture; reload state and source insertion cues advanced explicitly.',checks,errors},null,2));await browser.close();}
+--- v1.1/.tools/test-dual-last-shot.mjs
++++ v1.2/.tools/test-dual-last-shot.mjs
+@@ -0,0 +1,23 @@
++import { chromium } from 'playwright-core';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import { resolveChromeExecutable } from './browser-path.mjs';
++const out='artifacts/v3-weapons',data=JSON.parse(fs.readFileSync('export/web/game-data.json'));
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const page=await browser.newPage({viewport:{width:1440,height:900}}),checks=[],errors=[];
++page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
++page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
++try{
++  await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>globalThis.kino?.debug.getState().ready,null,{timeout:120000});await page.click('#start');
++  for(const [id,upgraded] of [['cz75dw_zm',false],['cz75dw_zm',true],['m1911_zm',true],['pm63_zm',true],['hs10_zm',true]]){
++    const def=upgraded?{...data.weapons[id],...data.weapons[id].upgrade}:data.weapons[id];
++    await page.evaluate(id=>{kino.debug.reset();kino.debug.setActive(true);kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);kino.debug.giveWeapon(id);},id);await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);await page.evaluate(()=>kino.debug.step(2));
++    if(upgraded){await page.evaluate(()=>{const ents=kino.debug.getEntities();kino.debug.grantPoints(5000);kino.debug.teleportPlayer(ents.find(e=>e.targetname==='use_elec_switch').position);kino.debug.interact();kino.debug.teleportPlayer(ents.find(e=>e.targetname==='zombie_vending_upgrade').position);if(!kino.debug.interact())throw Error('PAP purchase failed');kino.debug.step(4.5);if(!kino.debug.interact())throw Error('PAP claim failed');});await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);await page.evaluate(()=>kino.debug.step(2));}
++    const shots=await page.evaluate(({clipSize,fireTime})=>{const shots=[];kino.debug.teleportPlayer([0,100,1120]);kino.debug.lookAt([0,500,1200]);for(let i=0;i<clipSize;i++){if(!kino.debug.shoot())throw Error('shot blocked at '+i);shots.push({mag:kino.debug.getState().weapon.mag,animation:kino.debug.weaponVisual().animation});kino.debug.step(fireTime+.02);}return shots;},{clipSize:def.clipSize,fireTime:def.fireTime});
++    assert.deepEqual(shots.slice(-2).map(s=>s.mag),[1,0]);assert.equal(shots.at(-2).animation,'leftLastShotAnim');assert.equal(shots.at(-1).animation,'lastShotAnim');
++    assert(!shots.slice(0,-2).some(s=>s.animation==='leftLastShotAnim'||s.animation==='lastShotAnim'));
++    checks.push({id,upgraded,passed:true,shots});console.log('PASS',id,upgraded?'upgraded':'base');
++  }
++  assert.equal(errors.length,0,errors.join('\n'));
++}catch(error){checks.push({passed:false,error:String(error),stack:error.stack});console.error(error);process.exitCode=1;}
++finally{fs.writeFileSync(`${out}/dual-last-shot-report.json`,JSON.stringify({method:'Actual gameplay fire calls, debug-assisted upgrades and controlled time; both aggregate final shots empty their own paired magazine.',checks,errors},null,2));await browser.close();}
+--- v1.1/.tools/capture-atmosphere.mjs
++++ v1.2/.tools/capture-atmosphere.mjs
+@@ -0,0 +1,36 @@
++import {chromium} from 'playwright-core';
++import fs from 'node:fs';
++import path from 'node:path';
++import {resolveChromeExecutable} from './browser-path.mjs';
++const output=path.resolve(process.env.KINO_MAP_CAPTURE||'artifacts/map-v3-final');fs.mkdirSync(output,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});
++const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage();
++const report={url:process.env.KINO_URL||'http://127.0.0.1:5173/',method:'Controlled visual inspection; teleports are not traversal proof',errors:[],requests:[],views:[]};
++page.on('console',m=>{if(m.type()==='error')report.errors.push(m.text())});
++page.on('pageerror',e=>report.errors.push(String(e)));page.on('requestfailed',r=>report.requests.push(r.url()));
++page.on('response',r=>{if(r.status()>=400)report.errors.push(`${r.status()} ${r.url()}`)});
++try{
++ await page.goto(report.url);await page.waitForFunction(()=>kino?.debug.getState().ready,null,{timeout:120000});
++ await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);
++ await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true)});
++ async function capture(name,feet,target){
++  await page.evaluate(({feet,target})=>{kino.debug.teleportPlayer(feet);kino.debug.step(.3);kino.debug.lookAt(target)},{feet,target});
++  await page.waitForTimeout(1700);await page.screenshot({path:path.join(output,`${name}.png`)});
++  report.views.push({name,state:await page.evaluate(()=>kino.debug.getState()),lighting:await page.evaluate(()=>kino.debug.lightingState()),map:await page.evaluate(()=>kino.debug.mapState())});
++ }
++ await capture('01-lobby-unpowered',[-101,108,1256],[0,240,650]);
++ await page.evaluate(()=>{const e=kino.debug.getEntities().find(e=>e.targetname==='use_elec_switch');kino.debug.teleportPlayer([e.position[0],e.position[1]-55,e.position[2]]);kino.debug.step(.2);kino.debug.interact()});
++ await capture('02-lobby-powered',[-101,108,1256],[0,240,650]);
++ await capture('03-upper-hall',[620,280,600],[1300,350,600]);
++ await capture('04-dining',[1540,0,-360],[1330,100,-680]);
++ await capture('05-dressing',[1350,0,-1560],[1430,60,-1660]);
++ await capture('06-theater',[0,-60,-650],[0,160,-1650]);
++ await capture('07-stage',[500,0,-1280],[-200,110,-600]);
++ await capture('08-alley',[-1460,10,-380],[-1700,100,-700]);
++ await capture('09-projection',[-139,328,436],[80,370,150]);
++ await page.evaluate(()=>{kino.debug.reset();kino.debug.setActive(true);kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);kino.debug.teleportPlayer([-100,100,1180]);kino.debug.lookAt([0,130,930]);kino.debug.spawnEnemy([0,80,950],'zombie')});
++ await page.waitForTimeout(400);await page.screenshot({path:path.join(output,'10-combat-readability.png')});
++ report.resetLighting=await page.evaluate(()=>kino.debug.lightingState());
++ report.success=report.errors.length===0&&report.requests.length===0&&report.resetLighting.power===0;
++}catch(e){report.success=false;report.failure=String(e);process.exitCode=1}
++finally{fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({success:report.success,errors:report.errors,failedRequests:report.requests,views:report.views.length,output}))}
+--- v1.1/.tools/recover-enemy-audio.py
++++ v1.2/.tools/recover-enemy-audio.py
+@@ -0,0 +1,94 @@
++"""Recover pinned NZ:P community recordings, preserving original PCM WAV bytes.
++
++These are replacement recordings, not recovered Black Ops creature vocals.
++The downloadable source bank and any runtime pitch adaptations retain CC BY-SA.
++"""
++from pathlib import Path
++from concurrent.futures import ThreadPoolExecutor
++import hashlib
++import io
++import json
++import urllib.request
++import wave
++
++ROOT = Path(__file__).resolve().parents[1]
++WEB = ROOT / 'export/web'
++OUT = WEB / 'audio/enemies'
++AUDIT = ROOT / 'artifacts/v3-enemy-audio'
++COMMIT = '70a14104914f2fc65b99b3c58b1f92c2356ecf76'
++REPOSITORY = 'https://github.com/nzp-team/assets'
++LICENSE = 'https://creativecommons.org/licenses/by-sa/4.0/'
++RAW = f'https://raw.githubusercontent.com/nzp-team/assets/{COMMIT}/'
++
++
++def get(url):
++    return urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'Kino-Enemy-Audio-Recovery'}), timeout=45).read()
++
++
++def main():
++    OUT.mkdir(parents=True, exist_ok=True)
++    AUDIT.mkdir(parents=True, exist_ok=True)
++    tree = json.loads(get(f'https://api.github.com/repos/nzp-team/assets/git/trees/{COMMIT}?recursive=1'))
++    if tree.get('truncated'):
++        raise ValueError('Complete source tree required')
++    blobs = {item['path']: item for item in tree['tree']}
++    paths = [f'pc/nzp/sounds/zombie/{letter}{n}.wav' for letter, count in [('a', 8), ('d', 8), ('r', 10), ('t', 5), ('w', 10)] for n in range(count)]
++    paths += [f'common/sounds/hound/{name}.wav' for name in ['a0', 'd0', 't0', 't1']]
++    paths += ['pc/nzp/sounds/misc/barricade.wav', 'pc/nzp/sounds/misc/barricade_destroy.wav']
++
++    def recover(source_path):
++        payload = get(RAW + source_path)
++        git_blob = hashlib.sha1(b'blob ' + str(len(payload)).encode() + b'\0' + payload).hexdigest()
++        if git_blob != blobs[source_path]['sha']:
++            raise ValueError('Pinned Git blob mismatch: ' + source_path)
++        with wave.open(io.BytesIO(payload), 'rb') as audio:
++            rate, channels, frames, width = audio.getframerate(), audio.getnchannels(), audio.getnframes(), audio.getsampwidth()
++            if width not in [1, 2, 3, 4] or channels not in [1, 2] or frames == 0:
++                raise ValueError('Valid PCM source required: ' + source_path)
++        group = 'hound' if '/hound/' in source_path else 'zombie' if '/zombie/' in source_path else 'barrier'
++        filename = group + '-' + Path(source_path).name
++        (OUT / filename).write_bytes(payload)
++        digest = hashlib.sha256(payload).hexdigest()
++        key = f'enemy/nzp/{group}/{Path(source_path).stem}'
++        return key, {
++            'url': 'audio/enemies/' + filename,
++            'source': REPOSITORY + '/blob/' + COMMIT + '/' + source_path,
++            'sourceRepository': REPOSITORY, 'sourceCommit': COMMIT, 'sourcePath': source_path,
++            'sourceGitBlob': git_blob, 'sourceSha256': digest, 'encodedSha256': digest,
++            'duration': frames / rate, 'sampleRate': rate, 'channels': channels, 'sampleWidth': width,
++            'native': False, 'sourceType': 'community-recording', 'license': LICENSE,
++            'attribution': 'NZ:P Team, 2025; sound credits: Blubswillrule, Biodude, Cypress, Marty P.',
++            'transformation': 'Original WAV bytes unchanged. Nova uses runtime playback-rate adaptation of zombie crawler/attack/death recordings; state timing and mix are reconstruction choices.',
++        }
++
++    with ThreadPoolExecutor(max_workers=6) as pool:
++        recovered = dict(pool.map(recover, paths))
++    manifest_path = WEB / 'audio/manifest.json'
++    manifest = json.loads(manifest_path.read_text())
++    manifest.update(recovered)
++    manifest_path.write_text(json.dumps(manifest, indent=2) + '\n')
++    (OUT / 'LICENSE.md').write_bytes(get(RAW + 'LICENSE.md'))
++    (OUT / 'ATTRIBUTION.txt').write_text(
++        'Creature and barricade recordings: NZ:P Team (2025).\n'
++        'Sound credits: Blubswillrule, Biodude, Cypress, Marty P.\n'
++        + REPOSITORY + '/tree/' + COMMIT + '\n'
++        'License: Creative Commons Attribution-ShareAlike 4.0 International.\n' + LICENSE + '\n'
++        'Source WAV files are unchanged. Nova pitch and all event timing/mixing are new runtime adaptations.\n'
++        'Recordings and their adaptations retain CC BY-SA 4.0. These are community replacements, not exact Black Ops creature recordings.\n'
++        'The separate existing dog.ogg growl remains a recovered T5 recording under its existing asset notice.\n'
++    )
++    catalog = {
++        'sourceRepository': REPOSITORY, 'sourceCommit': COMMIT, 'license': LICENSE,
++        'sourceMapping': 'https://github.com/nzp-team/quakec/tree/8a77f1ce45f1a2b9aa0afb301446954fda40e696/source/server/ai',
++        'sourceRules': 'User-supplied BO1-Reimagined-master.zip: maps/_zombiemode_audio.gsc (ambient, sprint, attack, teardown, behind, death; per-actor talking guard); maps/_zombiemode_ai_dogs.gsc; maps/_zombiemode_ai_quad.gsc.',
++        'fidelity': 'NZ:P state-family replacements. Native T5 zombie/Nova/Hellhound attack/death banks were absent from the recovered fork and uploaded ZIP. Native dog.ogg is retained for quiet hound growls. Nova pitch adaptations are explicitly approximate.',
++        'count': len(recovered), 'encodedBytes': sum((WEB / item['url']).stat().st_size for item in recovered.values()),
++        'assets': [{'key': key, **item} for key, item in sorted(recovered.items())],
++    }
++    (OUT / 'catalog.json').write_text(json.dumps(catalog, indent=2) + '\n')
++    (AUDIT / 'asset-recovery.json').write_text(json.dumps(catalog, indent=2) + '\n')
++    print(json.dumps({key: catalog[key] for key in ['sourceCommit', 'count', 'encodedBytes']}))
++
++
++if __name__ == '__main__':
++    main()
+--- v1.1/.tools/test-weapon-reload-bindings.mjs
++++ v1.2/.tools/test-weapon-reload-bindings.mjs
+@@ -0,0 +1,39 @@
++import { chromium } from 'playwright-core';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import { resolveChromeExecutable } from './browser-path.mjs';
++const out='artifacts/v3-weapons/reload-bindings';fs.mkdirSync(out,{recursive:true});
++// Reproduce only the inherited position bug for a controlled visual comparison.
++const before=fs.readFileSync('export/web/animation.js','utf8').replace('useWeaponBindTranslations(gun);','').replace('useWeaponBindTranslations(leftGun);','');
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const page=await browser.newPage({viewport:{width:1440,height:500}}),checks=[],errors=[];
++page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
++page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
++const step=(dt,options={})=>page.evaluate(({dt,options})=>{for(const v of lab.views)v.update(dt,options);lab.draw();return lab.parts();},{dt,options});
++try{
++  await page.route('**/animation-before-bind.js',route=>route.fulfill({contentType:'text/javascript',body:before}));
++  await page.route('**/weapon-bindings-test.html',route=>route.fulfill({contentType:'text/html',body:`<!doctype html><style>body{margin:0;background:#16191d;color:#ddd;font:16px sans-serif}header{display:flex;height:40px;align-items:center}header span{width:50%;padding-left:20px}canvas{display:block}</style><header><span>Before: weapon offset omitted</span><span>After: native weapon socket retained</span></header><script type="importmap">{"imports":{"three":"/vendor/three.module.js","three/addons/":"/vendor/jsm/"}}</script><script type="module">
++  import * as THREE from 'three';import {ViewWeapon} from '/animation.js';import {ViewWeapon as Before} from '/animation-before-bind.js';
++  const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(1440,450);renderer.setScissorTest(true);document.body.append(renderer.domElement);
++  const data=await fetch('/game-data.json').then(r=>r.json()),scenes=[new THREE.Scene(),new THREE.Scene()],camera=new THREE.PerspectiveCamera(60,1.6,.01,200);
++  for(const scene of scenes){scene.background=new THREE.Color(0x20252b);scene.add(new THREE.HemisphereLight(0xffffff,0x8899aa,1.2));const light=new THREE.DirectionalLight(0xffefce,1);light.position.set(0,4,2);scene.add(light);}
++  const views=[new Before(scenes[0],data),new ViewWeapon(scenes[1],data)];
++  const parts=()=>views.map(v=>{const parts={};for(const name of ['tag_clip','j_clip','tag_battery_1','tag_battery_2']){const bone=v.gun.getObjectByName(name);if(bone)parts[name]={position:bone.position.toArray(),rotation:bone.quaternion.toArray()};}return {view:v.snapshot(),parts};});
++  await Promise.all(views.map(v=>v.equip(data.weapons.m1911_zm)));
++  window.lab={data,views,parts,draw:()=>{for(let i=0;i<2;i++){renderer.setViewport(i*720,0,720,450);renderer.setScissor(i*720,0,720,450);renderer.render(scenes[i],camera);}}};lab.draw();
++  </script>`}));
++  await page.goto('http://127.0.0.1:5173/weapon-bindings-test.html');await page.waitForFunction(()=>window.lab,null,{timeout:60000});
++  for(const id of ['m1911_zm','mp40_zm','m16_zm','ray_gun_zm'])for(const empty of [false,true]){
++    const name=id+(empty?'-empty':'-partial');await page.evaluate(id=>Promise.all(lab.views.map(v=>{v.currentId=null;return v.equip(lab.data.weapons[id]);})),id);
++    const rest=await step(2),duration=await page.evaluate(({id,empty})=>{const d=lab.data.weapons[id],duration=empty?d.reloadEmptyTime:d.reloadTime;for(const v of lab.views)v.reload(empty,duration);return duration;},{id,empty});
++    const frames=[];
++    for(let frame=0;frame<5;frame++){const pose=await step(duration*.2,{reloading:true});frames.push(pose);await page.screenshot({path:`${out}/${name}-${(frame+1)*20}.png`});}
++    const ended=await step(.5);assert.equal(ended[1].view.mode,'idle');
++    for(const [part,value] of Object.entries(rest[1].parts)){const current=ended[1].parts[part].position;assert(current.every((v,i)=>Math.abs(v-value.position[i])<.01),name+' reseats '+part);}
++    await page.evaluate(({empty,duration})=>{for(const v of lab.views)v.reload(empty,duration);},{empty,duration});await step(duration*.45,{reloading:true});await step(.5,{reloading:false});const interrupted=await step(.2);
++    for(const [part,value] of Object.entries(rest[1].parts))assert(interrupted[1].parts[part].position.every((v,i)=>Math.abs(v-value.position[i])<.01),name+' cancelled reload restores '+part);
++    await page.screenshot({path:`${out}/${name}-interrupted.png`});checks.push({name,passed:true,rest,frames,ended,interrupted});console.log('PASS',name);
++  }
++  assert.equal(errors.length,0,errors.join('\n'));
++}catch(error){checks.push({passed:false,error:String(error),stack:error.stack});console.error(error);process.exitCode=1;}
++finally{fs.writeFileSync(`${out}/report.json`,JSON.stringify({method:'Side-by-side actual native viewmodel render. Left reproduces the inherited missing-bind-offset bug only; right runs current code. Partial/empty reloads and interrupted reload restoration are sampled explicitly.',checks,errors},null,2));await browser.close();}
+--- v1.1/.tools/bake-theater-irradiance.mjs
++++ v1.2/.tools/bake-theater-irradiance.mjs
+@@ -0,0 +1,46 @@
++import fs from 'node:fs';
++import path from 'node:path';
++import crypto from 'node:crypto';
++import * as THREE from 'three';
++import {deserializeCollisionWorld} from '../export/web/collision-world.js';
++import {geometryFingerprint} from '../export/web/environment-occlusion.js';
++import {lightFalloff} from '../export/web/theater-light-field.js';
++const root=path.resolve(import.meta.dirname,'../export/web'),doc=JSON.parse(fs.readFileSync(path.join(root,'kino.gltf')));
++const raw=fs.readFileSync(path.join(root,'kino.bin')),cb=fs.readFileSync(path.join(root,'collision.bin'));
++const collision=deserializeCollisionWorld(JSON.parse(fs.readFileSync(path.join(root,'collision.json'))),cb.buffer.slice(cb.byteOffset,cb.byteOffset+cb.byteLength));
++const plan=JSON.parse(fs.readFileSync(path.join(root,'theater-light-plan.json'))),ao=JSON.parse(fs.readFileSync(path.join(root,'environment-occlusion.json')));
++const pos=new THREE.Vector3(),normal=new THREE.Vector3(),delta=new THREE.Vector3(),ray=new THREE.Ray(),sun=new THREE.Vector3(...plan.sun.direction).normalize();
++const cache=new Map(),geometry={},chunks=[];let offset=0,rays=0,vertices=0;const start=performance.now(),scale=4;
++function attribute(i){const a=doc.accessors[i],v=doc.bufferViews[a.bufferView];if(a.componentType!==5126||v.byteStride)throw Error('Unexpected geometry');return new THREE.BufferAttribute(new Float32Array(raw.buffer,raw.byteOffset+(v.byteOffset||0)+(a.byteOffset||0),a.count*3),3);}
++for(const primitive of doc.meshes.find(m=>m.name==='world_shell').primitives){
++  const p=attribute(primitive.attributes.POSITION),n=attribute(primitive.attributes.NORMAL),key=geometryFingerprint(p,n);
++  if(!ao.geometry[key]||geometry[key])continue;
++  const bytes=new Uint8Array(p.count*6);
++  for(let i=0;i<p.count;i++){
++    pos.fromBufferAttribute(p,i);normal.fromBufferAttribute(n,i).normalize();
++    const ck=`${pos.x.toFixed(1)},${pos.y.toFixed(1)},${pos.z.toFixed(1)}:${normal.x.toFixed(2)},${normal.y.toFixed(2)},${normal.z.toFixed(2)}`;
++    let value=cache.get(ck);
++    if(!value){
++      const light=[0,0,0,0,0,0];ray.origin.copy(pos).addScaledVector(normal,2.6);
++      for(const source of plan.sources){
++        const amount=lightFalloff(source,pos,normal);if(amount<.004)continue;
++        delta.fromArray(source.position).sub(ray.origin);const distance=delta.length();ray.direction.copy(delta).divideScalar(distance);rays++;
++        if(collision.bvh.raycastFirst(ray,THREE.DoubleSide,.3,Math.max(.4,distance-8)))continue;
++        const at=source.powered?3:0;for(let c=0;c<3;c++)light[at+c]+=source.color[c]*amount;
++      }
++      const sunAmount=Math.max(0,normal.dot(sun))*plan.sun.energy;
++      if(sunAmount>.01){ray.direction.copy(sun);rays++;if(!collision.bvh.raycastFirst(ray,THREE.DoubleSide,.4,1800))for(let c=0;c<3;c++)light[c]+=plan.sun.color[c]*sunAmount;}
++      value=light.map(v=>Math.round(Math.min(1,v/scale)*255));cache.set(ck,value);
++    }
++    bytes.set(value,i*6);
++  }
++  geometry[key]={offset,count:p.count,sourceMaterial:ao.geometry[key].sourceMaterial};chunks.push(Buffer.from(bytes));offset+=bytes.length;vertices+=p.count;
++  if(chunks.length%16===0)console.log(JSON.stringify({groups:chunks.length,vertices,rays,seconds:(performance.now()-start)/1000}));
++}
++const binary=Buffer.concat(chunks),hash=b=>crypto.createHash('sha256').update(b).digest('hex');
++fs.writeFileSync(path.join(root,'environment/theater-irradiance.bin'),binary);
++const manifest={version:1,binary:'environment/theater-irradiance.bin',byteLength:binary.length,scale,geometry,plan,
++  method:'New static diffuse irradiance baked against native collision. Separate always-on and powered RGB fields, with visibility rays per surviving source/vertex. New approximation, not original lightmaps.',
++  stats:{groups:chunks.length,vertices,uniqueSamples:cache.size,raycasts:rays,seconds:(performance.now()-start)/1000},
++  provenance:{worldSha256:hash(raw),collisionSha256:hash(cb),planSha256:hash(fs.readFileSync(path.join(root,'theater-light-plan.json'))),outputSha256:hash(binary)}};
++fs.writeFileSync(path.join(root,'theater-irradiance.json'),JSON.stringify(manifest,null,2)+'\n');console.log(JSON.stringify(manifest.stats));
+--- v1.1/test/enemy-audio.test.mjs
++++ v1.2/test/enemy-audio.test.mjs
+@@ -0,0 +1,62 @@
++import assert from 'node:assert/strict';
++import {test} from 'node:test';
++import fs from 'node:fs';
++import crypto from 'node:crypto';
++import * as THREE from 'three';
++import {GameAudio} from '../export/web/audio.js';
++import {EnemyAudio,enemyCueKeys} from '../export/web/enemy-audio.js';
++import {Enemies} from '../export/web/enemies.js';
++const manifest=JSON.parse(fs.readFileSync(new URL('../export/web/audio/manifest.json',import.meta.url)));
++const catalog=JSON.parse(fs.readFileSync(new URL('../export/web/audio/enemies/catalog.json',import.meta.url)));
++const settle=()=>new Promise(r=>setImmediate(r));
++class Param{constructor(){this.value=0;}setValueAtTime(v){this.value=v;}exponentialRampToValueAtTime(v){this.value=v;}}
++class AudioNode{constructor(type){this.type=type;this.connections=[];for(const k of ['gain','frequency','positionX','positionY','positionZ','playbackRate'])this[k]=new Param();}connect(n){this.connections.push(n);}disconnect(){this.connections=[];}start(){this.started=true;}stop(t){this.stopped=true;if(t===undefined)this.onended?.();}}
++class Context{constructor(){this.state='running';this.currentTime=10;this.sampleRate=8000;this.destination={};this.nodes=[];this.listener={};}node(t){const n=new AudioNode(t);this.nodes.push(n);return n;}createGain(){return this.node('gain');}createBufferSource(){return this.node('source');}createPanner(){return this.node('panner');}createBiquadFilter(){return this.node('filter');}createBuffer(c,l){const data=Array.from({length:c},()=>new Float32Array(l));return{length:l,numberOfChannels:c,getChannelData:i=>data[i]};}async suspend(){this.state='suspended';}async resume(){this.state='running';}}
++function setup(){const a=new GameAudio();a.manifest=manifest;a.ctx=new Context();a.master=a.ctx.createGain();a.groups={effects:a.ctx.createGain()};a.buffer=async()=>({length:8000,numberOfChannels:1});a.enemyAudio=new EnemyAudio(a,{random:()=>0});a.setListener([0,48,0]);return a;}
++const meta=(id,kind='zombie')=>({id,kind});
++
++test('47 licensed community recordings retain exact pinned Git blob and SHA256 hashes',()=>{
++ assert.equal(catalog.count,47);assert.equal(catalog.assets.length,47);assert.equal(catalog.sourceCommit,'70a14104914f2fc65b99b3c58b1f92c2356ecf76');let total=0;
++ for(const item of catalog.assets){const bytes=fs.readFileSync(new URL('../export/web/'+item.url,import.meta.url));total+=bytes.length;assert.equal(bytes.subarray(0,4).toString(),'RIFF');assert.equal(bytes.subarray(8,12).toString(),'WAVE');assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),item.encodedSha256);assert.equal(crypto.createHash('sha1').update(Buffer.from(`blob ${bytes.length}\0`)).update(bytes).digest('hex'),item.sourceGitBlob);const {key,...metadata}=item;assert.deepEqual(manifest[key],metadata);assert.equal(item.native,false);assert.match(item.license,/by-sa\/4\.0/);assert.match(item.source,/\/70a14104914f2fc65b99b3c58b1f92c2356ecf76\//);}
++ assert.equal(total,catalog.encodedBytes);assert.match(fs.readFileSync(new URL('../export/web/audio/enemies/ATTRIBUTION.txt',import.meta.url),'utf8'),/NZ:P/);
++});
++test('enemy state families are distinct, native dog growl retained and Nova approximation explicit',()=>{
++ assert.equal(enemyCueKeys(manifest,'zombie','attack').length,8);assert.equal(enemyCueKeys(manifest,'zombie','death').length,8);assert.equal(enemyCueKeys(manifest,'zombie','sprint').length,10);assert.equal(enemyCueKeys(manifest,'nova','ambient').length,5);assert.deepEqual(enemyCueKeys(manifest,'dog','ambient'),['dog']);assert.deepEqual(enemyCueKeys(manifest,'dog','attack'),['enemy/nzp/hound/a0']);assert.equal(enemyCueKeys(manifest,'zombie','unknown').length,0);assert.match(catalog.fidelity,/approximate/);
++});
++test('actual playback uses effects HRTF and moving emitter height, with separate Nova rate',async()=>{
++ const a=setup();a.enemy('attack',[100,10,-100],meta(1,'nova'));await settle();const voice=[...a.voices][0],p=voice.spatialNodes[0];assert.equal(p.panningModel,'HRTF');assert.equal(p.connections[0],a.groups.effects);assert.equal(voice.source.playbackRate.value,1.25);assert.equal(p.positionY.value,30);
++ a.enemy('update',[-200,20,-40],meta(1,'nova'));assert.deepEqual([p.positionX.value,p.positionY.value,p.positionZ.value],[-200,40,-40]);assert.equal(a.snapshot().recentEvents[0].native,false);assert.equal(a.snapshot().recentEvents[0].sourceType,'community-recording');a.enemy('remove',null,meta(1));assert.equal(a.voices.size,0);
++ a.enemy('barrier',[100,10,-100],meta(2));await settle();a.enemy('update',[200,20,-100],meta(2));assert.equal([...a.voices][0].spatialNodes[0].positionY.value,45);
++});
++test('higher priority attack/death cancels actor vocal and pending decode cannot resurrect',async()=>{
++ const a=setup(),resolvers=[];a.buffer=()=>new Promise(r=>resolvers.push(r));
++ assert(a.enemy('ambient',[100,0,-100],meta(1)));assert.equal(a.enemy('ambient',[100,0,-100],meta(1)),false);assert(a.enemy('attack',[100,0,-100],meta(1)));assert(a.enemy('death',[100,0,-100],meta(1)));assert.equal(a.enemy('attack',[100,0,-100],meta(1)),false);
++ for(const r of resolvers)r({length:8000,numberOfChannels:1});await settle();assert.equal(a.voices.size,1);assert.equal(a.snapshot().recentEvents.length,1);assert.equal(a.snapshot().recentEvents[0].enemyEvent,'death');assert.equal(a.enemyAudio.snapshot().active,1);
++ const source=[...a.voices][0].source;a.enemy('remove',null,meta(1));assert(source.stopped);assert.equal(a.voices.size,0);assert.equal(a.enemyAudio.snapshot().active,0);
++});
++test('removal and reset abort queued vocals before allocating any source or spatial node',async()=>{
++ const a=setup(),resolvers=[];a.buffer=()=>new Promise(r=>resolvers.push(r));const baseline=a.ctx.nodes.length;
++ a.enemy('spawn',[0,0,-100],meta(1));a.enemy('remove',null,meta(1));a.enemy('spawn',[0,0,-100],meta(2));await a.reset();for(const r of resolvers)r({length:8000,numberOfChannels:1});await settle();assert.equal(a.ctx.nodes.length,baseline);assert.equal(a.voices.size,0);assert.equal(a.pendingVoices.size,0);assert.equal(a.enemyAudio.snapshot().active,0);
++});
++test('24 simultaneous actors stay within ten creature voices and retain eight general slots during decode',async()=>{
++ const a=setup();for(let id=1;id<=24;id++)a.enemy('spawn',[id,0,-100],meta(id));await settle();assert.equal(a.voices.size,10);assert.equal(a.enemyAudio.snapshot().active,10);assert.equal(a.enemyAudio.snapshot().suppressed,14);
++ a.enemyAudio.reset();const general=[];for(let i=0;i<38;i++){a.playAt('impact',[i,0,-100]);general.push([...a.voices].at(-1).source);}
++ const resolvers=[];a.buffer=()=>new Promise(r=>resolvers.push(r));for(let id=1;id<=10;id++)a.enemy('spawn',[id,0,-100],meta(id));assert.equal(a.enemyAudio.snapshot().active,2);
++ // A weapon/footstep can use a reserved slot while the enemy requests decode.
++ a.playAt('impact',[0,0,0]);for(const r of resolvers)r({length:8000,numberOfChannels:1});await settle();assert.equal(a.voices.size,40);assert.equal(a.enemyAudio.snapshot().active,1);assert(general.every(source=>a.sourceVoices.has(source)));assert.equal(a.maxVoices-a.voices.size,8);
++});
++test('event cooldown, nearby behind throttle, no repeated variant, and distant/muted guards bound chatter',async()=>{
++ const a=setup();const first=a.enemy('ambient',[0,0,100],meta(1));await settle();assert.equal(a.snapshot().recentEvents.at(-1).enemyEvent,'behind');a.enemy('ambient',[0,0,100],meta(2));await settle();assert.equal(a.snapshot().recentEvents.at(-1).enemyEvent,'ambient');
++ a.enemy('remove',null,meta(2));const previous=a.snapshot().recentEvents.at(-1).key;a.enemy('ambient',[0,0,100],meta(3));await settle();assert.notEqual(a.snapshot().recentEvents.at(-1).key,previous);assert(first);
++ assert.equal(a.enemy('attack',[0,0,2000],meta(4)),false);assert.equal(a.enemy('attack',[0,0],meta(4)),false);a.paused=true;assert.equal(a.enemy('attack',[0,0,-100],meta(4)),false);a.paused=false;a.mix.effects=0;assert.equal(a.enemy('attack',[0,0,-100],meta(4)),false);a.mix.effects=100;a.enabled=false;assert.equal(a.enemy('attack',[0,0,-100],meta(4)),false);
++});
++function realEnemies(){const events=[],session={round:1,dogRounds:1,phase:'fighting',time:0,spawned:0,total:99,kills:0,killed:0,effects:{},random:()=>.5,scoreHit(kill){if(kill){this.kills++;this.killed++;}}};const world={lineClear:()=>true,path:(a,b)=>[a.clone(),b.clone()],closest:p=>p.clone(),setBoards:(b,n)=>b.count=n};const e=new Enemies(new THREE.Scene(),world,{rules:{}},session,{damage:()=>{},sound:(event,p,m)=>events.push({event,position:p?.toArray(),...m})});e.templates=[new THREE.Group()];e.heads=[];e.dog=new THREE.Group();e.quad=new THREE.Group();e.autoSpawn=false;e.autoRounds=false;return{e,events,session};}
++test('actual enemy attack transition, death, corpse expiry and reset emit actor-specific events once',()=>{
++ const {e,events,session}=realEnemies(),p=new THREE.Vector3();for(const kind of ['zombie','dog','nova']){const z=e.spawn(new THREE.Vector3(0,0,-40),null,kind);assert.equal(events.at(-1).event,'spawn');e.update(.01,p);assert.equal(events.filter(x=>x.id===z.id&&x.event==='attack').length,1);e.update(.1,p);assert.equal(events.filter(x=>x.id===z.id&&x.event==='attack').length,1);e.hurt(z,99999);e.hurt(z,99999);assert.equal(events.filter(x=>x.id===z.id&&x.event==='death').length,1);assert.equal(events.find(x=>x.id===z.id&&x.event==='death').kind,kind);}assert.equal(session.kills,3);e.update(5,p);assert.equal(events.filter(x=>x.event==='remove').length,3);e.reset();assert.equal(events.at(-1).event,'reset');
++});
++test('real board tearing, ambient/sprint transitions, nuke and despawn carry positions and IDs',()=>{
++ const {e,events}=realEnemies(),p=new THREE.Vector3(),barrier={outside:new THREE.Vector3(100,0,0),inside:new THREE.Vector3(70,0,0),count:6};const z=e.spawn(null,barrier);e.update(1.2,p);assert.equal(barrier.count,5);assert.equal(events.filter(x=>x.event==='barrier').length,1);assert.equal(events.filter(x=>x.event==='teardown').length,1);z.growl=0;e.update(.1,p);assert.equal(events.at(-2).event,'update');assert.equal(events.at(-1).event,'ambient');z.speed=180;z.growl=0;e.update(.1,p);assert.equal(events.at(-1).event,'sprint');e.nuke(()=>{});assert.equal(events.at(-1).event,'death');assert.equal(events.at(-1).cause,'nuke');const other=e.spawn(new THREE.Vector3(10,0,0));e.remove(other);assert.equal(events.at(-1).event,'remove');assert.deepEqual(events.at(-1).position,[10,0,0]);
++});
++test('Hellhound distance switches quiet recovered growl to close pursuit vocal',()=>{
++ const {e,events}=realEnemies(),z=e.spawn(new THREE.Vector3(600,0,0),null,'dog'),p=new THREE.Vector3();z.growl=0;e.update(.01,p);assert(events.some(x=>x.id===z.id&&x.event==='ambient'));z.root.position.set(180,0,0);z.growl=0;e.update(.01,p);assert.equal(events.filter(x=>x.id===z.id&&x.event==='sprint').length,1);
++});
+--- v1.1/test/weapon-animation.test.mjs
++++ v1.2/test/weapon-animation.test.mjs
+@@ -0,0 +1,210 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import * as THREE from 'three';
++import { Rig, ViewWeapon, useWeaponBindTranslations } from '../export/web/animation.js';
++import { NativeAimPose, mergeWeaponAnimations, dualWeaponAnimations, ReloadPropVisibility, retargetAugPump } from '../export/web/weapon-pose.js';
++import { Session } from '../export/web/rules.js';
++
++const web=new URL('../export/web/',import.meta.url);
++const data=JSON.parse(fs.readFileSync(new URL('game-data.json',web)));
++const read=url=>JSON.parse(fs.readFileSync(new URL(url,web)));
++const anim=(id,key)=>read(data.weapons[id].animations[key]);
++const reloadClips=def=>Object.entries(def.animations).filter(([key])=>key.startsWith('reload')).map(([key,url])=>[key,read(url)]);
++const fixture=id=>{const root=new THREE.Group(),torso=new THREE.Bone();torso.name='tag_torso';root.add(torso);return {root,torso,pose:new NativeAimPose(root,anim(id,'adsUpAnim'),anim(id,'adsDownAnim'))};};
++const close=(a,b,tolerance=1e-5)=>assert(Math.abs(a-b)<tolerance,`${a} != ${b}`);
++
++test('Stakeout ADS release follows native lowering rotation, not reverse raising',()=>{
++  const {pose,torso}=fixture('ithaca_zm');pose.apply(0,1);pose.apply(1,1);pose.apply(.5,-1);
++  assert(torso.quaternion.x>.07,'the authored lower curve rolls in the positive direction');
++  close(torso.position.x,-3.6838375,.001);
++  const raised=fixture('ithaca_zm');raised.pose.apply(.5,1);
++  assert(raised.torso.quaternion.x<-.04,'the raising curve rolls in the opposite direction');
++  pose.apply(0,-1);close(torso.position.x,-4.6318);close(torso.position.y,0);close(torso.quaternion.x,0);
++});
++
++test('Ray Gun native lowering dip and G11 ADS durations remain weapon specific',()=>{
++  const {pose,torso}=fixture('ray_gun_zm');pose.apply(1,1);pose.apply(.5,-1);
++  assert(torso.position.z<-1.4,'Ray Gun dips below its hip height while lowering');
++  assert(torso.quaternion.y<-.03);pose.apply(0,-1);close(torso.position.z,-.6465);
++  assert.equal(data.weapons.g11_lps_zm.adsInTime,.3);assert.equal(data.weapons.g11_lps_zm.adsOutTime,.6);
++});
++
++test('mid-raise and mid-lower reversals are pose-continuous and still reach native endpoints',()=>{
++  const {pose,torso}=fixture('ithaca_zm');pose.apply(0,1);pose.apply(.37,1);
++  const position=torso.position.clone(),rotation=torso.quaternion.clone();pose.apply(.37,-1);
++  assert(torso.position.distanceTo(position)<1e-7);assert(torso.quaternion.angleTo(rotation)<1e-7);
++  pose.apply(.2,-1);const lowered=torso.position.clone();pose.apply(.2,1);
++  assert(torso.position.distanceTo(lowered)<1e-7);pose.apply(1,1);
++  close(torso.position.x,-2.7358);close(torso.position.z,.0387);close(torso.quaternion.x,0);
++});
++
++test('reload/melee retain native torso tracks while ADS rests and missing lower curves fall back',()=>{
++  const {pose,torso}=fixture('ithaca_zm');pose.apply(1,1);torso.position.set(9,8,7);
++  pose.apply(0,-1,{restOnly:true,clip:{bones:[{name:'tag_torso',pos:{}}]}});
++  assert.deepEqual(torso.position.toArray(),[9,8,7]);
++  pose.apply(0,-1,{restOnly:true,clip:{bones:[]}});close(torso.position.x,-4.6318);
++  const fallback=new NativeAimPose(torso,anim('m1911_zm','adsUpAnim'));
++  fallback.apply(.5,1);const up=torso.position.clone();fallback.apply(.5,-1);
++  assert(torso.position.distanceTo(up)<1e-7);fallback.apply(0,-1);close(torso.position.x,-4.6318);
++});
++
++test('dual CZ75 reload retains staggered left/right magazine sounds without duplicate shared bones',()=>{
++  const def=data.weapons.cz75dw_zm;
++  const right=read(def.animations.reloadAnim),left=read(def.leftAnimations.reloadAnimLeft);
++  const both=mergeWeaponAnimations(right,left,'dual');
++  assert.deepEqual(both.notifies.filter(n=>n.name==='sndnt#fly_cz75_mag_out').map(n=>n.time),[.4,.5333]);
++  assert.deepEqual(both.notifies.filter(n=>n.name==='sndnt#fly_cz75_mag_in').map(n=>n.time),[1.1333,1.1667]);
++  assert.equal(both.bones.filter(b=>b.name==='tag_gasmask').length,1);
++  assert(both.bones.some(b=>b.name==='tag_weapon'));assert(both.bones.some(b=>b.name==='tag_weapon1'));
++  assert.deepEqual(mergeWeaponAnimations(right,right,'same').notifies,right.notifies);
++});
++
++test('looping native notifies repeat in timeline order through frame skips and obey pause',()=>{
++  const calls=[],rig=new Rig(new THREE.Group(),name=>calls.push(name));
++  rig.add('loop',{name:'loop',fps:30,duration:1,bones:[],notifies:[{name:'start',time:0},{name:'end',time:.75}]});
++  rig.play('loop',true,2,0);rig.update(0);assert.deepEqual(calls,['start']);
++  rig.update(0);assert.equal(calls.length,1);rig.update(1.1);
++  assert.deepEqual(calls,['start','end','start','end','start']);
++  rig.actions.loop.paused=true;rig.update(4);assert.equal(calls.length,5);
++  rig.actions.loop.paused=false;rig.update(.4);assert.deepEqual(calls.slice(-2),['end','start']);
++});
++
++test('upgraded PM63 uses its separate left empty reload and left last-shot animations',()=>{
++  const def={...data.weapons.pm63_zm,...data.weapons.pm63_zm.upgrade};
++  const right=new Map(Object.entries(def.animations).map(([key,url])=>[key,read(url)]));
++  const left=new Map(Object.entries(def.leftAnimations).map(([key,url])=>[key,read(url)]));
++  const both=new Map(dualWeaponAnimations(right,left));
++  const empty=left.get('reloadEmptyAnimLeft'),partial=left.get('reloadAnimLeft');
++  assert.notDeepEqual(empty.bones.find(b=>b.name==='tag_weapon1'),partial.bones.find(b=>b.name==='tag_weapon1'));
++  assert.deepEqual(both.get('reloadEmptyAnim').bones.find(b=>b.name==='tag_weapon1'),empty.bones.find(b=>b.name==='tag_weapon1'));
++  assert.deepEqual(both.get('leftLastShotAnim').bones.find(b=>b.name==='tag_weapon1'),left.get('lastShotAnimLeft').bones.find(b=>b.name==='tag_weapon1'));
++});
++
++test('one-shot reload notifies respect native duration scaling and never replay after completion',()=>{
++  const calls=[],rig=new Rig(new THREE.Group(),name=>calls.push(name)),clip=anim('m1911_zm','reloadAnim');
++  rig.add('reload',clip);rig.play('reload',false,clip.duration/1.63,0);
++  rig.update(.95);assert(!calls.includes('sndnt#fly_colt45_mag_in'));
++  rig.update(.04);assert(calls.includes('sndnt#fly_colt45_mag_in'));rig.update(3);
++  const count=calls.length;rig.update(10);assert.equal(calls.length,count);assert.equal(calls.filter(n=>n==='sndnt#fly_colt45_mag_in').length,1);
++});
++
++test('native sprint exit blocks the muzzle until its authored duration, then reliably permits firing',()=>{
++  const view=new ViewWeapon(new THREE.Scene(),data),def=data.weapons.mp40_zm;
++  view.ready=true;view.def=def;view.root=new THREE.Group();view.rig=new Rig(view.root);view.knives={};view.aimPose=new NativeAimPose(view.root);
++  for(const key of ['idleAnim','sprintInAnim','sprintLoopAnim','sprintOutAnim'])view.rig.add(key,read(def.animations[key]));
++  view.mode='idle';view.rig.play('idleAnim',true,1,0);assert(view.canFire);
++  view.update(0,{sprint:true});assert.equal(view.mode,'sprintIn');assert(!view.canFire);
++  view.update(def.sprintInTime+.001,{sprint:true});assert.equal(view.mode,'sprint');assert(!view.canFire);
++  view.update(0,{sprint:false});assert.equal(view.mode,'sprintOut');assert(!view.canFire);
++  view.update(def.sprintOutTime-.001,{sprint:false});assert(!view.canFire);
++  view.update(.002,{sprint:false});assert.equal(view.mode,'idle');assert(view.canFire);
++  view.mode='reload';assert(view.canFire,'Session must still receive segmented-reload interrupt requests');
++});
++
++test('partial shotgun reload interruption survives animation gating and switching never transfers cancelled shells',()=>{
++  const s=new Session(data);s.giveWeapon('ithaca_zm');s.weapon.mag=0;s.reload();s.update(s.reloadDuration+.001);
++  assert.equal(s.weapon.mag,1);s.interruptReload();assert(s.reloadInterrupted);
++  s.update(s.reloadLeft+.001);assert.equal(s.reloadStage,'end');assert(!s.fire());
++  s.update(s.reloadLeft+.001);assert(s.fire());const total=s.weapon.mag+s.weapon.reserve;
++  s.update(1);s.reload();s.switchWeapon(0);s.update(20);assert.equal(s.inventory[1].mag+s.inventory[1].reserve,total);
++});
++
++test('Ray Gun authored sprint-out delay works even though it uses offsets instead of sprint clips',()=>{
++  const view=new ViewWeapon(new THREE.Scene(),data),def=data.weapons.ray_gun_zm;
++  view.ready=true;view.def=def;view.root=new THREE.Group();view.rig=new Rig(view.root);view.knives={};view.aimPose=new NativeAimPose(view.root);
++  view.rig.add('idleAnim',read(def.animations.idleAnim));view.rig.play('idleAnim',true,1,0);
++  view.update(.2,{sprint:true});assert.equal(view.mode,'sprint');assert(!view.canFire);
++  view.update(0,{sprint:false});assert.equal(view.mode,'sprintOut');assert(!view.canFire);
++  view.update(.199,{sprint:false});assert(!view.canFire);view.update(.002,{sprint:false});assert(view.canFire);assert.equal(view.mode,'idle');
++});
++
++test('segmented reload props appear for insertion and hide at native clip-in, idle, and end stages',()=>{
++  const root=new THREE.Group(),clip=new THREE.Bone(),body=new THREE.Bone();clip.name='tag_clip';body.name='j_gun';root.add(clip,body);
++  const props=new ReloadPropVisibility(root,data.weapons.ithaca_zm,reloadClips(data.weapons.ithaca_zm));assert(!props.snapshot().visible);assert(clip.scale.x<.00001);assert.equal(body.scale.x,1);
++  props.begin('start');assert.equal(clip.scale.x,1);props.notify('sndnt#fly_gear_reload_plr');assert(props.snapshot().visible);
++  props.notify('rmbnt#reload_clipin');assert(!props.snapshot().visible);
++  props.begin('shell');assert(props.snapshot().visible);props.begin('end');assert(!props.snapshot().visible);
++  props.begin('start');props.notify('sndnt#fly_mk_shell_in');assert(!props.snapshot().visible,'Masterkey start clip uses its shell sound rather than a clip-in rumble');
++  props.begin('shell');props.set(false);assert(!props.snapshot().visible);
++});
++
++test('magazine-fed guns, revolvers, and static hidden attachments are excluded from reload-prop visibility',()=>{
++  const root=new THREE.Group(),clip=new THREE.Bone();clip.name='tag_clip';root.add(clip);
++  const magazine=new ReloadPropVisibility(root,data.weapons.mp40_zm,reloadClips(data.weapons.mp40_zm));assert.equal(magazine.parts.length,0);assert.equal(clip.scale.x,1);
++  const revolver=new ReloadPropVisibility(root,data.weapons.python_zm,reloadClips(data.weapons.python_zm));assert.equal(revolver.parts.length,0);assert.equal(clip.scale.x,1);
++  clip.scale.setScalar(.000001);const hidden=new ReloadPropVisibility(root,{segmentedReload:true,pellets:8,hideTags:['tag_clip']},reloadClips(data.weapons.ithaca_zm));
++  hidden.begin('shell');assert.equal(clip.scale.x,.000001);assert.equal(hidden.parts.length,0);
++});
++
++test('Masterkey hides its animated shell without hiding the rifle magazine',()=>{
++  const root=new THREE.Group(),clip=new THREE.Bone(),shell=new THREE.Bone();clip.name='tag_clip';shell.name='tag_ammo2';root.add(clip,shell);
++  const def=data.weapons.aug_acog_zm.upgrade.attachment,props=new ReloadPropVisibility(root,def,reloadClips(def));
++  assert.deepEqual(props.snapshot().tags,['tag_ammo2']);assert.equal(clip.scale.x,1);assert(shell.scale.x<.00001);
++  props.begin('shell');assert.equal(clip.scale.x,1);assert.equal(shell.scale.x,1);props.notify('sndnt#fly_mk_shell_in');assert.equal(clip.scale.x,1);assert(shell.scale.x<.00001);
++});
++
++test('native M1911 and M16 reload magazines return to their bind sockets instead of the gun origin',()=>{
++  for(const id of ['m1911_zm','m16_zm'])for(const key of ['reloadAnim','reloadEmptyAnim']){
++    const bytes=fs.readFileSync(new URL(data.weapons[id].model,web)),gltf=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)));
++    const source=gltf.nodes.find(n=>n.name==='tag_clip'),bone=new THREE.Bone(),root=new THREE.Group();bone.name='tag_clip';bone.position.fromArray(source.translation);root.add(bone);useWeaponBindTranslations(root);
++    const clip=anim(id,key),rig=new Rig(root);rig.add('reload',clip);rig.play('reload',false,1,0);rig.update(clip.duration+.01);
++    assert(bone.position.distanceTo(new THREE.Vector3(...source.translation))<.01,id+' seated magazine');
++    assert(bone.position.length()>1,id+' never collapses its socket to the gun origin');
++  }
++});
++
++test('weapon translation correction preserves native rotations and never changes arm bone positions',()=>{
++  const root=new THREE.Group(),gun=new THREE.Group(),part=new THREE.Bone(),arm=new THREE.Bone();part.name='j_clip';arm.name='j_wrist_le';part.position.set(4,1,-2);gun.add(part);root.add(gun,arm);useWeaponBindTranslations(gun);
++  const rot=[0,Math.sin(.2),0,Math.cos(.2)],rig=new Rig(root);
++  rig.add('pose',{name:'pose',fps:30,duration:1,bones:[{name:'j_clip',pos:{frames:[0],values:[1,2,3]},rot:{frames:[0],values:rot}},{name:'j_wrist_le',pos:{frames:[0],values:[11.57,0,0]},rot:null}],notifies:[]});
++  rig.play('pose',false,1,0);rig.update(0);assert.deepEqual(part.position.toArray(),[5,3,1]);close(part.quaternion.y,rot[1]);close(arm.position.x,11.57);
++});
++
++const augFixture=()=>{
++  const base=data.weapons.aug_acog_zm,bytes=fs.readFileSync(new URL(base.model,web));
++  const gltf=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12))),source=gltf.nodes.find(n=>n.name==='tag_pump2');
++  const root=new THREE.Group(),pump=new THREE.Bone();pump.name=source.name;pump.position.fromArray(source.translation);pump.quaternion.fromArray(source.rotation);root.add(pump);
++  return {root,pump,base,bind:pump.quaternion.clone().normalize()};
++};
++
++test('AUG Masterkey pump stays seated across native idle/reload and sprint bases without retargeting arms',()=>{
++  const {root,pump,base,bind}=augFixture();
++  for(const def of [{...base,...base.upgrade},base.upgrade.attachment]){
++    const native=Object.entries(def.animations).map(([key,url])=>[key,read(url)]),before=JSON.stringify(native),fixed=retargetAugPump(root,def,native);
++    const idle=native.find(([key])=>key==='idleAnim')[1].bones.find(b=>b.name===pump.name);
++    close(bind.angleTo(new THREE.Quaternion().fromArray(idle.rot.values).normalize()),2*Math.PI/3);
++    let changed=0;
++    for(let index=0;index<fixed.length;index++){
++      const [key,clip]=fixed[index],original=native[index][1],part=clip.bones.find(b=>b.name===pump.name);
++      if(!part?.rot)continue;
++      for(let i=0;i<part.rot.values.length;i+=4)assert(bind.angleTo(new THREE.Quaternion().fromArray(part.rot.values,i).normalize())<.001,key+' keeps pump aligned');
++      assert.deepEqual(part.pos,original.bones.find(b=>b.name===pump.name).pos,'native pump stroke unchanged');
++      assert.deepEqual(clip.bones.filter(b=>b.name!==pump.name),original.bones.filter(b=>b.name!==pump.name),'arms and other gun parts unchanged');
++      if(key.startsWith('sprint'))assert.equal(clip,original,'correct native sprint clips retained verbatim');
++      if(clip!==original)changed++;
++    }
++    assert(changed>=9,'the demonstrated mismatched family is corrected');assert.equal(JSON.stringify(native),before,'cached source clips remain immutable');
++  }
++});
++
++test('Masterkey reload end preserves its full pump stroke and returns to the same idle socket',()=>{
++  const {root,pump,base,bind}=augFixture(),def=base.upgrade.attachment;
++  const entries=retargetAugPump(root,def,Object.entries(def.animations).map(([key,url])=>[key,read(url)]));
++  useWeaponBindTranslations(root);const rest=pump.position.clone(),rig=new Rig(root);for(const [key,clip] of entries)rig.add(key,clip);
++  rig.play('idleAnim',true,1,0);rig.update(0);assert(pump.quaternion.angleTo(bind)<.001);
++  rig.play('reloadEndAnim',false,1,0);rig.update(24/30);
++  close(pump.position.x-rest.x,-2.3117,.001);assert(pump.quaternion.angleTo(bind)<.001);
++  rig.update(2);assert(pump.position.distanceTo(rest)<.001);assert(pump.quaternion.angleTo(bind)<.001);
++  rig.play('sprintInAnim',false,1,0);rig.update(.2);assert(pump.quaternion.angleTo(bind)<.001);
++  rig.play('idleAnim',true,1,0);rig.update(0);assert(pump.position.distanceTo(rest)<.001);assert(pump.quaternion.angleTo(bind)<.001);
++});
++
++test('ordinary AUG rifle and an unrelated or differently animated component cannot be retargeted',()=>{
++  const {root,base}=augFixture(),entries=Object.entries(base.animations).map(([key,url])=>[key,read(url)]);
++  assert.equal(retargetAugPump(root,base,entries),entries,'ordinary AUG and its hidden pump are unchanged');
++  const upgraded={...base,...base.upgrade},clips=Object.entries(upgraded.animations).map(([key,url])=>[key,read(url)]);
++  assert.equal(retargetAugPump(root,{...upgraded,model:'models/other.glb'},clips),clips);
++  const copy=structuredClone(clips),idle=copy.find(([key])=>key==='idleAnim')[1];idle.bones.find(b=>b.name==='tag_pump2').rot.values=[0,Math.sin(.3),0,Math.cos(.3)];
++  assert.equal(retargetAugPump(root,upgraded,copy).find(([key])=>key==='idleAnim')[1],idle,'unrecognized authored rotation is preserved');
++});
+--- v1.1/test/audio-world.test.mjs
++++ v1.2/test/audio-world.test.mjs
+@@ -77,7 +77,9 @@
+ });
+ test('audio event catalog names valid native cues and explicitly blocks unprovided radio recordings',()=>{
+   const catalog=JSON.parse(fs.readFileSync(new URL('../AUDIO-EVENT-CATALOG.json',import.meta.url)));
+-  assert.equal(catalog.nativeAssetCount,Object.keys(manifest).length);
++  assert.equal(catalog.nativeAssetCount,Object.values(manifest).filter(m=>m.native!==false).length);
++  assert.equal(catalog.communityAssetCount,Object.values(manifest).filter(m=>m.native===false).length);
++  assert.equal(catalog.decodedAssetCount,Object.keys(manifest).length);
+   for(const event of catalog.events){assert(event.source);assert(event.timing);assert(event.channel);assert(event.concurrency.globalVoiceLimit>0);for(const key of event.cueKeys)assert(manifest[key],event.event+': '+key);}
+   const radios=catalog.events.find(e=>e.event==='kino_radio_recordings');assert.equal(radios.classification,'missing');assert.equal(radios.cueKeys.length,0);assert(radios.notes.join(' ').includes('vox_zmb_egg_00'));
+ });
+--- v1.1/test/theater-lighting.test.mjs
++++ v1.2/test/theater-lighting.test.mjs
+@@ -0,0 +1,290 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++import * as THREE from 'three';
++import { geometryFingerprint } from '../export/web/environment-occlusion.js';
++import { installIrradianceMaterial, prepareTheaterLightField } from '../export/web/theater-light-field.js';
++import { TheaterLighting } from '../export/web/theater-lighting.js';
++import { restoreTheaterFixtures } from '../export/web/theater-fixtures.js';
++import { optimizeStaticScene } from '../export/web/scene-optimizer.js';
++
++function triangle(offset = 0, baked = true) {
++  const geometry = new THREE.BufferGeometry();
++  geometry.setAttribute('position', new THREE.Float32BufferAttribute([
++    offset, 0, 0, offset + 2, 0, 0, offset, 2, 0,
++  ], 3));
++  geometry.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
++  geometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1], 2));
++  geometry.userData.environmentOcclusion = baked;
++  return geometry;
++}
++
++function lightData(geometries) {
++  const geometry = {}, chunks = [];
++  let offset = 0;
++  for (const [index, source] of geometries.entries()) {
++    const count = source.attributes.position.count;
++    const bytes = Uint8Array.from({ length: count * 6 }, (_, i) => (i * 17 + index * 29) % 256);
++    geometry[geometryFingerprint(source.attributes.position, source.attributes.normal)] = { count, offset };
++    chunks.push(bytes); offset += bytes.length;
++  }
++  return {
++    manifest: { version: 1, byteLength: offset, scale: 3.5, geometry, plan: { sources: [] } },
++    binary: Uint8Array.from(chunks.flatMap(chunk => Array.from(chunk))),
++  };
++}
++
++function shaderFor(material) {
++  const shader = {
++    uniforms: { unrelatedUniform: { value: 19 } },
++    vertexShader: THREE.ShaderLib.standard.vertexShader,
++    fragmentShader: THREE.ShaderLib.standard.fragmentShader,
++  };
++  material.onBeforeCompile(shader);
++  return shader;
++}
++
++test('packed irradiance becomes normalized RGB attributes without changing source bytes', async () => {
++  const root = new THREE.Group(), geometry = triangle();
++  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial()); root.add(mesh);
++  const input = lightData([geometry]);
++  input.binary.set([0, 127, 255, 255, 64, 0], 0);
++  const original = input.binary.slice();
++  const field = await prepareTheaterLightField(root, input);
++  const base = geometry.getAttribute('kinoBaseLight'), powered = geometry.getAttribute('kinoPowerLight');
++  for (const attribute of [base, powered]) {
++    assert(attribute.array instanceof Uint8Array);
++    assert.equal(attribute.itemSize, 3);
++    assert.equal(attribute.count, geometry.attributes.position.count);
++    assert.equal(attribute.normalized, true);
++    assert.notEqual(attribute.array.buffer, input.binary.buffer);
++  }
++  assert.deepEqual([base.getX(0), base.getY(0), base.getZ(0)], [0, 127 / 255, 1]);
++  assert.deepEqual([powered.getX(0), powered.getY(0), powered.getZ(0)], [1, 64 / 255, 0]);
++  for (let i = 0; i < 3; i++) {
++    assert.deepEqual(Array.from(base.array.slice(i * 3, i * 3 + 3)), Array.from(original.slice(i * 6, i * 6 + 3)));
++    assert.deepEqual(Array.from(powered.array.slice(i * 3, i * 3 + 3)), Array.from(original.slice(i * 6 + 3, i * 6 + 6)));
++  }
++  assert.deepEqual(input.binary, original);
++  assert.deepEqual(field.stats, { meshes: 1, vertices: 3, bytes: 18, shaderMaterials: 0 });
++});
++
++test('unbaked geometry and missing fingerprints receive neither attributes nor shader hooks', async () => {
++  const root = new THREE.Group(), known = triangle(), unknown = triangle(20), unbaked = triangle(40, false);
++  const material = new THREE.MeshStandardMaterial();
++  const meshes = [known, unknown, unbaked].map(geometry => new THREE.Mesh(geometry, material)); root.add(...meshes);
++  const field = await prepareTheaterLightField(root, lightData([known])); field.install(root);
++  assert.equal(field.stats.meshes, 1);
++  for (const mesh of meshes.slice(1)) {
++    assert.equal(mesh.geometry.hasAttribute('kinoBaseLight'), false);
++    assert.equal(mesh.geometry.hasAttribute('kinoPowerLight'), false);
++    assert.equal(mesh.material, material);
++    assert.equal(mesh.material.onBeforeCompile, THREE.Material.prototype.onBeforeCompile);
++  }
++});
++
++test('irradiance rejects unsupported versions and truncated binary payloads', async () => {
++  const root = new THREE.Group(), geometry = triangle(); root.add(new THREE.Mesh(geometry));
++  const input = lightData([geometry]);
++  await assert.rejects(prepareTheaterLightField(root, { ...input, manifest: { ...input.manifest, version: 2 } }), /Unsupported/);
++  await assert.rejects(prepareTheaterLightField(root, { ...input, binary: input.binary.slice(1) }), /length mismatch/);
++  assert.equal(geometry.hasAttribute('kinoBaseLight'), false);
++});
++
++test('irradiance rejects mismatched vertex counts and binary ranges', async () => {
++  for (const invalid of [{ count: 2 }, { offset: -1 }, { offset: 1 }]) {
++    const root = new THREE.Group(), geometry = triangle(); root.add(new THREE.Mesh(geometry));
++    const input = lightData([geometry]), entry = Object.values(input.manifest.geometry)[0]; Object.assign(entry, invalid);
++    await assert.rejects(prepareTheaterLightField(root, input), /geometry mismatch/);
++    assert.equal(geometry.hasAttribute('kinoBaseLight'), false);
++  }
++});
++
++test('irradiance refuses fractional offsets instead of silently converting lighting to zero', async () => {
++  const root = new THREE.Group(), geometry = triangle(); root.add(new THREE.Mesh(geometry));
++  const input = lightData([geometry]);
++  input.binary = Uint8Array.from([...input.binary, 99]); input.manifest.byteLength++;
++  Object.values(input.manifest.geometry)[0].offset = .5;
++  await assert.rejects(prepareTheaterLightField(root, input), /geometry mismatch|range|offset/i);
++});
++
++test('irradiance shader injection preserves original material and shared power uniform', () => {
++  const material = new THREE.MeshStandardMaterial({ roughness: .73, metalness: .11, vertexColors: true });
++  material.name = 'native theater plaster'; material.userData.source = 'native';
++  const power = { value: .25 }, shade = installIrradianceMaterial(material, power, 2.25), shader = shaderFor(shade);
++  assert.notEqual(shade, material);
++  assert.equal(material.userData.kinoIrradiance, undefined);
++  assert.equal(material.onBeforeCompile, THREE.Material.prototype.onBeforeCompile);
++  assert.equal(shade.roughness, material.roughness); assert.equal(shade.metalness, material.metalness);
++  assert.equal(shade.vertexColors, true); assert.equal(shade.userData.source, 'native');
++  assert.equal(shader.uniforms.kinoPower, power);
++  assert.equal(shader.uniforms.unrelatedUniform.value, 19);
++  assert.match(shader.vertexShader, /attribute vec3 kinoBaseLight/);
++  assert.match(shader.vertexShader, /vKinoPowerLight = kinoPowerLight/);
++  assert.match(shader.fragmentShader, /irradiance \+= 2\.250 \* PI/);
++  assert.match(shader.fragmentShader, /vKinoBaseLight \+ kinoPower \* vKinoPowerLight/);
++  power.value = .9; assert.equal(shader.uniforms.kinoPower.value, .9);
++  assert.notEqual(shade.customProgramCacheKey(), installIrradianceMaterial(material, power, 4).customProgramCacheKey());
++});
++
++test('installation shares one variant per material across baked meshes but isolates unbaked props', async () => {
++  const root = new THREE.Group(), a = triangle(), b = triangle(10);
++  const shared = new THREE.MeshStandardMaterial(), other = new THREE.MeshStandardMaterial();
++  const first = new THREE.Mesh(a, shared), second = new THREE.Mesh(b, [shared, other]);
++  const prop = new THREE.Mesh(triangle(30, false), shared); root.add(first, second, prop);
++  const field = await prepareTheaterLightField(root, lightData([a, b])); field.install(root);
++  assert.equal(first.material, second.material[0]);
++  assert.notEqual(first.material, shared); assert.notEqual(second.material[1], other);
++  assert.equal(prop.material, shared); assert.equal(shared.userData.kinoIrradiance, undefined);
++  assert.equal(field.stats.shaderMaterials, 2);
++  assert.equal(shaderFor(first.material).uniforms.kinoPower, shaderFor(second.material[1]).uniforms.kinoPower);
++  field.power.value = 1; field.reset(); assert.equal(field.power.value, 0);
++});
++
++test('static merging preserves distinct irradiance samples before shader material installation', async () => {
++  const root = new THREE.Group(), first = triangle(10), second = triangle(30), material = new THREE.MeshStandardMaterial();
++  const a = new THREE.Mesh(first, material), b = new THREE.Mesh(second, material);
++  a.position.set(15, 10, 15); b.position.set(20, 10, 15); root.add(a, b);
++  const field = await prepareTheaterLightField(root, lightData([first, second]));
++  const expected = Object.fromEntries(['kinoBaseLight', 'kinoPowerLight'].map(name => [name,
++    [...first.attributes[name].array, ...second.attributes[name].array]]));
++  assert.equal(material.onBeforeCompile, THREE.Material.prototype.onBeforeCompile);
++  const result = optimizeStaticScene(root); assert.equal(result.mergedMeshes, 2);
++  const merged = root.children.find(mesh => mesh.name.startsWith('static_merged_')); assert(merged);
++  assert.equal(merged.material, material);
++  for (const name of Object.keys(expected)) {
++    const attribute = merged.geometry.attributes[name];
++    assert.deepEqual(Array.from(attribute.array), expected[name]);
++    assert.equal(attribute.count, merged.geometry.attributes.position.count);
++    assert.equal(attribute.normalized, true); assert.equal(attribute.itemSize, 3);
++  }
++  field.install(root);
++  assert.equal(merged.material.userData.kinoIrradiance, true);
++  assert.equal(field.stats.shaderMaterials, 1);
++  assert.equal(shaderFor(merged.material).uniforms.kinoPower, field.power);
++});
++
++test('static instancing retains the normalized irradiance buffers and gets its shader after batching', async () => {
++  const root = new THREE.Group(), geometry = triangle(), material = new THREE.MeshStandardMaterial();
++  const a = new THREE.Mesh(geometry, material), b = new THREE.Mesh(geometry, material); b.position.x = 4; root.add(a, b);
++  const field = await prepareTheaterLightField(root, lightData([geometry]));
++  const buffer = geometry.attributes.kinoBaseLight;
++  const result = optimizeStaticScene(root); assert.equal(result.instances, 2);
++  const batch = root.children.find(mesh => mesh.isInstancedMesh); assert(batch);
++  assert.equal(batch.geometry.attributes.kinoBaseLight, buffer); assert.equal(batch.material, material);
++  field.install(root); assert.equal(batch.material.userData.kinoIrradiance, true);
++  assert.equal(shaderFor(batch.material).uniforms.kinoPower, field.power);
++});
++
++function source(x, { powered = false, glowRadius = 0, radius = 700 } = {}) {
++  return { position: [x, 0, 0], color: [.8, .7, .5], radius, energy: 1, powered, glowRadius };
++}
++
++function lightingFixture(sources, lineClear = () => true) {
++  const scene = new THREE.Scene(), power = { value: 0 }, calls = [];
++  const field = { manifest: { plan: { sources } }, power, reset() { power.value = 0; } };
++  const world = { lightfield: field, lineClear(from, to) { calls.push([from.toArray(), to.toArray()]); return lineClear(from, to); } };
++  const lighting = new TheaterLighting(scene); lighting.bind(world);
++  return { lighting, field, scene, calls };
++}
++
++test('power fade advances on simulation time, holds while paused, and shares the glow uniform', () => {
++  const { lighting, field } = lightingFixture([source(20, { powered: true, glowRadius: 2 })]);
++  const actor = new THREE.Vector3();
++  lighting.update(actor, false, 70); assert.equal(field.power.value, 0);
++  lighting.update(actor, true, 100); assert.equal(field.power.value, 0);
++  lighting.update(actor, true, 100.8); assert(Math.abs(field.power.value - .5) < 1e-10);
++  const paused = lighting.snapshot(), intensity = lighting.pool[0].intensity;
++  for (let i = 0; i < 10; i++) lighting.update(actor, true, 100.8, { pixelHeight: 1200 });
++  assert.deepEqual(lighting.snapshot(), paused); assert.equal(lighting.pool[0].intensity, intensity);
++  assert.equal(lighting.glowMaterial.uniforms.power, field.power);
++  assert.equal(lighting.glowMaterial.uniforms.pixelHeight.value, 1200);
++  lighting.update(actor, true, 101.6); assert.equal(field.power.value, 1);
++  assert.equal(lighting.pool[0].intensity, 32);
++});
++
++test('reset removes powered accents and starts a fresh fade at the next run time', () => {
++  const { lighting, field } = lightingFixture([source(20, { powered: true, glowRadius: 2 })]);
++  const actor = new THREE.Vector3(); lighting.update(actor, true, 100); lighting.update(actor, true, 102);
++  assert.equal(lighting.snapshot().activeAccents, 1);
++  lighting.reset(); assert.equal(field.power.value, 0); assert.equal(lighting.snapshot().activeAccents, 0);
++  lighting.update(actor, false, 0); assert.equal(lighting.snapshot().activeAccents, 0);
++  lighting.update(actor, true, 2); assert.equal(field.power.value, 0);
++  lighting.update(actor, true, 2.8); assert(Math.abs(field.power.value - .5) < 1e-10);
++});
++
++test('accent selection skips occluded sources before taking four visible nearby lights', () => {
++  const { lighting, calls } = lightingFixture([source(1), source(2), source(3), source(4), source(5), source(6), source(7), source(901)],
++    (_, to) => to.x >= 3);
++  const actor = new THREE.Vector3(); lighting.update(actor, false, 0);
++  assert.deepEqual(lighting.pool.map(light => light.position.x), [3, 4, 5, 6]);
++  assert.equal(lighting.snapshot().activeAccents, 4);
++  assert(calls.some(([, to]) => to[0] === 1)); assert(calls.some(([, to]) => to[0] === 6));
++  assert(!calls.some(([, to]) => to[0] === 901));
++  for (const [from] of calls) assert.deepEqual(from, actor.toArray());
++});
++
++test('unpowered practicals remain visible while powered and fully occluded accents stay off', () => {
++  const { lighting } = lightingFixture([source(1, { powered: true }), source(2), source(3)], (_, to) => to.x === 2);
++  const actor = new THREE.Vector3(); lighting.update(actor, false, 0);
++  assert.equal(lighting.snapshot().activeAccents, 1); assert.equal(lighting.pool[0].position.x, 2);
++  lighting.update(new THREE.Vector3(2000, 0, 0), true, 1);
++  assert.equal(lighting.snapshot().activeAccents, 0);
++});
++
++function fixtureScene() {
++  const root = new THREE.Group();
++  const template = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 4), new THREE.MeshStandardMaterial());
++  template.name = 'i_p_glo_stage_light_17'; template.position.set(10, 20, 30);
++  template.scale.set(1.5, 2, .75); template.rotation.set(.3, .7, .2); root.add(template);
++  const data = { entities: [
++    { id: 2715, classname: 'misc_modle', model: 'p_glo_stage_light', position: [200, 140, -350], yaw: Math.PI / 2 },
++    { id: 2727, model: 'lights_hang_single', position: [177, 322, 768], yaw: 0 },
++    { id: 2771, model: 'zombie_theater_chandelier1_off', position: [-1, 840, -414], yaw: 0 },
++  ] };
++  return { root, template, data };
++}
++
++test('entity 2715 is restored from native geometry/material and original fixture scale without altering baked props', () => {
++  const { root, template, data } = fixtureScene(), sourceMatrix = template.matrix.clone();
++  const result = restoreTheaterFixtures(root, data), restored = root.getObjectByName('restored_stage_fixture_2715');
++  assert.deepEqual(result.restored, [2715]); assert(restored); assert.equal(root.children.length, 2);
++  assert.equal(restored.geometry, template.geometry); assert.equal(restored.material, template.material);
++  assert.deepEqual(restored.scale.toArray(), [1.5, 2, .75]);
++  assert.deepEqual(restored.position.toArray(), data.entities[0].position);
++  assert(restored.quaternion.angleTo(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2)) < 1e-7);
++  assert.equal(restored.matrixAutoUpdate, true);
++  assert.deepEqual(new THREE.Vector3().setFromMatrixPosition(restored.matrix).toArray(), data.entities[0].position);
++  assert.deepEqual(template.position.toArray(), [10, 20, 30]); assert.deepEqual(template.matrix, sourceMatrix);
++  assert.equal(template.parent, root);
++});
++
++test('fixture restoration is a no-op when entity or native template is unavailable', () => {
++  const { root, data } = fixtureScene();
++  assert.deepEqual(restoreTheaterFixtures(root, { entities: data.entities.slice(1) }).restored, []);
++  assert.equal(root.children.length, 1);
++  const empty = new THREE.Group(); assert.deepEqual(restoreTheaterFixtures(empty, data).restored, []);
++  assert.equal(empty.children.length, 0);
++});
++
++test('repeated fixture restoration cannot add a second entity 2715', () => {
++  const { root, data } = fixtureScene(); restoreTheaterFixtures(root, data);
++  const second = restoreTheaterFixtures(root, data);
++  assert.deepEqual(second.restored, []);
++  assert.equal(root.children.filter(object => object.name === 'restored_stage_fixture_2715').length, 1);
++});
++
++test('an already baked native fixture at entity 2715 is not duplicated', () => {
++  const { root, template, data } = fixtureScene();
++  template.position.fromArray(data.entities[0].position); template.updateMatrix();
++  const result = restoreTheaterFixtures(root, data);
++  assert.deepEqual(result.restored, []); assert.equal(root.children.length, 1);
++});
++
++test('creature probe fill is shared only among actor clones and does not alter world materials',()=>{
++  const lighting=new TheaterLighting(new THREE.Scene()),material=new THREE.MeshStandardMaterial(),a=new THREE.Mesh(triangle(),material),b=new THREE.Mesh(triangle(),material);
++  lighting.prepareActors({templates:[a,b],heads:[]});
++  assert.notEqual(a.material,material);assert.equal(a.material,b.material);assert.equal(material.userData.kinoActorProbe,undefined);
++  assert.equal(a.material.userData.kinoActorProbe,true);
++  const shader={fragmentShader:'#include <lights_fragment_maps>'};a.material.onBeforeCompile(shader);
++  assert.match(shader.fragmentShader,/irradiance \+= PI/);assert.equal(a.material.emissiveIntensity,material.emissiveIntensity);
++});
+--- v1.1/export/web/game.js
++++ v1.2/export/web/game.js
+@@ -27,12 +27,12 @@
+ renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=settings.brightness;renderer.autoClear=false;
+ document.body.prepend(renderer.domElement);
+ const scene=new THREE.Scene();scene.background=new THREE.Color(0x101319);scene.fog=new THREE.FogExp2(0x14181b,.00032);
+-const ambient=new THREE.AmbientLight(0xb3bcc7,.46);scene.add(ambient,new THREE.HemisphereLight(0xaabbd3,0x49362c,.85));
+-const keyLight=new THREE.DirectionalLight(0xffdfb1,.95);keyLight.position.set(.4,1,.2);scene.add(keyLight);
+-const fill=new THREE.DirectionalLight(0x8cabc9,.32);fill.position.set(-1,.5,-.5);scene.add(fill);
++const ambient=new THREE.AmbientLight(0x8997a7,.14);scene.add(ambient,new THREE.HemisphereLight(0x899db8,0x40372e,.32));
++const keyLight=new THREE.DirectionalLight(0xcad5df,.10);keyLight.position.set(.4,1,.2);scene.add(keyLight);
++const fill=new THREE.DirectionalLight(0x7b91af,.07);fill.position.set(-1,.5,-.5);scene.add(fill);
+ const camera=new THREE.PerspectiveCamera(settings.fov,innerWidth/innerHeight,1,14000);camera.rotation.order='YXZ';camera.position.set(-101,168,1256);camera.lookAt(160,170,850);
+ const viewScene=new THREE.Scene(),viewCamera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.01,200);
+-viewScene.add(new THREE.AmbientLight(0xe1d9c7,1.8));const vl=new THREE.DirectionalLight(0xffefc8,1.6);vl.position.set(0,4,2);viewScene.add(vl);
++viewScene.add(new THREE.AmbientLight(0xafbac9,.55));const vl=new THREE.DirectionalLight(0xe2d7c4,.8);vl.position.set(0,4,2);viewScene.add(vl);
+ const muzzle=new THREE.PointLight(0xffc276,0,240,1);scene.add(muzzle);
+ let data,world,session,player,enemies,view,powerups,perkDrink,mysteryBox,features,theaterLighting,theaterAtmosphere,trapSystem,ready=false,active=false,started=false,primary=false,primaryPressed=false,ads=false;
+ let prompt=null,promptText='',toastUntil=0,announcementUntil=0,hitUntil=0,flashUntil=0,spawn;
+@@ -145,10 +145,10 @@
+   if(type==='carpenter'){for(const b of world.barriers)world.setBoards(b,b.boards.length||6);audio.event('powerup/carpenter/end/end_00',.7);}
+ }
+ function shoot(){
+-  if(!active||features.events.room||!view.ready||view.mode==='raise'||session.busy||session.weaponUnavailable)return false;
++  if(!active||features.events.room||!view.canFire||session.busy||session.weaponUnavailable)return false;
+   if(session.reloadLeft>0&&session.def.segmentedReload&&session.weapon.mag>0){session.interruptReload();reloadShot=true;return false;}
+   if(!session.fire()){if(session.weapon.mag===0&&primaryPressed){audio.weapon('empty',session.def);reload();}return false;}
+-  view.shoot({ads:ads&&!session.def.dualWield,empty:session.weapon.mag===0,hand:session.def.dualWield&&session.shots%2?'left':'right'});audio.weapon('shot',session.def);muzzle.position.copy(camera.position);muzzle.intensity=settings.reducedFlashes?24:160;camera.rotation.x=Math.min(1.48,camera.rotation.x+(ads?.008:.015));
++  view.shoot({ads:ads&&!session.def.dualWield,empty:session.weapon.mag<(session.def.dualWield?2:1),hand:session.def.dualWield&&session.shots%2?'left':'right'});audio.weapon('shot',session.def);muzzle.position.copy(camera.position);muzzle.intensity=settings.reducedFlashes?24:160;camera.rotation.x=Math.min(1.48,camera.rotation.x+(ads?.008:.015));
+   const forward=camera.getWorldDirection(new THREE.Vector3());
+   if(session.weapon.id==='thundergun_zm'){
+     for(const z of [...enemies.list]){const d=z.root.position.clone().add(new THREE.Vector3(0,40,0)).sub(camera.position);if(d.length()<600&&d.normalize().dot(forward)>.65&&world.lineClear(camera.position,z.root.position.clone().add(new THREE.Vector3(0,40,0))))enemies.hurt(z,100000,false,false,'thunder');}
+@@ -257,7 +257,7 @@
+     primary=false;primaryPressed=false;ads=false;burstLeft=0;reloadShot=false;perkDrink.start(id,view);toast(p.name);audio.play('buy');audio.play(id);return true;
+   }
+   if(t==='use_elec_switch'&&!session.power){
+-    session.power=true;session.flags.add('power_on');world.setDoors(session);ambient.intensity=.72;theaterLighting?.reset();announce('Power restored','THE SHOW GOES ON');audio.play('round');return true;
++    session.power=true;session.flags.add('power_on');world.setDoors(session);announce('Power restored','THE SHOW GOES ON');audio.play('round');return true;
+   }
+   if(t==='treasure_chest_use'){
+     if(mysteryBox.at(e)){if(session.pack?.weapon===session.weapon)return false;const weapon=mysteryBox.take(e);if(!weapon)return false;if(weapon==='zombie_cymbal_monkey'){session.giveMonkeys();toast('Monkey Bombs · X to throw');}else{session.giveWeapon(weapon);equipView();toast(data.weapons[weapon].name);}return true;}
+@@ -287,7 +287,7 @@
+   combatParticles.reset();
+   for(const group of [grenades,gasClouds]){for(const item of group){item.mesh.removeFromParent();item.mesh.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});}group.length=0;}
+   meteors.clear();renderer.domElement.style.filter='';audio.reset?.();
+-  started=false;teleportPending=0;returnAt=0;linkUntil=0;cooldownUntil=0;repairLeft=0;burstLeft=0;lastPhase='';lastRound=0;ambient.intensity=.46;theaterLighting?.reset();view.currentId=null;equipView();$('results').hidden=true;$('menu-status').textContent=touchControls.mode?'Tap to start':'Click to capture the mouse';
++  started=false;teleportPending=0;returnAt=0;linkUntil=0;cooldownUntil=0;repairLeft=0;burstLeft=0;lastPhase='';lastRound=0;theaterLighting?.reset();view.currentId=null;equipView();$('results').hidden=true;$('menu-status').textContent=touchControls.mode?'Tap to start':'Click to capture the mouse';
+ }
+ function returnToLobby(){
+   const dest=data.entities.find(e=>e.targetname==='theater_teleport_player0');player.setPosition(vector(dest.position));camera.rotation.set(0,dest.yaw-Math.PI/2,0);cooldownUntil=session.time+90;flashUntil=session.time+.8;
+@@ -317,7 +317,7 @@
+         }
+         airborneTime=0;airbornePeak=newFeet.y;
+       }
+-      view.update(dt,{moving,sprint,ads:ads&&!session.def.dualWield,reloading:session.reloadLeft>0,empty:session.weapon.mag===0,time:session.time});
++      view.update(dt,{moving,sprint,ads:ads&&!session.def.dualWield,reloading:session.reloadLeft>0,empty:session.weapon.mag<(session.def.dualWield?2:1),time:session.time});
+       view.pivot.visible=!session.weaponUnavailable&&!features.events.room;
+       perkDrink.update(dt,session);world.syncMachines(session);
+       if(!sprint&&session.phase!=='reviving'&&(primaryPressed||(primary&&session.def.automatic)||burstLeft>0||reloadShot)){
+@@ -358,7 +358,7 @@
+     }
+   }
+   muzzle.intensity=Math.max(0,muzzle.intensity-dt*2200);camera.fov=THREE.MathUtils.damp(camera.fov,ads&&!session.def.dualWield&&!session.drinking&&!session.meleeLeft&&!session.reloadLeft?Math.min(settings.fov,session.def.adsFov||56):settings.fov,12,dt);camera.updateProjectionMatrix();
+-  if(player){theaterLighting?.update(player.getFeetPosition(),session.power,session.time);audio.setListener(camera.position,camera.getWorldDirection(audioForward),audioUp.set(0,1,0).applyQuaternion(camera.quaternion));theaterAtmosphere?.update(session.time,session.power,{...settings,pixelHeight:innerHeight*renderer.getPixelRatio()});}
++  if(player){theaterLighting?.update(camera.position,session.power,session.time,{pixelHeight:innerHeight*renderer.getPixelRatio()});audio.setListener(camera.position,camera.getWorldDirection(audioForward),audioUp.set(0,1,0).applyQuaternion(camera.quaternion));theaterAtmosphere?.update(session.time,session.power,{...settings,pixelHeight:innerHeight*renderer.getPixelRatio()});}
+   hud();
+ }
+ function hud(){
+@@ -379,7 +379,7 @@
+ }
+ 
+ function getState(){return {ready,active,started,settings:{...settings},damageHeading:damageHeadingUntil>session?.time?damageHeading:null,renderScale:renderer.getPixelRatio(),cameraFov:camera.fov,input:{touch:touchControls.getState(),primary,ads},...(session?session.snapshot():{}),player:player?{...player.state,rotation:camera.rotation.toArray().slice(0,3),position:camera.position.toArray(),feet:player.getFeetPosition().toArray()}:null,enemies:enemies?.snapshot()??[],prompt:promptText,barriers:world?.barriers.map(b=>({id:b.id,count:b.count,position:b.position.toArray(),inside:b.inside.toArray(),group:b.group}))??[],doors:world?[...world.doors.values()].map(d=>({name:d.name,cost:d.cost,flag:d.flag,open:session.openDoors.has(d.name),triggers:d.triggers.map(e=>e.position),parts:d.parts.length})):[],performance:{fps,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},viewmodelReady:view?.ready??false,errors:[...errors]};}
+-globalThis.kino={debug:{getState,setActive,pause:()=>setActive(false),resume:()=>setActive(true),reset,teleportPlayer:p=>player.setPosition(vector(p)),lookAt:p=>camera.lookAt(vector(p)),damagePlayer:damage,grantPoints:n=>session.points+=n,interact,shoot,reload,melee,giveWeapon:id=>{session.giveWeapon(id);equipView();},spawnEnemy:(p,kind)=>enemies.spawn(vector(p),null,kind).id,clearEnemies:()=>{for(const z of [...enemies.list])enemies.hurt(z,999999);},collectPowerup:collect,step:(seconds)=>{for(let t=0;t<seconds;t+=1/60)update(Math.min(1/60,seconds-t));},navigationPath:(a,b)=>world.path(vector(a),vector(b)).map(v=>v.toArray()),getEntities:()=>data.entities.filter(e=>e.classname==='trigger_use'||e.targetname==='initial_spawn_points'),showCollision:value=>{world.collision.setDebugVisible(value);scene.add(world.collision.mesh);}}};
++globalThis.kino={debug:{getState,setActive,pause:()=>setActive(false),resume:()=>setActive(true),reset,teleportPlayer:p=>player.setPosition(vector(p)),lookAt:p=>camera.lookAt(vector(p)),damagePlayer:damage,grantPoints:n=>session.points+=n,interact,shoot,reload,melee,giveWeapon:id=>{session.giveWeapon(id);equipView();},spawnEnemy:(p,kind)=>enemies.spawn(vector(p),null,kind).id,spawnBarrierEnemy:id=>{const barrier=world.barriers.find(b=>b.id===id);if(!barrier)throw new Error("Unknown barrier");return enemies.spawn(null,barrier,"zombie").id;},lightingState:()=>theaterLighting.snapshot(),clearEnemies:()=>{for(const z of [...enemies.list])enemies.hurt(z,999999);},collectPowerup:collect,step:(seconds)=>{for(let t=0;t<seconds;t+=1/60)update(Math.min(1/60,seconds-t));},navigationPath:(a,b)=>world.path(vector(a),vector(b)).map(v=>v.toArray()),getEntities:()=>data.entities.filter(e=>e.classname==='trigger_use'||e.targetname==='initial_spawn_points'),showCollision:value=>{world.collision.setDebugVisible(value);scene.add(world.collision.mesh);}}};
+ Object.assign(kino.debug,{
+   memoryState:()=>{
+     const textures=new Set(),sources=new Set(),geometries=new Set();let textureBytes=0,geometryBytes=0;
+@@ -414,16 +414,16 @@
+   setRound:n=>{enemies.reset();while(session.round<n)session.nextRound();session.countdown=0;session.spawned=0;session.killed=0;},
+ });
+ try{
+-  progress('Loading game data',5);data=await fetch('game-data.json').then(r=>r.json());session=new Session(data,Math.random,{profile:settings.profile});theaterLighting=new TheaterLighting(scene,data);theaterAtmosphere=new TheaterAtmosphere(scene,data);world=new World(scene,data);await world.load(progress);
++  progress('Loading game data',5);data=await fetch('game-data.json').then(r=>r.json());session=new Session(data,Math.random,{profile:settings.profile});theaterLighting=new TheaterLighting(scene,data);theaterAtmosphere=new TheaterAtmosphere(scene,data);world=new World(scene,data);await world.load(progress);theaterLighting.bind(world);
+   spawn=data.entities.find(e=>e.targetname==='initial_spawn_points'&&e.script_int==='1');
+   player=new PlayerController(camera,world.physics,{spawn:vector(spawn.position),spawnIsEye:false,radius:14,height:70,eyeHeight:60,moveSpeed:190,sprintSpeed:285,crouchSpeed:95,gravity:800,jumpHeight:39,fallResetY:-800,maxSubSteps:12,groundSnapSpeed:10});
+   camera.rotation.set(0,spawn.yaw-Math.PI/2,0);world.setDoors(session);
+-  progress('Loading weapons and the undead',85);view=new ViewWeapon(viewScene,data,(name,def)=>audio.notify(name,def));view.bobAmount=settings.weaponBob?1:0;enemies=new Enemies(scene,world,data,session,{damage,kill,hit,sound:(kind,p)=>audio.playAt(kind,p,.65)});
++  progress('Loading weapons and the undead',85);view=new ViewWeapon(viewScene,data,(name,def)=>audio.notify(name,def));view.bobAmount=settings.weaponBob?1:0;enemies=new Enemies(scene,world,data,session,{damage,kill,hit,sound:(event,p,meta)=>audio.enemy(event,p,meta)});
+   world.actors=()=>enemies.list;
+   trapSystem=new KinoTraps({scene,data,session,world,enemies,player,audio,damage});
+   powerups=new Powerups(scene,data,audio,collect);perkDrink=new PerkDrink(viewScene,data,audio);mysteryBox=new MysteryBox(scene,world,data,session,audio,toast);
+   features=new KinoFeatures({scene,world,data,session,enemies,player,camera,audio,effect,damage,toast});
+-  await Promise.all([enemies.load(),equipView(),audio.load(),powerups.load(),perkDrink.load(),mysteryBox.load(),features.load()]);player.update(.05,{});ready=true;
++  await Promise.all([enemies.load(),equipView(),audio.load(),powerups.load(),perkDrink.load(),mysteryBox.load(),features.load()]);theaterLighting.prepareActors(enemies);player.update(.05,{});ready=true;
+   progress('Ready',100);$('loading').hidden=true;$('start').disabled=contextLost;$('menu-status').textContent=contextLost?'Graphics paused. Waiting for Safari to restore the game…':touchControls.mode?'Tap to enter the theater':'Click to capture the mouse · Esc to pause';
+ }catch(error){console.error(error);errors.push(String(error));$('load-label').textContent='Unable to start: '+error.message;$('menu-status').textContent='A required file could not load. Reopen the app, or retry below.';$('start').disabled=false;$('start').textContent='RETRY LOADING';$('start').addEventListener('click',()=>location.reload(),{once:true});}
+ renderer.info.autoReset=false;
+--- v1.1/export/web/theater-light-field.js
++++ v1.2/export/web/theater-light-field.js
+@@ -0,0 +1,77 @@
++import * as THREE from 'three';
++import { geometryFingerprint } from './environment-occlusion.js';
++
++// Newly reconstructed irradiance, not extracted T5 lightmaps. The bake uses
++// the original geometry for both visibility and native fixture placement.
++export function lightFalloff(source, position, normal) {
++  const delta = new THREE.Vector3().fromArray(source.position).sub(position);
++  const distance = delta.length();
++  if (distance >= source.radius || distance < .1) return 0;
++  delta.divideScalar(distance);
++  const facing = Math.max(0, normal.dot(delta));
++  if (!facing) return 0;
++  let cone = 1;
++  if (source.direction) {
++    const cosine = -delta.dot(new THREE.Vector3().fromArray(source.direction));
++    const outer = Math.cos(source.angle * Math.PI / 180);
++    const inner = Math.cos(source.angle * .64 * Math.PI / 180);
++    cone = THREE.MathUtils.smoothstep(cosine, outer, inner);
++  }
++  return facing * cone * source.energy * (1 - distance / source.radius) ** 1.35 /
++    (1 + (distance / source.falloff) ** 2);
++}
++
++export function installIrradianceMaterial(material, power, scale = 4) {
++  const shade = material.clone();
++  shade.userData = { ...material.userData, kinoIrradiance: true };
++  shade.onBeforeCompile = shader => {
++    shader.uniforms.kinoPower = power;
++    shader.vertexShader = 'attribute vec3 kinoBaseLight; attribute vec3 kinoPowerLight; varying vec3 vKinoBaseLight; varying vec3 vKinoPowerLight;\n' + shader.vertexShader;
++    shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',
++      '#include <begin_vertex>\nvKinoBaseLight = kinoBaseLight; vKinoPowerLight = kinoPowerLight;');
++    shader.fragmentShader = 'uniform float kinoPower; varying vec3 vKinoBaseLight; varying vec3 vKinoPowerLight;\n' + shader.fragmentShader;
++    shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_maps>',
++      `#include <lights_fragment_maps>\n#if defined(RE_IndirectDiffuse)\nirradiance += ${Number(scale).toFixed(3)} * PI * (vKinoBaseLight + kinoPower * vKinoPowerLight);\n#endif`);
++  };
++  shade.customProgramCacheKey = () => `kino-irradiance-v1-${scale}`;
++  return shade;
++}
++
++export async function prepareTheaterLightField(root, {
++  manifest, binary, manifestUrl = 'theater-irradiance.json',
++} = {}) {
++  manifest ??= await fetch(manifestUrl).then(r => { if (!r.ok) throw new Error('Theater light data: '+r.status); return r.json(); });
++  if (manifest.version !== 1) throw new Error('Unsupported theater light field');
++  binary ??= await fetch(manifest.binary).then(r => { if (!r.ok) throw new Error('Theater light buffer: '+r.status); return r.arrayBuffer(); });
++  const bytes = binary instanceof Uint8Array ? binary : new Uint8Array(binary);
++  if (!Number.isSafeInteger(manifest.byteLength) || bytes.length !== manifest.byteLength) throw new Error('Theater light buffer length mismatch');
++  const stats = { meshes:0, vertices:0, bytes:0, shaderMaterials:0 };
++  const power = { value:0 };
++  root.traverse(mesh => {
++    if (!mesh.isMesh || !mesh.geometry.userData.environmentOcclusion) return;
++    const geometry = mesh.geometry, key = geometryFingerprint(geometry.attributes.position,geometry.attributes.normal), entry = manifest.geometry[key];
++    if (!entry) return;
++    if (!Number.isSafeInteger(entry.count) || !Number.isSafeInteger(entry.offset) || entry.count !== geometry.attributes.position.count || entry.offset < 0 || entry.offset + entry.count*6 > bytes.length) throw new Error('Theater light geometry mismatch');
++    const base = new Uint8Array(entry.count*3), lit = new Uint8Array(entry.count*3);
++    for (let i=0;i<entry.count;i++) for (let c=0;c<3;c++) {
++      base[i*3+c]=bytes[entry.offset+i*6+c]; lit[i*3+c]=bytes[entry.offset+i*6+3+c];
++    }
++    geometry.setAttribute('kinoBaseLight',new THREE.BufferAttribute(base,3,true));
++    geometry.setAttribute('kinoPowerLight',new THREE.BufferAttribute(lit,3,true));
++    stats.meshes++;stats.vertices+=entry.count;stats.bytes+=base.byteLength+lit.byteLength;
++  });
++  return { manifest, power, stats,
++    // Compile only AFTER batching, so custom material hooks never defeat the
++    // existing static optimizer. Never alter shared unbaked door/prop materials.
++    install(root) {
++      const variants=new Map();
++      root.traverse(mesh=>{
++        if(!mesh.isMesh||!mesh.geometry.attributes.kinoBaseLight)return;
++        const apply=m=>{if(!variants.has(m))variants.set(m,installIrradianceMaterial(m,power,manifest.scale));return variants.get(m);};
++        mesh.material=Array.isArray(mesh.material)?mesh.material.map(apply):apply(mesh.material);
++      });
++      stats.shaderMaterials=variants.size;
++    },
++    reset(){power.value=0;},
++  };
++}
+--- v1.1/export/web/world.js
++++ v1.2/export/web/world.js
+@@ -9,6 +9,8 @@
+ import { enhanceEnvironmentMaterials } from './environment-materials.js';
+ import { applyEnvironmentOcclusion } from './environment-occlusion.js';
+ import { loadSurfaceIndex } from './surface-index.js';
++import { prepareTheaterLightField } from './theater-light-field.js';
++import { restoreTheaterFixtures } from './theater-fixtures.js';
+ 
+ export const vector=a=>new THREE.Vector3().fromArray(a);
+ export const zoneNames={foyer_zone:'Lobby',foyer2_zone:'Lobby',vip_zone:'Upper hall',crematorium_zone:'Lower hall',alleyway_zone:'Alley',dining_zone:'Speed Cola room',dressing_zone:'Dressing room',stage_zone:'Stage',theater_zone:'Theater',west_balcony_zone:'Back room'};
+@@ -32,8 +34,11 @@
+     progress('Restoring theater materials and lighting',42);
+     const materials=await enhanceEnvironmentMaterials(gltf.scene,{manager:assetManager});
+     const occlusion=await applyEnvironmentOcclusion(gltf.scene);
+-    this.environment={materials,occlusion};this.surfaces=await loadSurfaceIndex();
++    const fixtures=restoreTheaterFixtures(gltf.scene,this.data);
++    this.lightfield=await prepareTheaterLightField(gltf.scene);
++    this.environment={materials,occlusion,fixtures,irradiance:this.lightfield.stats};this.surfaces=await loadSurfaceIndex();
+     this.optimization=optimizeStaticScene(gltf.scene,{cellSize:768});
++    this.lightfield.install(gltf.scene);
+     const nav=importNavMesh(new Uint8Array(bytes));this.nav=nav.navMesh;this.query=new NavMeshQuery(this.nav,{maxNodes:8192});this.query.defaultQueryHalfExtents={x:70,y:100,z:70};
+     progress('Placing machines and barricades',65);
+     const ents=this.data.entities;
+--- v1.1/export/web/theater-lighting.js
++++ v1.2/export/web/theater-lighting.js
+@@ -1,21 +1,61 @@
+ import * as THREE from 'three';
+ 
+-// A small pool uses authored fixture positions. The original T5 lightmaps are
+-// unavailable; these practical accents are a deliberate reconstruction.
++// Shadowed architecture is baked from native geometry. A bounded pool gently
++// lights moving actors/props near practicals; it is never the primary room fill.
+ export class TheaterLighting{
+-  constructor(scene,data){
+-    this.sources=data.entities.filter(e=>e.classname==='light'&&e.position).map(e=>{
+-      let rgb=(e.script_light2_color||e._color||'1 .78 .53').split(/\s+/).map(Number);
+-      if(rgb.length!==3||rgb.some(n=>!Number.isFinite(n))||rgb.every(n=>n===0))rgb=[1,.78,.53];
+-      return {position:new THREE.Vector3(...e.position),color:new THREE.Color(...rgb),radius:Math.max(300,Math.min(1000,Number(e.radius)||500))};
++  constructor(scene){
++    this.scene=scene;this.sources=[];this.nextUpdate=0;this.powerAt=null;
++    this.pool=Array.from({length:4},()=>{const light=new THREE.PointLight(0xffca82,0,700,1);scene.add(light);return light;});
++  }
++  bind(world){
++    this.world=world;this.field=world.lightfield;
++    this.sources=this.field.manifest.plan.sources.map(source=>({...source,position:new THREE.Vector3(...source.position),color:new THREE.Color(...source.color)}));
++    const fixtures=this.sources.filter(s=>s.glowRadius),positions=[],colors=[],radii=[],powered=[];
++    for(const s of fixtures)for(const p of s.glowPositions??[s.position.toArray()]){positions.push(...p);colors.push(s.color.r,s.color.g,s.color.b);radii.push(s.glowRadius);powered.push(s.powered?1:0);}
++    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geometry.setAttribute('radius',new THREE.Float32BufferAttribute(radii,1));geometry.setAttribute('powered',new THREE.Float32BufferAttribute(powered,1));
++    this.glowMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,
++      uniforms:{power:this.field.power,pixelHeight:{value:900}},
++      vertexShader:'attribute vec3 color;attribute float radius;attribute float powered;uniform float power;uniform float pixelHeight;varying vec3 tint;varying float amount;void main(){vec4 p=modelViewMatrix*vec4(position,1.);tint=color;amount=mix(1.,power,powered);gl_Position=projectionMatrix*p;gl_PointSize=clamp(pixelHeight*radius/max(1.,-p.z),1.,48.);}',
++      fragmentShader:'varying vec3 tint;varying float amount;void main(){float r=length(gl_PointCoord-.5)*2.;if(r>1.)discard;gl_FragColor=vec4(tint,pow(1.-r,1.4)*amount*.65);}'
+     });
+-    this.pool=Array.from({length:4},()=>{const light=new THREE.PointLight(0xffca82,0,700,1);scene.add(light);return light;});
+-    this.nextUpdate=0;
++    this.glows=new THREE.Points(geometry,this.glowMaterial);this.glows.name='Native practical lamp filaments';this.scene.add(this.glows);
+   }
+-  update(position,power,time){
+-    if(time<this.nextUpdate)return;this.nextUpdate=time+.4;
+-    const sources=this.sources.map(source=>({source,distance:source.position.distanceToSquared(position)})).sort((a,b)=>a.distance-b.distance).slice(0,this.pool.length);
+-    for(let i=0;i<this.pool.length;i++){const light=this.pool[i],entry=sources[i];if(!entry){light.intensity=0;continue;}light.position.copy(entry.source.position);light.color.copy(entry.source.color);light.distance=entry.source.radius;light.intensity=(power?210:45)*Math.max(0,1-Math.sqrt(entry.distance)/1600);}
++  prepareActors(enemies){
++    // T5 actor light probes are missing. Preserve a small cool diffuse floor on
++    // creature materials so silhouettes remain readable in unlit recesses.
++    // This does not brighten architecture or make the actors emit world light.
++    const variants=new Map();
++    for(const root of [...enemies.templates,...enemies.heads,enemies.dog,enemies.quad,enemies.quadHead].filter(Boolean))root.traverse(mesh=>{
++      if(!mesh.isMesh)return;
++      const apply=material=>{
++        if(!material.isMeshStandardMaterial)return material;
++        if(!variants.has(material)){
++          const shade=material.clone();shade.userData={...material.userData,kinoActorProbe:true};
++          shade.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <lights_fragment_maps>',
++            '#include <lights_fragment_maps>\n#if defined(RE_IndirectDiffuse)\nirradiance += PI * vec3(.10,.115,.13);\n#endif');};
++          shade.customProgramCacheKey=()=> 'kino-actor-probe-v1';variants.set(material,shade);
++        }
++        return variants.get(material);
++      };
++      mesh.material=Array.isArray(mesh.material)?mesh.material.map(apply):apply(mesh.material);
++    });
+   }
+-  reset(){this.nextUpdate=0;for(const light of this.pool)light.intensity=0;}
++  update(position,power,time,{pixelHeight=900}={}){
++    if(!this.field)return;
++    if(power&&this.powerAt===null)this.powerAt=time;
++    this.field.power.value=power?THREE.MathUtils.smoothstep(time-this.powerAt,0,1.6):0;
++    this.glowMaterial.uniforms.pixelHeight.value=pixelHeight;
++    if(time<this.nextUpdate)return;this.nextUpdate=time+.3;
++    const sources=this.sources.filter(s=>!s.noAccent&&(!s.powered||power)&&s.position.distanceToSquared(position)<900**2)
++      .sort((a,b)=>a.position.distanceToSquared(position)-b.position.distanceToSquared(position))
++      .filter(s=>this.world.lineClear(position,s.position)).slice(0,this.pool.length);
++    for(let i=0;i<this.pool.length;i++){
++      const light=this.pool[i],source=sources[i];
++      if(!source){light.intensity=0;continue;}
++      light.position.copy(source.position);light.color.copy(source.color);light.distance=Math.min(550,source.radius);
++      light.intensity=32*(source.powered?this.field.power.value:1);
++    }
++  }
++  reset(){this.nextUpdate=0;this.powerAt=null;this.field?.reset();for(const light of this.pool)light.intensity=0;}
++  snapshot(){return{sources:this.sources.length,power:this.field?.power.value||0,activeAccents:this.pool.filter(l=>l.intensity>0).length,glows:this.glows?.geometry.attributes.position.count||0};}
+ }
+--- v1.1/export/web/enemies.js
++++ v1.2/export/web/enemies.js
+@@ -6,6 +6,7 @@
+ 
+ export class Enemies {
+   constructor(scene,world,data,session,{damage,kill,hit,sound}){Object.assign(this,{scene,world,data,session,onDamage:damage,onKill:kill,onHit:hit,onSound:sound});this.list=[];this.dead=[];this.nextSpawn=0;this.serial=0;this.templates=[];this.anims={};}
++  emitSound(z,event){this.onSound?.(event,z.root.position,{id:z.id,kind:z.kind,time:this.session.time,speed:z.speed,cause:z.deathCause});}
+   async load(){
+     const chars=this.data.characters;
+     this.templates=await Promise.all(['c_ger_honorguard_body1','c_ger_honorguard_body2'].map(k=>loadModel(chars[k])));
+@@ -39,7 +40,7 @@
+     root.traverse(o=>{if(o.isMesh)o.frustumCulled=false;});
+     const z={id,kind,root,rig,speed,health:kind==='dog'?([400,900,1300,1600][Math.min(3,Math.max(0,this.session.dogRounds-1))]):zombieHealth(round,this.data.rules),state:barrier?'barricade':'chase',barrier,path:[],pathIndex:0,repath:0,attackLeft:0,attackDealt:false,tearLeft:1.1,stuck:0,lastPosition:root.position.clone(),growl:3+id%7};
+     if(kind==='nova')z.health=Math.trunc(z.health*.75);
+-    z.maxHealth=z.health;this.list.push(z);this.session.spawned++;return z;
++    z.maxHealth=z.health;z.soundUpdate=0;this.list.push(z);this.session.spawned++;this.emitSound(z,'spawn');return z;
+   }
+   update(dt,player){
+     const s=this.session;
+@@ -57,11 +58,12 @@
+     }
+     for(const z of [...this.list]){
+       z.rig.update(dt);z.growl-=dt;
+-      if(z.growl<0){this.onSound?.('growl',z.root.position);z.growl=6+s.random()*7;}
++      z.soundUpdate-=dt;if(z.soundUpdate<=0){this.emitSound(z,'update');z.soundUpdate=.1;}
++      if(z.growl<0){const event=z.kind==='dog'?(z.root.position.distanceTo(player)>320?'ambient':'sprint'):z.speed>110?'sprint':'ambient';this.emitSound(z,event);z.growl=4+s.random()*5;}
+       if(z.state==='barricade'){
+         z.root.rotation.y=Math.atan2(-(z.barrier.inside.z-z.root.position.z),z.barrier.inside.x-z.root.position.x);
+         z.tearLeft-=dt;
+-        if(z.barrier.count>0){z.rig.play('attack');if(z.tearLeft<=0){this.world.setBoards(z.barrier,z.barrier.count-1);z.tearLeft=1.1;this.onSound?.('board',z.root.position);}}
++        if(z.barrier.count>0){z.rig.play('attack');if(z.tearLeft<=0){this.world.setBoards(z.barrier,z.barrier.count-1);z.tearLeft=1.1;this.emitSound(z,'barrier');this.emitSound(z,'teardown');}}
+         else{z.state='entering';z.enterFrom=z.root.position.clone();z.enterTime=0;z.rig.play('walk');}
+         continue;
+       }
+@@ -77,7 +79,7 @@
+         if(z.attackLeft<=0){z.state='chase';z.rig.play('walk');}continue;
+       }
+       if(!lure&&dist<62&&Math.abs(z.root.position.y-player.y)<50&&s.phase!=='reviving'&&this.world.lineClear(at,eye)){
+-        z.state='attack';z.attackLeft=1.15;z.attackDealt=false;z.rig.play('attack',false);continue;
++        z.state='attack';z.attackLeft=1.15;z.attackDealt=false;z.rig.play('attack',false);this.emitSound(z,'attack');continue;
+       }
+       z.repath-=dt;
+       if(z.repath<=0){z.path=this.world.path(z.root.position,goal);z.pathIndex=1;z.repath=.55+(z.id%5)*.07;}
+@@ -96,18 +98,18 @@
+       z.stuck+=dt;
+       if(z.stuck>12){const moved=z.lastPosition.distanceTo(z.root.position);z.lastPosition.copy(z.root.position);z.stuck=0;if(moved<5&&dist>100){z.path=[];z.repath=0;z.stuckCount=(z.stuckCount??0)+1;if(z.stuckCount>=3){this.remove(z);s.spawned--;}}else z.stuckCount=0;}
+     }
+-    for(const d of [...this.dead]){d.life-=dt;d.rig.update(dt);if(d.life<2)d.root.position.y-=dt*24;if(d.life<=0){d.root.removeFromParent();d.rig.mixer.uncacheRoot(d.root);disposeSkeletons(d.root);this.dead.splice(this.dead.indexOf(d),1);}}
++    for(const d of [...this.dead]){d.life-=dt;d.rig.update(dt);if(d.life<2)d.root.position.y-=dt*24;if(d.life<=0){this.emitSound(d,'remove');d.root.removeFromParent();d.rig.mixer.uncacheRoot(d.root);disposeSkeletons(d.root);this.dead.splice(this.dead.indexOf(d),1);}}
+     if(this.autoRounds!==false&&s.phase==='fighting'&&s.spawned>=s.total&&this.list.length===0){if(s.dogRound)this.onKill?.(null,'full_ammo',this.lastDogDeath??player);s.nextRound();this.nextSpawn=0;this.lastDogDeath=null;}
+   }
+-  remove(z){z.root.removeFromParent();z.rig.mixer.uncacheRoot(z.root);disposeSkeletons(z.root);this.list.splice(this.list.indexOf(z),1);}
++  remove(z){this.emitSound(z,'remove');z.root.removeFromParent();z.rig.mixer.uncacheRoot(z.root);disposeSkeletons(z.root);this.list.splice(this.list.indexOf(z),1);}
+   hurt(z,damage,head=false,melee=false,cause='bullet',score=true){
+     if(!this.list.includes(z))return;
+     z.health-=this.session.effects.insta_kill>this.session.time?Math.max(damage,z.health):damage;
+     this.onHit?.(z,head);
+     if(z.health<=0){
+       if(z.kind==='dog')this.lastDogDeath=z.root.position.clone();
+-      if(score)this.session.scoreHit(true,head,melee);else{this.session.kills++;this.session.killed++;}this.list.splice(this.list.indexOf(z),1);z.state='dead';z.deathCause=cause;z.life=4;z.rig.play('death',false);this.dead.push(z);z.gasDeath=z.kind==='nova'&&!melee&&cause==='bullet';this.onKill?.(z);
+-      if(this.dead.length>12){const old=this.dead.shift();old.root.removeFromParent();old.rig.mixer.uncacheRoot(old.root);disposeSkeletons(old.root);}
++      if(score)this.session.scoreHit(true,head,melee);else{this.session.kills++;this.session.killed++;}this.list.splice(this.list.indexOf(z),1);z.state='dead';z.deathCause=cause;z.life=4;z.rig.play('death',false);this.dead.push(z);z.gasDeath=z.kind==='nova'&&!melee&&cause==='bullet';this.emitSound(z,'death');this.onKill?.(z);
++      if(this.dead.length>12){const old=this.dead.shift();this.emitSound(old,'remove');old.root.removeFromParent();old.rig.mixer.uncacheRoot(old.root);disposeSkeletons(old.root);}
+     }else if(score)this.session.scoreHit(false);
+   }
+   rayHit(ray,far){
+@@ -122,7 +124,7 @@
+     }return best;
+   }
+   headPosition(z){z.root.updateMatrixWorld(true);const bone=z.root.getObjectByName('j_head');return bone?bone.getWorldPosition(new THREE.Vector3()):z.root.position.clone().add(new THREE.Vector3(0,z.kind==='zombie'?63:28,0));}
+-  nuke(onDeath){for(const z of [...this.list]){this.list.splice(this.list.indexOf(z),1);this.session.kills++;this.session.killed++;if(z.kind==='dog')this.lastDogDeath=z.root.position.clone();z.state='dead';z.gasDeath=false;z.life=3;z.rig.play('death',false);this.dead.push(z);onDeath(z);this.onKill?.(z);}}
+-  reset(){for(const z of [...this.list,...this.dead]){z.root.removeFromParent();z.rig.mixer.uncacheRoot(z.root);disposeSkeletons(z.root);}this.list=[];this.dead=[];this.nextSpawn=0;this.lastDogDeath=null;}
++  nuke(onDeath){for(const z of [...this.list]){this.list.splice(this.list.indexOf(z),1);this.session.kills++;this.session.killed++;if(z.kind==='dog')this.lastDogDeath=z.root.position.clone();z.state='dead';z.gasDeath=false;z.deathCause='nuke';z.life=3;z.rig.play('death',false);this.dead.push(z);this.emitSound(z,'death');onDeath(z);this.onKill?.(z);}}
++  reset(){this.onSound?.('reset',null,{time:this.session.time});for(const z of [...this.list,...this.dead]){z.root.removeFromParent();z.rig.mixer.uncacheRoot(z.root);disposeSkeletons(z.root);}this.list=[];this.dead=[];this.nextSpawn=0;this.lastDogDeath=null;}
+   snapshot(){return this.list.map(z=>({id:z.id,kind:z.kind,health:z.health,state:z.state,position:z.root.position.toArray(),pathLength:z.path.length,animation:z.rig.current}));}
+ }
+--- v1.1/export/web/audio.js
++++ v1.2/export/web/audio.js
+@@ -1,5 +1,6 @@
+ // Native T5 cues decoded from IWD streams and resident LoadedSound records.
+ import { surfaceFromMaterial } from './audio-surfaces.js';
++import { EnemyAudio } from './enemy-audio.js';
+ const shotFolders={m1911:'pistol/m1911',m14:'assault/m14',rottweil72:'shotgun/rottweil72',ithaca:'shotgun/ithaca',
+   mp40:'smg/mp40',mp5k:'smg/mp5',mpl:'smg/mpl',pm63:'smg/pm63',ak74u:'smg/ak74',m16:'assault/m16',
+   galil:'assault/galil',commando:'assault/commando',hk21:'lmg/hk21',rpk:'lmg/rpk',python:'pistol/357',spas:'shotgun/spas',
+@@ -10,6 +11,7 @@
+ export class GameAudio {
+   constructor(){this._enabled=true;this.ctx=null;this.manifest={};this.buffers=new Map();this.bufferSizes=new Map();this.bufferBytes=0;this.maxBufferBytes=Infinity;this.synthBuffers=new Map();this.preload=true;this.played=[];this.music=null;this.musicToken=0;this.variants=new Map();this.lastVariants=new Map();this.recentEvents=[];this.listenerState=null;this.mix={master:100,effects:100,music:100,ambience:100,dialogue:100};this.groups=null;this.maxVoices=48;this.maxMusicVoices=4;this.voices=new Set();this.musicVoices=new Set();this.sourceVoices=new WeakMap();this.pendingVoices=new Set();this.playbackToken=0;this.acceptPlayback=true;}
+   async load(){const r=await fetch('audio/manifest.json');if(!r.ok)throw new Error('Audio manifest HTTP '+r.status);this.manifest=await r.json();}
++  enemy(event,position,meta){this.enemyAudio??=new EnemyAudio(this);return this.enemyAudio.emit(event,position,meta);}
+   get enabled(){return this._enabled;}
+   set enabled(v){this._enabled=v;this.applyMix();}
+   setMix(values={}){
+@@ -48,7 +50,7 @@
+     if(panner.positionX){panner.positionX.value=position[0];panner.positionY.value=position[1];panner.positionZ.value=position[2];}else panner.setPosition?.(...position);
+     gain.connect(panner);panner.connect(destination);return [panner];
+   }
+-  recordEvent(key,channel,position,native){this.recentEvents.push({key,channel,position:vector(position),native,time:this.ctx?.currentTime??0});if(this.recentEvents.length>30)this.recentEvents.shift();}
++  recordEvent(key,channel,position,native,details={}){this.recentEvents.push({key,channel,position:vector(position),native,time:this.ctx?.currentTime??0,...details});if(this.recentEvents.length>30)this.recentEvents.shift();}
+   playAt(kind,position,volume=1){return this.play(kind,volume,{position:vector(position)});}
+   movement(kind,{surface='concrete',sprint=false,volume=1}={}){
+     const material=surfaceFromMaterial(surface),gaits=kind==='land'?['land']:sprint?['sprint','run','walk']:['walk','run'];
+@@ -117,6 +119,7 @@
+   }
+   pause(){this.paused=true;return this.ctx?.suspend();}
+   reset(){
++    this.enemyAudio?.reset();
+     this.acceptPlayback=false;this.playbackToken++;this.musicToken++;this.saleToken=(this.saleToken??0)+1;this.pendingVoices.clear();
+     this.stopSource(this.music);this.stopSource(this.saleMusic);
+     for(const voice of [...this.voices,...this.musicVoices])voice.stop();
+@@ -137,6 +140,7 @@
+     source.onended=cleanup;voices.add(voice);this.sourceVoices.set(source,voice);return voice;
+   }
+   stopSource(source){if(!source)return;const voice=this.sourceVoices.get(source);if(voice)voice.stop();else try{source.stop();}catch{}}
++  moveSource(source,position){const voice=source&&this.sourceVoices.get(source),p=vector(position);if(!voice||!p)return;for(const node of voice.spatialNodes??[]){if(node.positionX){node.positionX.value=p[0];node.positionY.value=p[1];node.positionZ.value=p[2];}else node.setPosition?.(...p);}}
+   async buffer(key){
+     if(this.buffers.has(key)){const cached=this.buffers.get(key);this.buffers.delete(key);this.buffers.set(key,cached);return cached;}
+     const pending=fetch(this.manifest[key].url).then(r=>{if(!r.ok)throw new Error('Audio '+key+' HTTP '+r.status);return r.arrayBuffer();}).then(b=>this.ctx.decodeAudioData(b)).then(buffer=>{
+@@ -155,12 +159,12 @@
+     const request={token:this.playbackToken};this.pendingVoices.add(request);
+     try{
+       const b=await this.buffer(key);
+-      if(request.token!==this.playbackToken||!this.acceptPlayback||options.signal?.aborted)return stoppedSource;
++      if(request.token!==this.playbackToken||!this.acceptPlayback||options.signal?.aborted||options.shouldStart?.()===false)return stoppedSource;
+       const source=this.ctx.createBufferSource(),gain=this.ctx.createGain(),channel=this.channel(key,loop);
+-      source.buffer=b;source.loop=loop;gain.gain.value=volume;source.connect(gain);const spatial=this.output(gain,channel,options);
+-      const voice=this.trackVoice(source,[source,gain,...spatial],key,channel,loop||channel==='music'||channel==='ambience');voice.spatial=spatial.length>0;
++      source.buffer=b;source.loop=loop;if(source.playbackRate&&Number.isFinite(options.playbackRate))source.playbackRate.value=Math.max(.65,Math.min(1.6,options.playbackRate));gain.gain.value=volume;source.connect(gain);const spatial=this.output(gain,channel,options);
++      const voice=this.trackVoice(source,[source,gain,...spatial],key,channel,loop||channel==='music'||channel==='ambience');voice.spatial=spatial.length>0;voice.spatialNodes=spatial;
+       try{source.start();}catch(error){voice.stop();throw error;}
+-      this.played.push(key);if(this.played.length>30)this.played.shift();this.recordEvent(key,channel,options.position,true);return source;
++      this.played.push(key);if(this.played.length>30)this.played.shift();this.recordEvent(key,channel,options.position,this.manifest[key]?.native!==false,{sourceType:this.manifest[key]?.sourceType??'native-recording',...options.event});return source;
+     }finally{this.pendingVoices.delete(request);}
+   }
+   async playMusic(key){
+@@ -185,5 +189,5 @@
+       const src=c.createBufferSource(),filter=c.createBiquadFilter();src.buffer=buffer;filter.type='lowpass';filter.frequency.value=kind==='growl'?180:kind==='step'?450:kind==='land'?250:kind==='shot'?3500:kind==='impact'?3800:kind==='explosion'?400:1600;src.connect(filter);filter.connect(g);const voice=this.trackVoice(src,[src,filter,g,...spatial],kind,channel);voice.spatial=spatial.length>0;src.start();src.stop(t+duration);
+     }else{const o=c.createOscillator();o.type=kind==='round'?'sawtooth':'sine';o.frequency.setValueAtTime(kind==='round'?62:kind==='buy'?660:180,t);o.frequency.exponentialRampToValueAtTime(kind==='round'?38:kind==='buy'?990:60,t+duration);o.connect(g);const voice=this.trackVoice(o,[o,g,...spatial],kind,channel);voice.spatial=spatial.length>0;o.start();o.stop(t+duration);}
+   }
+-  snapshot(){const byChannel={effects:0,music:0,ambience:0,dialogue:0};for(const voice of [...this.voices,...this.musicVoices])byChannel[voice.channel]++;return {enabled:this.enabled,mix:{...this.mix},nativeCues:Object.keys(this.manifest).length,decoded:this.buffers.size,decodedBytes:this.bufferBytes,syntheticBufferBytes:[...this.synthBuffers.values()].reduce((bytes,b)=>bytes+b.length*b.numberOfChannels*4,0),played:this.played.slice(),state:this.ctx?.state??'idle',voices:this.voices.size,musicVoices:this.musicVoices.size,pendingVoices:this.pendingVoices.size,maxVoices:this.maxVoices,voicesByChannel:byChannel,spatialVoices:[...this.voices].filter(v=>v.spatial).length,recentEvents:this.recentEvents.map(e=>({...e,position:e.position?.slice()??null}))};}
++  snapshot(){const enemy=this.enemyAudio?.snapshot()??{active:0,maxVoices:10,accepted:0,suppressed:0,voices:[]};const byChannel={effects:0,music:0,ambience:0,dialogue:0};for(const voice of [...this.voices,...this.musicVoices])byChannel[voice.channel]++;return {enemy,enabled:this.enabled,mix:{...this.mix},nativeCues:Object.values(this.manifest).filter(m=>m.native!==false).length,communityCues:Object.values(this.manifest).filter(m=>m.native===false).length,recordedCues:Object.keys(this.manifest).length,decoded:this.buffers.size,decodedBytes:this.bufferBytes,syntheticBufferBytes:[...this.synthBuffers.values()].reduce((bytes,b)=>bytes+b.length*b.numberOfChannels*4,0),played:this.played.slice(),state:this.ctx?.state??'idle',voices:this.voices.size,musicVoices:this.musicVoices.size,pendingVoices:this.pendingVoices.size,maxVoices:this.maxVoices,voicesByChannel:byChannel,spatialVoices:[...this.voices].filter(v=>v.spatial).length,recentEvents:this.recentEvents.map(e=>({...e,position:e.position?.slice()??null}))};}
+ }
+--- v1.1/export/web/weapon-pose.js
++++ v1.2/export/web/weapon-pose.js
+@@ -0,0 +1,131 @@
++import * as THREE from 'three';
++
++// The recovered XAnims contain separate authored ADS raise/lower curves. The
++// lower curves are not generally reversed raises (notably Stakeout/Ray Gun).
++export class NativeAimPose {
++  constructor(root, up, down) {
++    this.tracks=[];this.direction=null;this.progress=0;
++    const trackMap=new Map();
++    for(const [side,data] of [['up',up],['down',down]])for(const bone of data?.bones??[]){
++      const node=root.getObjectByName(bone.name);if(!node)continue;
++      for(const [source,property,Track] of [['pos','position',THREE.VectorKeyframeTrack],['rot','quaternion',THREE.QuaternionKeyframeTrack]]){
++        const value=bone[source];if(!value)continue;
++        const key=node.uuid+property;
++        if(!trackMap.has(key))trackMap.set(key,{node,property,source,last:null,offset:null});
++        trackMap.get(key)[side]={duration:Math.max(data.duration,value.frames.at(-1)/data.fps),sample:new Track('',value.frames.map(f=>f/data.fps),value.values).createInterpolant()};
++      }
++    }
++    this.tracks=[...trackMap.values()];
++  }
++  sample(track,progress,direction){
++    const curve=(direction<0?track.down:track.up)??track.up??track.down;
++    const time=curve===track.down?1-progress:progress;
++    const value=track.property==='position'?new THREE.Vector3():new THREE.Quaternion();
++    value.fromArray(curve.sample.evaluate(time*curve.duration));
++    if(track.property==='quaternion')value.normalize();
++    return value;
++  }
++  reset(){this.direction=null;this.progress=0;for(const track of this.tracks){track.last=null;track.offset=null;}}
++  apply(progress,direction,{restOnly=false,clip=null}={}){
++    progress=THREE.MathUtils.clamp(progress,0,1);
++    const changed=this.direction!==null&&direction!==this.direction;
++    const remaining=value=>direction>0?1-value:value;
++    for(const track of this.tracks){
++      if(restOnly){
++        const bone=clip?.bones.find(b=>b.name===track.node.name);
++        if(!bone?.[track.source])track.node[track.property].copy(this.sample(track,0,1));
++        track.last=null;track.offset=null;continue;
++      }
++      if(changed&&track.last){
++        // A mid-transition reversal must begin at the current pose, then join
++        // the newly selected native curve continuously by its destination.
++        const start=this.sample(track,this.progress,direction);
++        track.offset=track.property==='position'?track.last.clone().sub(start):track.last.clone().multiply(start.invert()).normalize();
++        track.remaining=remaining(this.progress);
++      }
++      const value=this.sample(track,progress,direction);
++      if(track.offset){
++        const weight=track.remaining>0?THREE.MathUtils.clamp(remaining(progress)/track.remaining,0,1):0;
++        if(track.property==='position')value.addScaledVector(track.offset,weight);
++        else value.premultiply(new THREE.Quaternion().slerp(track.offset,weight)).normalize();
++        if(weight===0)track.offset=null;
++      }
++      track.node[track.property].copy(value);track.last=value;
++    }
++    this.direction=restOnly?null:direction;this.progress=restOnly?0:progress;
++  }
++}
++
++// Dual-wield XAnims contain separate left/right bone sets AND notify tracks.
++// Preserve both hands' magazine sounds, avoiding identical shared notifies.
++export function mergeWeaponAnimations(primary,secondary,name){
++  if(!primary||!secondary)return primary;
++  const seen=new Set(),notifies=[];
++  for(const notify of [...primary.notifies??[],...secondary.notifies??[]]){
++    const key=notify.name+'@'+notify.time;if(seen.has(key))continue;
++    seen.add(key);notifies.push(notify);
++  }
++  notifies.sort((a,b)=>a.time-b.time);
++  return {...primary,name,duration:Math.max(primary.duration,secondary.duration),
++    bones:[...primary.bones,...secondary.bones.filter(b=>!primary.bones.some(a=>a.name===b.name))],notifies};
++}
++
++export function dualWeaponAnimations(right,left){
++  const entries=new Map(right);
++  for(const key of ['idleAnim','emptyIdleAnim','fireAnim','lastShotAnim','reloadAnim','reloadEmptyAnim']){
++    const primary=right.get(key);if(!primary)continue;
++    const secondary=key.startsWith('reload')?
++      (key==='reloadEmptyAnim'?left.get('reloadEmptyAnimLeft'):null)??left.get('reloadAnimLeft'):
++      (key==='emptyIdleAnim'?left.get('emptyIdleAnimLeft'):null)??left.get('idleAnimLeft');
++    if(secondary)entries.set(key,mergeWeaponAnimations(primary,secondary,primary.name+'-dual'));
++  }
++  for(const [key,leftKey] of [['leftFireAnim','fireAnimLeft'],['leftLastShotAnim','lastShotAnimLeft']]){
++    if(left.has(leftKey))entries.set(key,mergeWeaponAnimations(left.get(leftKey),right.get('idleAnim'),'dual-'+key));
++  }
++  return [...entries];
++}
++
++// Reconcile one recovered AUG component's two native coordinate bases. In
++// t5_weapon_aug_viewmodel.glb, tag_pump2 binds at -90deg Z, also used by the
++// viewmodel_aug_masterkey[_mk]_sprint_* and mk_pullout_quick XAnims. The
++// idle/fire/reload family instead stores the same static part at -90deg X.
++// Applying that family directly turns the pump 120deg away from its socket.
++// Retarget only those near-static samples; preserve authored translation,
++// already matching clips, all arm tracks, and the unmodified cached JSON.
++export function retargetAugPump(root,def,entries){
++  if(!def.model?.endsWith('/t5_weapon_aug_viewmodel.glb')||def.hideTags?.includes('tag_pump2'))return entries;
++  const pump=root.getObjectByName('tag_pump2');if(!pump)return entries;
++  const bind=pump.quaternion.clone().normalize();
++  const source=new THREE.Quaternion(-Math.SQRT1_2,0,0,Math.SQRT1_2);
++  const target=new THREE.Quaternion(0,0,-Math.SQRT1_2,Math.SQRT1_2);
++  const sprint=entries.find(([key])=>key==='sprintInAnim')?.[1].bones.find(b=>b.name==='tag_pump2')?.rot;
++  if(bind.angleTo(target)>.001||!sprint||bind.angleTo(new THREE.Quaternion().fromArray(sprint.values).normalize())>.001)return entries;
++  const correction=bind.clone().multiply(source.clone().invert()),sample=new THREE.Quaternion();
++  return entries.map(([key,clip])=>{
++    const part=clip.bones.find(b=>b.name==='tag_pump2');if(!part?.rot)return [key,clip];
++    for(let i=0;i<part.rot.values.length;i+=4)if(source.angleTo(sample.fromArray(part.rot.values,i).normalize())>.001)return [key,clip];
++    const values=[];
++    for(let i=0;i<part.rot.values.length;i+=4)sample.fromArray(part.rot.values,i).normalize().premultiply(correction).normalize().toArray(values,i);
++    return [key,{...clip,bones:clip.bones.map(b=>b===part?{...part,rot:{...part.rot,values}}:b)}];
++  });
++}
++
++// Tube-loading shotgun/launcher viewmodels carry a separate shell on tag_clip.
++// Native idle XAnims retain its staging pose; rendering that reload-only prop
++// outside insertion produces a loose round floating above the Stakeout.
++export class ReloadPropVisibility {
++  constructor(root,def,clips){
++    this.parts=[];this.visible=false;
++    // The AUG Masterkey uses tag_ammo2; tag_clip is its rifle magazine and
++    // must remain attached. Select the prop actually animated by reloads.
++    const animated=new Set(clips.filter(([key])=>key.startsWith('reload')).flatMap(([,clip])=>clip.bones.filter(b=>b.pos?.frames.length>1).map(b=>b.name)));
++    if(def.segmentedReload&&(def.pellets>1||(def.projectileSpeed>0&&def.projectileType==='grenade')))root.traverse(node=>{
++      if(node.isBone&&/^tag_(clip\d?|ammo2)$/.test(node.name)&&animated.has(node.name)&&!def.hideTags?.includes(node.name))this.parts.push({node,scale:node.scale.clone()});
++    });
++    this.set(false);
++  }
++  set(visible){this.visible=visible;for(const {node,scale} of this.parts)node.scale.copy(scale).multiplyScalar(visible?1:.000001);}
++  begin(stage){this.set(stage!=='end');}
++  notify(name){if(name==='rmbnt#reload_clipin'||(name.startsWith('sndnt#')&&name.endsWith('_shell_in')))this.set(false);}
++  snapshot(){return {visible:this.visible&&this.parts.length>0,tags:this.parts.map(p=>p.node.name)};}
++}
+--- v1.1/export/web/enemy-audio.js
++++ v1.2/export/web/enemy-audio.js
+@@ -0,0 +1,72 @@
++// Community recording families follow pinned NZ:P zombie_core/dog_core usage.
++// Nova's higher-pitched crawler-family adaptation is explicitly approximate.
++const prefix='enemy/nzp/';
++const families={
++  zombie:{ambient:['zombie/w','zombie/t'],sprint:['zombie/r'],attack:['zombie/a'],teardown:['zombie/t'],behind:['zombie/r'],death:['zombie/d'],spawn:['zombie/w']},
++  nova:{ambient:['zombie/t'],sprint:['zombie/t'],attack:['zombie/a'],teardown:['zombie/t'],behind:['zombie/r'],death:['zombie/d'],spawn:['zombie/t']},
++  dog:{ambient:['@dog'],sprint:['hound/t'],attack:['hound/a'],behind:['hound/t'],death:['hound/d'],spawn:['hound/t']},
++};
++const priorities={ambient:0,sprint:0,spawn:0,teardown:1,barrier:1,behind:2,attack:2,death:3};
++const toArray=p=>Array.isArray(p)?p.slice():p&&[p.x,p.y,p.z];
++
++export function enemyCueKeys(manifest,kind,event){
++  const bank=event==='barrier'?['barrier/barricade_destroy']:families[kind]?.[event]??[];
++  return Object.keys(manifest).filter(key=>bank.some(p=>p.startsWith('@')?key===p.slice(1):key.startsWith(prefix+p)));
++}
++
++export class EnemyAudio {
++  constructor(audio,{random=Math.random,maxVoices=10}={}){this.audio=audio;this.random=random;this.maxVoices=maxVoices;this.entries=new Map();this.cooldowns=new Map();this.last=new Map();this.behindAt=0;this.accepted=0;this.suppressed=0;}
++  stop(entry){entry.controller.abort();this.audio.stopSource(entry.source);if(this.entries.get(entry.slot)===entry)this.entries.delete(entry.slot);}
++  prune(){for(const entry of this.entries.values())if(entry.source&&!this.audio.sourceVoices.has(entry.source))this.entries.delete(entry.slot);}
++  remove(id){for(const entry of [...this.entries.values()])if(entry.id===id)this.stop(entry);for(const key of this.cooldowns.keys())if(key.startsWith(id+':'))this.cooldowns.delete(key);}
++  reset(){for(const entry of [...this.entries.values()])this.stop(entry);this.cooldowns.clear();this.last.clear();this.behindAt=0;this.accepted=this.suppressed=0;}
++  emit(event,position,meta={}){
++    if(event==='reset'){this.reset();return false;}
++    if(event==='remove'){this.remove(meta.id);return false;}
++    const audio=this.audio,p=toArray(position),kind=meta.kind??'zombie',id=meta.id;
++    if(!Number.isFinite(id)||p?.length!==3||!p.every(Number.isFinite))return false;
++    this.prune();
++    const height=kind==='zombie'?48:kind==='dog'?23:20;
++    if(event==='update'){for(const entry of this.entries.values())if(entry.id===id){const at=p.slice();at[1]+=entry.event==='barrier'?25:height;entry.position=at;audio.moveSource(entry.source,at);}return false;}
++    p[1]+=event==='barrier'?25:height;
++    if(!audio.ctx||audio.paused||!audio.enabled||!audio.acceptPlayback||audio.mix.effects===0||audio.mix.master===0)return false;
++    const now=audio.ctx.currentTime,listener=audio.listenerState;
++    const distance=listener?Math.hypot(...p.map((n,i)=>n-listener.position[i])):0;
++    if(distance>(['ambient','sprint','spawn'].includes(event)?950:1400)){this.suppressed++;return false;}
++    if(event==='ambient'&&listener&&kind!=='dog'&&distance<220&&distance>1&&now>=this.behindAt){
++      const direction=p.map((n,i)=>(n-listener.position[i])/distance);
++      if(direction.reduce((n,v,i)=>n+v*listener.forward[i],0)<-.087)event='behind';
++    }
++    const slot=id+(event==='barrier'?':barrier':':vocal'),priority=priorities[event];
++    if(priority===undefined)return false;
++    const cooldown=id+':'+event;
++    if(now<(this.cooldowns.get(cooldown)??0)){this.suppressed++;return false;}
++    const previous=this.entries.get(slot);
++    if(previous&&(previous.priority>priority||priority<=1&&previous.priority===priority)){this.suppressed++;return false;}
++    const keys=enemyCueKeys(audio.manifest,kind,event),bank=kind+':'+event,last=this.last.get(bank),choices=keys.length>1?keys.filter(k=>k!==last):keys;
++    const key=choices[Math.min(choices.length-1,Math.floor(this.random()*choices.length))];if(!key)return false;
++    if(previous)this.stop(previous);
++    // Creature voices cannot fill the general effects ceiling or steal the
++    // final eight slots needed by movement, weapons and interaction feedback.
++    const pending=[...this.entries.values()].filter(e=>!e.source).length;
++    if(this.entries.size>=this.maxVoices||audio.voices.size+pending>=Math.max(1,audio.maxVoices-8)){
++      const lower=[...this.entries.values()].filter(e=>e.priority<priority).sort((a,b)=>a.priority-b.priority||a.started-b.started)[0];
++      if(lower)this.stop(lower);else{this.suppressed++;return false;}
++    }
++    const playbackRate=kind==='nova'?(event==='death'?1.18:1.25):1;
++    const volume=event==='barrier'?.3:event==='ambient'?.38:event==='death'?.62:kind==='dog'?.63:.58;
++    const entry={slot,id,kind,event,key,priority,position:p,started:now,controller:new AbortController(),source:null};
++    this.entries.set(slot,entry);this.last.set(bank,key);this.cooldowns.set(cooldown,now+({attack:.55,death:3,barrier:.7,teardown:2,behind:5}[event]??2));this.accepted++;
++    if(event==='behind')this.behindAt=now+5;
++    audio.native(key,volume,false,{position:p,signal:entry.controller.signal,playbackRate,shouldStart:()=>{
++      // General effects can arrive while a recording decodes. Recheck here so
++      // completing creature requests never evict weapon or movement feedback.
++      if(audio.voices.size>=Math.max(1,audio.maxVoices-8)){this.suppressed++;return false;}return true;
++    },event:{enemyId:id,enemyKind:kind,enemyEvent:event,playbackRate}}).then(source=>{
++      if(entry.controller.signal.aborted||this.entries.get(slot)!==entry){audio.stopSource(source);return;}
++      entry.source=source;audio.moveSource(source,entry.position);this.prune();
++    }).catch(error=>{this.stop(entry);console.error(error);});
++    return key;
++  }
++  snapshot(){this.prune();return {active:this.entries.size,maxVoices:this.maxVoices,accepted:this.accepted,suppressed:this.suppressed,voices:[...this.entries.values()].map(e=>({id:e.id,kind:e.kind,event:e.event,key:e.key,pending:!e.source,position:e.position.slice()}))};}
++}
+--- v1.1/export/web/theater-fixtures.js
++++ v1.2/export/web/theater-fixtures.js
+@@ -0,0 +1,19 @@
++import * as THREE from 'three';
++
++// The original entity has a classname typo and was omitted by the exporter.
++// Reuse the native static-mesh instance, preserving its original scale/material.
++export function restoreTheaterFixtures(root,data){
++  const result={restored:[],source:'Original map entity and supplied fixture geometry'};
++  const fixture=data.entities.find(e=>Number(e.id)===2715&&e.model==='p_glo_stage_light');
++  let template;
++  root.traverse(object=>{if(!template&&/^i_p_glo_stage_light(?:_\d+)?$/.test(object.name))template=object;});
++  const alreadyPresent=fixture&&root.getObjectByName('restored_stage_fixture_2715');
++  let bakedAtPosition=false;
++  if(fixture)root.traverse(object=>{if(/^i_p_glo_stage_light(?:_\d+)?$/.test(object.name)&&object.position.distanceTo(new THREE.Vector3(...fixture.position))<1)bakedAtPosition=true;});
++  if(fixture&&template&&!alreadyPresent&&!bakedAtPosition){
++    const clone=template.clone(true);clone.name='restored_stage_fixture_2715';
++    clone.position.fromArray(fixture.position);clone.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),fixture.yaw||0);
++    clone.matrixAutoUpdate=true;clone.updateMatrix();root.add(clone);result.restored.push(2715);
++  }
++  return result;
++}
+--- v1.1/export/web/animation.js
++++ v1.2/export/web/animation.js
+@@ -2,10 +2,18 @@
+ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+ import { clone } from 'three/addons/utils/SkeletonUtils.js';
+ import { assetManager, disposeSkeletons } from './runtime-assets.js';
++import { NativeAimPose, dualWeaponAnimations, ReloadPropVisibility, retargetAugPump } from './weapon-pose.js';
+ 
+ const loader=new GLTFLoader(assetManager), models=new Map(), clips=new Map();
+ export async function loadModel(url){if(!url)return null;if(!models.has(url))models.set(url,loader.loadAsync(url).then(gltf=>gltf.scene));return clone(await models.get(url));}
+ export async function loadAnimation(url){if(!clips.has(url))clips.set(url,fetch(url).then(r=>{if(!r.ok)throw new Error('Animation '+url+': '+r.status);return r.json();}));return clips.get(url);}
++export function useWeaponBindTranslations(model){
++  // T5 weapon-part translations are offsets from the XModel bind position.
++  // For example M1911/M16 reload tag_clip returns to ~zero, while the actual
++  // magazine socket has a nonzero bind offset. Arm translations and all
++  // quaternion tracks are absolute native poses and must remain unchanged.
++  model.traverse(node=>{if(node.isBone)node.userData.weaponBindPosition=node.position.toArray();});
++}
+ export function makeClip(root, data, locomotion=false){
+   const tracks=[];const nodes=new Map();
+   root.traverse(n=>{if(!nodes.has(n.name))nodes.set(n.name,[]);nodes.get(n.name).push(n);});
+@@ -16,6 +24,8 @@
+       if(b.rot)tracks.push(new THREE.QuaternionKeyframeTrack(node.uuid+'.quaternion',b.rot.frames.map(f=>f/data.fps),b.rot.values));
+       if(b.pos){
+         const values=b.pos.values.slice();
++        const bind=node.userData.weaponBindPosition;
++        if(bind)for(let i=0;i<values.length;i+=3){values[i]+=bind[0];values[i+1]+=bind[1];values[i+2]+=bind[2];}
+         // T5 locomotion stores j_mainroot translations as displacement from
+         // the bind pelvis, unlike the absolute viewmodel pose tracks.
+         if(locomotion&&b.name==='j_mainroot')for(let i=0;i<values.length;i+=3){values[i]=node.position.x;values[i+1]=node.position.y;values[i+2]+=node.position.z;}
+@@ -38,7 +48,21 @@
+   }
+   update(dt){
+     const action=this.actions[this.current],data=this.data[this.current],before=this.elapsed;
+-    if(action){this.elapsed+=dt*action.timeScale;for(const n of data.notifies??[])if(n.time>before&&n.time<=this.elapsed)this.onNotify(n.name,this.current);}
++    if(action&&!action.paused){
++      this.elapsed=Math.max(0,this.elapsed)+dt*action.timeScale;
++      const duration=action.getClip().duration,loop=action.loop===THREE.LoopRepeat;
++      const pending=[];
++      for(const n of data.notifies??[]){
++        const first=loop?Math.max(0,Math.floor((before-n.time)/duration)+1):0;
++        const last=loop?Math.floor((this.elapsed-n.time)/duration):0;
++        for(let cycle=first;cycle<=last;cycle++){
++          const time=n.time+cycle*duration;
++          if(time>before&&time<=this.elapsed)pending.push({time,name:n.name});
++        }
++      }
++      pending.sort((a,b)=>a.time-b.time);
++      for(const notify of pending)this.onNotify(notify.name,this.current);
++    }
+     this.mixer.update(dt);
+   }
+ }
+@@ -47,7 +71,7 @@
+ export class ViewWeapon {
+   constructor(scene,data,onSound=()=>{}){
+     this.scene=scene;this.data=data;this.onSound=onSound;this.pivot=new THREE.Group();scene.add(this.pivot);
+-    this.token=0;this.currentId=null;this.recoil=0;this.aim=0;this.mode='idle';this.meleeLeft=0;this.sprintBlend=0;
++    this.token=0;this.currentId=null;this.recoil=0;this.aim=0;this.mode='idle';this.meleeLeft=0;this.sprintBlend=0;this.sprintExitLeft=0;
+   }
+   async equip(def){
+     const key=def.id+(def.upgraded?':upgraded':'')+(def.attachmentActive?':attachment':'');
+@@ -57,13 +81,12 @@
+       loadModel(def.handsModel??this.data.characters.viewmodel_usa_pow_arms??this.data.characters.viewhands_usmc),loadModel(def.model),
+       def.leftModel?loadModel(def.leftModel):Promise.resolve(null),
+       ...Object.values(this.data.melee).map(d=>loadModel(d.model))]);
+-    const entries=await Promise.all(Object.entries(def.animations).map(async([key,url])=>[key,await loadAnimation(url)]));
++    let entries=await Promise.all(Object.entries(def.animations).map(async([key,url])=>[key,await loadAnimation(url)]));
+     if(def.leftAnimations){
+       const left=new Map(await Promise.all(Object.entries(def.leftAnimations).filter(([key])=>key.endsWith('AnimLeft')).map(async([key,url])=>[key,await loadAnimation(url)])));
+-      const right=new Map(entries),combine=(a,b,name)=>a&&b?{...a,name,duration:Math.max(a.duration,b.duration),bones:[...a.bones,...b.bones.filter(n=>!a.bones.some(r=>r.name===n.name))]}:a;
+-      for(const [key,clip]of right){const l=(key.startsWith('reload')?left.get('reloadAnimLeft'):left.get('idleAnimLeft'));if(l&&['idleAnim','fireAnim','lastShotAnim','reloadAnim','reloadEmptyAnim'].includes(key))entries.push([key,combine(clip,l,clip.name+'-dual')]);}
+-      if(left.has('fireAnimLeft'))entries.push(['leftFireAnim',combine(left.get('fireAnimLeft'),right.get('idleAnim'),'dual-left-fire')]);
++      entries=dualWeaponAnimations(new Map(entries),left);
+     }
++    entries=retargetAugPump(gun,def,entries);
+     const meleeEntries=await Promise.all(Object.entries(this.data.melee).flatMap(([type,d])=>
+       Object.entries(d.animations).filter(([k])=>k.startsWith('melee')).map(async([key,url])=>[type+':'+key,await loadAnimation(url)])));
+     if(token!==this.token){for(const model of [hands,gun,leftGun,...knives])disposeSkeletons(model);return;}
+@@ -86,9 +109,9 @@
+       bone.userData.animationAnchor=true;
+       model.matrixAutoUpdate=false;model.matrix.copy(bone.matrixWorld).invert();parent.add(model);
+     };
+-    attach(gun,tag,'j_gun');
++    useWeaponBindTranslations(gun);attach(gun,tag,'j_gun');
+     this.leftGun=leftGun;
+-    if(leftGun){const leftTag=hands.getObjectByName('tag_weapon1');if(leftTag)attach(leftGun,leftTag,leftGun.getObjectByName('j_gun1')?'j_gun1':'j_gun');}
++    if(leftGun){useWeaponBindTranslations(leftGun);const leftTag=hands.getObjectByName('tag_weapon1');if(leftTag)attach(leftGun,leftTag,leftGun.getObjectByName('j_gun1')?'j_gun1':'j_gun');}
+     // Bottles animate j_gun relative to tag_weapon throughout opening/drinking.
+     // Freezing that root leaves the bottle behind while the hands move away.
+     if(def.id.startsWith('zombie_perk_bottle_')){gun.getObjectByName('j_gun').userData.animationAnchor=false;gun.matrix.identity();}
+@@ -96,40 +119,33 @@
+     if(knifeTag)Object.keys(this.data.melee).forEach((type,i)=>{attach(knives[i],knifeTag,'tag_knife');knives[i].visible=false;this.knives[type]=knives[i];});
+     this.hiddenTags=[];
+     for(const name of def.hideTags??[]){const bone=gun.getObjectByName(name);if(bone){bone.scale.setScalar(.000001);this.hiddenTags.push(name);}}
++    this.reloadProps=new ReloadPropVisibility(gun,def,entries);
+     this.root.matrixAutoUpdate=false;this.root.matrix.copy(cameraBasis);this.pivot.add(this.root);
+-    this.rig=new Rig(this.root,(name)=>this.onSound(name,this.meleeType?this.data.melee[this.meleeType]:this.def));
++    this.rig=new Rig(this.root,(name)=>{this.reloadProps.notify(name);this.onSound(name,this.meleeType?this.data.melee[this.meleeType]:this.def);});
+     for(const [key,clip] of [...entries,...meleeEntries])this.rig.add(key,clip);
+     // ADS is a separate native animation of tag_torso. Its first frame also
+     // defines each gun's HIP pose; the arms' bind torso is only right for M1911.
+-    const aimData=entries.find(([key])=>key==='adsUpAnim')?.[1];
+-    this.aimTracks=[];this.aimDuration=aimData?.duration??0;
+-    for(const b of aimData?.bones??[]){const node=hands.getObjectByName(b.name);if(!node)continue;
+-      if(b.pos)this.aimTracks.push({node,property:'position',sample:new THREE.VectorKeyframeTrack('',b.pos.frames.map(f=>f/aimData.fps),b.pos.values).createInterpolant()});
+-      if(b.rot)this.aimTracks.push({node,property:'quaternion',sample:new THREE.QuaternionKeyframeTrack('',b.rot.frames.map(f=>f/aimData.fps),b.rot.values).createInterpolant()});
+-    }
+-    this.aim=0;this.recoil=0;this.meleeLeft=0;this.meleeType=null;this.sprintBlend=0;this.applyAim();
++    this.aimPose=new NativeAimPose(hands,entries.find(([key])=>key==='adsUpAnim')?.[1],entries.find(([key])=>key==='adsDownAnim')?.[1]);
++    this.aim=0;this.recoil=0;this.meleeLeft=0;this.meleeType=null;this.sprintBlend=0;this.sprintExitLeft=0;this.applyAim();
+     this.rig.play('idleAnim',true,1,0);this.rig.update(0);
+     this.mode=this.rig.play('raiseAnim',false,this.clipSpeed('raiseAnim',def.raiseTime),.04)?'raise':'idle';
+     this.root.traverse(o=>{o.frustumCulled=false;});
+     this.ready=true;this.pivot.visible=true;
+   }
+   clipSpeed(key,duration){return duration>0?(this.rig.data[key]?.duration??duration)/duration:1;}
+-  applyAim(restOnly=false){
+-    for(const t of this.aimTracks){
+-      const b=this.rig.data[this.rig.current]?.bones.find(b=>b.name===t.node.name);
+-      if(restOnly&&b?.[t.property==='position'?'pos':'rot'])continue;
+-      t.node[t.property].fromArray(t.sample.evaluate(restOnly?0:this.aim*this.aimDuration));
+-    }
+-  }
++  applyAim(restOnly=false,direction=1){this.aimPose.apply(this.aim,direction,{restOnly,clip:this.rig.data[this.rig.current]});}
++  // Session still owns ammunition/reload eligibility; this covers the authored
++  // weapon-raising and sprint-out intervals before the muzzle is ready.
++  get canFire(){return !!this.ready&&this.meleeLeft<=0&&!['raise','sprintIn','sprint','sprintOut'].includes(this.mode);}
+   shoot({ads=false,empty=false,hand='right'}={}){
+     if(!this.ready||this.meleeLeft>0)return;
+     let key=ads?(empty?'adsLastShotAnim':'adsFireAnim'):(empty?'lastShotAnim':'fireAnim');
+-    if(hand==='left'&&this.rig.actions.leftFireAnim)key='leftFireAnim';
++    if(hand==='left'&&this.rig.actions.leftFireAnim)key=empty&&this.rig.actions.leftLastShotAnim?'leftLastShotAnim':'leftFireAnim';
+     if(!this.rig.actions[key])key='fireAnim';this.recoil=1;this.mode='fire';this.rig.play(key,false,1,0);
+   }
+   reload(empty,duration,stage='magazine'){
+     if(!this.ready)return;const key=stage==='start'?'reloadStartAnim':stage==='end'?'reloadEndAnim':empty&&this.rig.actions.reloadEmptyAnim?'reloadEmptyAnim':'reloadAnim';
+-    this.mode='reload';this.aim=0;this.rig.play(key,false,this.clipSpeed(key,duration),.06);
++    this.mode='reload';this.aim=0;this.reloadProps.begin(stage);this.rig.play(key,false,this.clipSpeed(key,duration),.06);
+   }
+   melee(type='knife',charge=false){
+     if(!this.ready||this.meleeLeft>0)return null;
+@@ -147,19 +163,21 @@
+   }
+   update(dt,{moving=false,sprint=false,ads=false,reloading=false,empty=false,time=0}={}){
+     if(!this.ready)return;
+-    this.rig.update(dt);this.meleeLeft=Math.max(0,this.meleeLeft-dt);
++    this.rig.update(dt);this.meleeLeft=Math.max(0,this.meleeLeft-dt);this.sprintExitLeft=Math.max(0,this.sprintExitLeft-dt);
+     const action=this.rig.actions[this.rig.current],finished=!action?.isRunning();
+     const sprintKey=phase=>{const key='sprint'+phase+(empty?'Empty':'')+'Anim';return this.rig.actions[key]?key:'sprint'+phase+'Anim';};
+     if(this.mode==='melee'&&this.meleeLeft===0){for(const model of Object.values(this.knives))model.visible=false;this.meleeType=null;this.mode='idle';}
+     if(this.mode==='reload'&&!reloading)this.mode='idle';
+-    if(['fire','raise','sprintOut'].includes(this.mode)&&finished)this.mode='idle';
++    if(['fire','raise'].includes(this.mode)&&finished)this.mode='idle';
++    if(this.mode==='sprintOut'&&this.sprintExitLeft===0&&(finished||!this.rig.actions[sprintKey('Out')]))this.mode='idle';
+     if(this.mode==='sprintIn'&&finished){this.mode='sprint';this.rig.play(sprintKey('Loop'),true,this.clipSpeed(sprintKey('Loop'),this.def.sprintLoopTime),.04);}
+     if(['idle','fire'].includes(this.mode)&&sprint){this.mode='sprintIn';if(!this.rig.play(sprintKey('In'),false,this.clipSpeed(sprintKey('In'),this.def.sprintInTime),.06)){this.mode='sprint';this.rig.play(this.rig.actions[sprintKey('Loop')]?sprintKey('Loop'):'idleAnim');}}
+-    if(['sprint','sprintIn'].includes(this.mode)&&!sprint){this.mode='sprintOut';if(!this.rig.play(sprintKey('Out'),false,this.clipSpeed(sprintKey('Out'),this.def.sprintOutTime),.04))this.mode='idle';}
++    if(['sprint','sprintIn'].includes(this.mode)&&!sprint){this.mode='sprintOut';this.sprintExitLeft=this.def.sprintOutTime??0;if(!this.rig.play(sprintKey('Out'),false,this.clipSpeed(sprintKey('Out'),this.def.sprintOutTime),.04))this.rig.play('idleAnim',true,1,.04);}
+     if(this.mode==='idle')this.rig.play(empty&&this.rig.actions.emptyIdleAnim?'emptyIdleAnim':'idleAnim',true,1,.06);
++    if(this.mode!=='reload')this.reloadProps?.set(false);
+     const aiming=ads&&['idle','fire'].includes(this.mode);
+     this.aim=THREE.MathUtils.clamp(this.aim+(aiming?dt/Math.max(.01,this.def.adsInTime):-dt/Math.max(.01,this.def.adsOutTime)),0,1);
+-    this.applyAim(!['idle','fire'].includes(this.mode));
++    this.applyAim(!['idle','fire'].includes(this.mode),aiming?1:-1);
+     this.recoil=Math.max(0,this.recoil-dt*8);
+     const bob=moving&&this.mode!=='melee'?(1-this.aim)*.13*(this.bobAmount??1):0;
+     this.pivot.position.set(Math.sin(time*(sprint?13:9))*bob,Math.cos(time*(sprint?26:18))*bob*.7,this.recoil*.25);
+@@ -172,8 +190,8 @@
+   }
+   snapshot(){
+     const position=name=>this.root?.getObjectByName(name)?.getWorldPosition(new THREE.Vector3()).toArray();
+-    return {ready:this.ready,id:this.currentId,hiddenTags:this.hiddenTags??[],mode:this.mode,animation:this.rig?.current,
+-      time:this.rig?.actions[this.rig.current]?.time,aim:this.aim,melee:this.meleeType,meleeLeft:this.meleeLeft,
++    return {ready:this.ready,canFire:this.canFire,id:this.currentId,hiddenTags:this.hiddenTags??[],mode:this.mode,animation:this.rig?.current,
++      time:this.rig?.actions[this.rig.current]?.time,aim:this.aim,melee:this.meleeType,meleeLeft:this.meleeLeft,reloadProps:this.reloadProps?.snapshot(),
+       knifeVisible:Object.entries(this.knives??{}).filter(([,m])=>m.visible).map(([k])=>k),
+       gun:position('j_gun'),knife:position('tag_knife_attach'),torso:this.hands?.getObjectByName('tag_torso')?.position.toArray()};
+   }

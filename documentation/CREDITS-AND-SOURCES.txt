@@ -1,0 +1,213 @@
+CREDITS AND SOURCES
+
+Recovered playable base
+
+Kino der Toten browser reconstruction, original code/documentation copyright
+(c) 2026 Luckey Faraday. The surviving source copy was recovered from:
+https://github.com/Phi1ow/kino-der-toten
+Commit 9f871517d87fc702013ef6d9c920f0a23597c8bb
+Original project reference: https://github.com/luckeyfaraday/kino-der-toten
+
+Rendering/runtime components include Three.js, three-mesh-bvh,
+Recast Navigation and Electron. Preserve their distributed notices.
+
+User-supplied gameplay reference
+
+Call of Duty: Black Ops Zombies — Reimagined, created by Jbleezy, version 1.4.1.
+Input: BO1-Reimagined-master.zip
+SHA-256: 566ab0b9016a7ed28c14f25633e35819022e36d536f4d585a0ecdc17189a1092
+
+Selected recovery rules are adapted from maps/_gameskill.gsc, including delays,
+critical-health threshold, recovery rate and the Quick Revive divisor. Version 1.1
+also uses maps/zombie_theater_teleporter.gsc for rare return-room drops and
+maps/_zombiemode_traps.gsc for trap timing and player damage. The three completed
+Quick Revive grant policy is supported by the commented stock block retained in
+maps/_zombiemode_perks.gsc; it is not the full mod's active revive system. The archive audit is
+recorded in ARCHIVE-INVENTORY.json. Source snippets remain development evidence;
+this is not a complete port of the mod.
+
+Modern remake references
+
+DIE RISE, Steam Workshop item 3435762796
+https://steamcommunity.com/sharedfiles/filedetails/?id=3435762796
+
+CALL OF THE DEAD, Steam Workshop item 2910206016
+https://steamcommunity.com/sharedfiles/filedetails/?id=2910206016
+
+MOB OF THE DEAD, Steam Workshop item 3373649394
+https://steamcommunity.com/sharedfiles/filedetails/?id=3373649394
+
+These were research references for retaining map identity and offering clear,
+optional quality-of-life changes. They were not downloaded or used as asset
+sources for this delivery. Their presence here does not imply that this build
+matches their production quality, complete features or engines.
+
+Code and asset rights
+
+The recovered repository's MIT license covers its contributors' original code
+and documentation. Its ASSET_NOTICE.md explicitly distinguishes third-party map
+data, models, textures, animation, audio, names and other game assets; the MIT
+license does not grant rights to those materials. The exported Call of Duty
+content remains subject to its owners' rights and applicable source-game terms.
+
+The uploaded mod's License.md contains a warranty/liability disclaimer but no
+explicit reuse or redistribution grant. A publicly accessible repository or ZIP
+is not itself a license for its third-party assets. This delivery makes no new
+claim of asset ownership or general redistribution rights.
+
+This is an unofficial fan reconstruction, with no affiliation or endorsement
+claimed from Activision, Treyarch, Microsoft or the modern remake teams.
+
+Version 1.1 replacement/restoration provenance
+
+Native normal images were decoded from DXT5nm alpha/green channels already present
+in the recovered Kino exports. Manifest mappings and hashes distinguish exact
+filename matches from conservative replacement material tuning. New contact AO,
+dust, projector light, trap visuals and pooled impact particles are original
+procedural replacement work, not original T5 lightmaps or effects.
+
+The 72 additional native movement, impact, Monkey Bomb and Claymore clips were
+recovered from the included shared T5 exports, primarily common_zombie.ff. Their
+source hashes/paths remain in audio/manifest.json. Original synthesized electric
+and fire trap loops are explicitly marked replacements. AUDIO-EVENT-CATALOG.json
+records timing, routing, concurrency, provenance and exact missing recordings.
+
+Version 1.2 original-game lighting research and reconstruction
+
+Seven original BO1 first-person images were visually inspected without downloading
+remote media. Steam app 42700, original HUD/weapons and source pages distinguish
+them from BO3 Chronicles and community remakes; capture gamma/settings are unknown.
+Exact source/image URLs and room observations are in lightingref.txt/json.
+Primary image-page references:
+https://steamcommunity.com/sharedfiles/filedetails/?id=3425142008
+https://steamcommunity.com/sharedfiles/filedetails/?id=394061245
+https://steamcommunity.com/sharedfiles/filedetails/?id=3796392854
+https://steamcommunity.com/sharedfiles/filedetails/?id=2471518073
+https://steamcommunity.com/sharedfiles/filedetails/?id=2943431210
+Official remaster distinction:
+https://www.callofduty.com/au/en/zombieschronicles?sf77204431=1
+Period projector context only, not an identification of Kino's manufacturer:
+https://www.deutsche-kinemathek.de/de/ernemann-VII-B
+
+Theater-light-plan.json records original fixture placement/color evidence and
+reconstructed missing aim. All 36 exported native light targets are absent.
+The 75-source occluded light field, new radiometry, power blending and filament
+glows are original replacement work. Theater-irradiance.json records bake inputs,
+hashes and scope. The restored fixture 2715 reuses supplied native stage-light
+geometry; it is not a newly downloaded model. Existing poster art/set dressing
+are retained, and the original poster atlas is fictionalized German cinema art,
+not evidence of an exact historical production date or real theater identity.
+Historical version1.2 used a plain-red banner texture substitution. Version1.4
+restores native Kino banner materials to match the user-provided lobby reference;
+these remain historical scenery within the fictional setting.
+
+Version 1.2 weapon presentation
+
+Native viewmodel clips, offsets, tags and timing from the recovered exports
+support aiming-down, sprint-out, dual reload/last-shot and reload-prop corrections.
+Runtime interpretation and transitions are reconstruction code. Existing native
+clips do not establish exact T5 animation semantics for every bone or weapon.
+The later attachment correction restores native model bind offsets to weapon-part
+translation tracks; arm translations and rotations remain unchanged. A narrow
+AUG Masterkey pump correction reconciles an inconsistent clip rotation basis
+with its native model bind and sprint/raise basis, preserving the pump stroke
+and every other bone. See the separate validation report for acceptance evidence.
+
+Version 1.2 creature and barricade recordings
+
+NZ:P Team (2025); sound credits: Blubswillrule, Biodude, Cypress, Marty P.
+47 unchanged WAV files, 3,868,266 encoded bytes, from official NZ:P assets:
+https://github.com/nzp-team/assets/tree/70a14104914f2fc65b99b3c58b1f92c2356ecf76
+Creative Commons Attribution-ShareAlike 4.0 International:
+https://creativecommons.org/licenses/by-sa/4.0/
+State-family mapping checked against official NZ:P QuakeC:
+https://github.com/nzp-team/quakec/tree/8a77f1ce45f1a2b9aa0afb301446954fda40e696/source/server/ai
+
+41 zombie recordings cover groan, shout, taunt/crawler, attack and death; four
+hound recordings cover taunt, attack and death. Two board recordings are cataloged;
+only barricade_destroy.wav is selected for actual board removal. Native dog.ogg
+remains the quiet/distant hound growl. Nova uses community crawler/attack/death
+families at runtime playback rates 1.25, or 1.18 for death. No disk transcoding
+was performed. Event timing, state routing, mixing and pitch are adaptations.
+Recordings and their adaptations retain CC BY-SA 4.0. These are credited
+community replacements, not exact original T5 creature voice banks.
+
+Keep export/web/audio/enemies/LICENSE.md, ATTRIBUTION.txt and catalog.json with
+the assets. The catalog includes each source path/commit, Git blob SHA-1 and
+unchanged-byte SHA-256. .tools/recover-enemy-audio.py reproduces recovery and
+verifies the pinned source bytes. artifacts/v3-enemy-audio/AUDIT.md records scope,
+source absence, automated decoding/spatial checks and limitations. The combined
+manifest has 517 recovered native cues and 47 community recordings, 564 total;
+the native recordings retain their existing third-party asset notice.
+
+Version 1.3 cinematic daylight and interaction design
+
+Retail reference: Amsztel, Black Ops PS3 Kino der Toten gameplay.
+https://www.youtube.com/watch?v=nwuUIQttvCs
+Observed timestamps and image sources are documented in REFERENCE-STUDY.md.
+Artist portfolio: https://gabereel.com/pages/gallery/gallery-cod-zombies/theatre.html
+The artist's July2009 WaW development captures and concept references are
+explicitly distinguished from shipped BO1; they do not prove retail lighting.
+No video frames or portfolio images are bundled as game assets.
+
+New code-produced sky, optical ray bake, indirect-light approximation, sunlight
+particles and feathered beams are original replacements, not extracted native
+T5 lightmaps. Geometry, UVs and original poster/fixture materials remain intact.
+The modern brass/ivory interaction cards and program-style menus are deliberate
+new interface designs; retail BO1 used compact white text below the crosshair.
+
+Version 1.4 detail and combat pass
+The user supplied a lobby image as visual reference. No reference photograph or
+video was imported as a texture. Native geometry, chandelier, paper props, source
+textures and period posters were retained. Soft alpha on original authored decals
+was restored. Ten surface-clipped blood, scorch and debris overlay placements are
+new reconstructions using native textures, not recovered original layer UVs.
+See DRESSING.md for exact provenance and missing original GfxWorld layer buffers.
+
+Six direct-sun floor tiles use the native shell and 3,326 static instances. They
+replace only the coarse solar component on matching flat floors, preserving
+powered lamps and other diffuse lighting. The original T5 lightmaps remain absent.
+Enemy voice occlusion, quiet nearby footsteps, pose retiming, movement-based
+weapon motion and directional impact particles are runtime adaptations. Existing
+CC-BY-SA creature recordings and native sound asset notices continue to apply.
+
+Version1.4 follow-up material audit restores ten standalone native white-neutral
+stain maps as multiplicative decals and one additional map with soft alpha.
+This is a reconstruction of omitted blend behavior from source texture evidence;
+no native texture pixels, positions, indices or UVs were changed.
+
+Version 1.5: no new external assets. Camera/pacing, local actor/weapon light
+response and creature sound scheduling/mixing are original implementation
+adaptations. NZ:P sample provenance and licenses remain as recorded above.
+
+Version 1.6 additions
+Original local code for Q toggle aim, native texture sampling, sunlight surface
+response and world-relative weapon lighting. No new downloaded media. Existing
+code and asset notices remain separate and unchanged. Roughness/light blending
+are reconstructed coefficients, not recovered T5 material metadata.
+
+Version 1.8 weapon sounds, machine presentation and gameplay audit
+Native audio recovery uses the same pinned Phi1ow repository commit above. Fifteen
+unchanged recordings (155,837 bytes) were copied from its Moon/common sound export.
+The current native manifest contains532 aliases plus47 credited NZ:P recordings.
+Audio file hashes and original paths are recorded in the manifest and AUDIO.md;
+this does not extend the MIT code license to original-game recordings.
+Sound alias names/layer chains are corroborated by the supplied mod sound CSV.
+The native recorded weapon/impact demo is subject to its separate asset notice.
+
+Classic electric trap correction uses the supplied README's explicit16-to25
+Reimagined change and description of the removed100-health lethal threshold.
+Reconstructed clock/cable/cage-lamp states use supplied theater client/server
+scripts and recovered native entity coordinates. Cage color, clock time during
+pause, and reduced-flash states are presentation adaptations; original green/red
+model variants were not recovered. No new downloaded map/texture/model assets.
+
+Reference comparison: original2011 gameplay by IMADGI, original lobby community
+image, and Activision's official Chronicles context. Exact URLs, observed frames
+and version limitations are in REFERENCE-COMPARISON.md. These references were
+inspected only; no video frames or screenshot textures are game assets.
+
+Version 1.8 Mac portability
+Electron 44.7.0 official darwin-arm64 and darwin-x64 runtimes; MIT/Chromium notices included.
+Universal merger: @electron/universal 3.0.6, official Electron project, MIT.
+No new game media added in this update. Prior code and asset rights remain distinct.

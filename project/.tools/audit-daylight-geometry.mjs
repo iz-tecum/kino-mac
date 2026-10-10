@@ -1,0 +1,35 @@
+// Read-only geometry audit. Outputs diagnostics outside the runtime tree.
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';
+import * as THREE from 'three';import {MeshBVH} from 'three-mesh-bvh';
+import {deserializeCollisionWorld} from '../export/web/collision-world.js';
+const root=path.resolve(import.meta.dirname,'../export/web'),out=path.resolve(process.env.KINO_DAYLIGHT_AUDIT??'../../references-v4');fs.mkdirSync(out,{recursive:true});
+const doc=JSON.parse(fs.readFileSync(path.join(root,'kino.gltf'))),data=JSON.parse(fs.readFileSync(path.join(root,'game-data.json'))),raw=fs.readFileSync(path.join(root,'kino.bin')),cb=fs.readFileSync(path.join(root,'collision.bin'));
+const collision=deserializeCollisionWorld(JSON.parse(fs.readFileSync(path.join(root,'collision.json'))),cb.buffer.slice(cb.byteOffset,cb.byteOffset+cb.byteLength));
+const world=data.entities.find(e=>e.classname==='worldspawn'),[pitch,yaw]=world.sundirection.split(' ').map(n=>Number(n)*Math.PI/180),sun=new THREE.Vector3(Math.cos(pitch)*Math.cos(yaw),-Math.sin(pitch),-Math.cos(pitch)*Math.sin(yaw));
+function attr(i){const a=doc.accessors[i],v=doc.bufferViews[a.bufferView],C={5126:Float32Array,5125:Uint32Array,5123:Uint16Array}[a.componentType];if(v.byteStride)throw Error('stride');return new C(raw.buffer,raw.byteOffset+(v.byteOffset||0)+(a.byteOffset||0),a.count*({VEC3:3,VEC2:2,SCALAR:1}[a.type]));}
+const round=(v,d=3)=>Array.isArray(v)?v.map(n=>+n.toFixed(d)):+v.toFixed(d),positions=[],triMaterials=[],patches=[];
+const a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),normal=new THREE.Vector3(),delta=new THREE.Vector3();
+for(const [pi,p] of doc.meshes.find(m=>m.name==='world_shell').primitives.entries()){
+ const material=doc.materials[p.material],name=material.name,pv=attr(p.attributes.POSITION),ix=attr(p.indices),capture=/sky|window|glass|roofboard/.test(name),parent=Array.from({length:ix.length/3},(_,i)=>i),vertexMap=new Map();
+ const find=x=>parent[x]===x?x:(parent[x]=find(parent[x]));const join=(x,y)=>{parent[find(x)]=find(y)};
+ for(let i=0;i<ix.length;i+=3){a.fromArray(pv,ix[i]*3);b.fromArray(pv,ix[i+1]*3);c.fromArray(pv,ix[i+2]*3);normal.crossVectors(delta.subVectors(b,a),new THREE.Vector3().subVectors(c,a)).normalize();
+  positions.push(...a,...b,...c);triMaterials.push(p.material);
+  if(capture){const nk=round(normal.toArray(),2).join(',');for(const v of [a,b,c]){const key=round(v.toArray(),1).join(',')+':'+nk;if(vertexMap.has(key))join(i/3,vertexMap.get(key));else vertexMap.set(key,i/3);}}
+ }
+ if(capture){const groups=new Map();for(let i=0;i<ix.length;i+=3){const key=find(i/3);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(i);}
+  for(const tris of groups.values()){const box=new THREE.Box3(),center=new THREE.Vector3(),n=new THREE.Vector3();let area=0;const corners=new Map();
+   for(const i of tris){a.fromArray(pv,ix[i]*3);b.fromArray(pv,ix[i+1]*3);c.fromArray(pv,ix[i+2]*3);const tri=new THREE.Triangle(a,b,c),ar=tri.getArea();center.addScaledVector(tri.getMidpoint(new THREE.Vector3()),ar);n.addScaledVector(tri.getNormal(new THREE.Vector3()),ar);area+=ar;for(const v of [a,b,c]){box.expandByPoint(v);corners.set(round(v.toArray(),2).join(','),round(v.toArray()));}}
+   if(area<100)continue;center.divideScalar(area);n.normalize();patches.push({id:'primitive-'+pi+'-patch-'+tris[0]/3,primitive:pi,materialIndex:p.material,material:name,alphaMode:material.alphaMode??'OPAQUE',area:round(area),triangles:tris.length,center:round(center.toArray()),normal:round(n.toArray()),bounds:{min:round(box.min.toArray()),max:round(box.max.toArray())},vertices:[...corners.values()]});
+  }
+ }
+}
+const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));const bvh=new MeshBVH(geo,{targetLeafSize:12});
+function hitFor(ray,far=10000){const h=bvh.raycastFirst(ray,THREE.DoubleSide,.2,far);if(!h)return null;const original=Math.floor(geo.index.getX(h.faceIndex*3)/3),material=doc.materials[triMaterials[original]].name;return{distance:round(h.distance),point:round(h.point.toArray()),normal:round(h.face.normal.toArray()),material};}
+function raysFrom(p){const ray=new THREE.Ray(new THREE.Vector3(...p),sun.clone()),ch=collision.bvh.raycastFirst(ray,THREE.DoubleSide,.2,10000),vh=hitFor(ray);ray.direction.set(0,1,0);const cu=collision.bvh.raycastFirst(ray,THREE.DoubleSide,.2,10000),vu=hitFor(ray);return {sun:{collision:ch?{distance:round(ch.distance),point:round(ch.point.toArray()),normal:round(ch.face.normal.toArray())}:null,visual:vh},up:{collision:cu?{distance:round(cu.distance),point:round(cu.point.toArray()),normal:round(cu.face.normal.toArray())}:null,visual:vu}};}
+for(const patch of patches){patch.raysPositive=raysFrom(patch.center.map((v,i)=>v+patch.normal[i]*4));patch.raysNegative=raysFrom(patch.center.map((v,i)=>v-patch.normal[i]*4));}
+const probes=[['lobby',[0,168,1256]],['lobby-center',[0,168,980]],['lobby-upper',[350,384,970]],['vip',[1020,385,970]],['dining',[1540,60,-360]],['dressing',[1340,60,-1320]],['theater',[0,0,-650]],['stage',[50,60,-1720]],['alley',[-1580,70,-540]],['projection',[-139,388,436]]].map(([name,p])=>({name,position:p,...raysFrom(p)}));
+const zones=data.entities.filter(e=>e.classname==='info_volume'&&e.script_noteworthy==='player_volume');
+const grids=[];
+for(const zone of zones){if(!zone.bounds)continue;const [lo,hi]=zone.bounds,cells=[];const spacing=48;for(let x=Math.ceil(lo[0]/spacing)*spacing;x<=hi[0];x+=spacing)for(let z=Math.ceil(lo[2]/spacing)*spacing;z<=hi[2];z+=spacing){const down=new THREE.Ray(new THREE.Vector3(x,hi[1]-3,z),new THREE.Vector3(0,-1,0)),floor=collision.bvh.raycastFirst(down,THREE.DoubleSide,.2,hi[1]-lo[1]);if(!floor||floor.face.normal.y<.5)continue;const p=floor.point.clone().add(new THREE.Vector3(0,4,0));const r=raysFrom(p.toArray());cells.push({position:round(p.toArray()),sunOpen:!r.sun.collision,upOpen:!r.up.collision,visualSun:r.sun.visual?.material??null,visualUp:r.up.visual?.material??null,visualSunPoint:r.sun.visual?.point??null,visualUpPoint:r.up.visual?.point??null});}grids.push({zone:zone.targetname,entityId:zone.id,bounds:zone.bounds,count:cells.length,sunOpen:cells.filter(c=>c.sunOpen).length,upOpen:cells.filter(c=>c.upOpen).length,cells});}
+const result={version:1,coordinateSystem:data.coordinateSystem,worldspawn:world,sunDirection:round(sun.toArray(),6),method:'Native world_shell triangles grouped by shared position/coplanar normal; collision and rendered world-shell ray queries. Props and dynamic brushes are not included in visual-shell BVH. No runtime modifications.',provenance:{gltfSha256:crypto.createHash('sha256').update(fs.readFileSync(path.join(root,'kino.gltf'))).digest('hex'),worldSha256:crypto.createHash('sha256').update(raw).digest('hex'),collisionSha256:crypto.createHash('sha256').update(cb).digest('hex')},patches,probes,grids};
+fs.writeFileSync(path.join(out,'daylight-geometry.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({out,patches:patches.length,probes,grids:grids.map(({cells,...g})=>g)},null,2));

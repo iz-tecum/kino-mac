@@ -1,0 +1,1212 @@
+{
+  "schema": "kino-audio-event-catalog-v1",
+  "scope": "Kino reconstruction, including v1.7 native weapon alias recovery and zombie impact effects",
+  "nativeAssetCount": 532,
+  "newSharedNativeAssetCount": 87,
+  "assetManifest": "export/web/audio/manifest.json",
+  "sourcePolicy": "Native means the recording is backed by an original source archive path and SHA256 in the manifest. Hook timing, reconstructed surface selection, attenuation and mix are separately described. Synthesized substitutes are explicit.",
+  "spatialPolicy": {
+    "model": "HRTF",
+    "distanceModel": "linear",
+    "referenceDistance": 80,
+    "maximumDistance": 1400,
+    "rolloff": 1,
+    "units": "game world units",
+    "listener": "camera position/forward/up, updated during active simulation",
+    "oneShotEmitters": "Position is copied at request time and does not move during playback.",
+    "movingCreatureEmitters": "Emitter position follows each active actor at 10Hz. Geometry obstruction is checked at most 5Hz per active voice, plus its initial request.",
+    "creatureOcclusion": {
+      "method": "world.lineClear camera-to-emitter visibility callback; reconstructed approximation, not recovered T5 room acoustics",
+      "clear": {
+        "lowpassHz": 18000,
+        "gain": 1
+      },
+      "blocked": {
+        "lowpassHz": 850,
+        "gain": 0.35
+      },
+      "transitionTimeConstantSeconds": 0.06,
+      "scope": "Creature vocals, creature footsteps and their barrier tear effects only; other effects retain their existing mix."
+    }
+  },
+  "lifecycle": {
+    "pause": "Suspend AudioContext; retain existing voices for resume.",
+    "reset": "Invalidate pending decodes and pending vocal replacements, stop sources including retiring voices, disconnect all gain/filter/panner nodes, clear recent-event history.",
+    "voiceLimits": {
+      "effectsAndDialogue": 48,
+      "musicAndAmbience": 4
+    },
+    "bufferBudget": "Existing desktop/mobile decoded-byte budget retained; shared cues decode on demand. Trap synthesis caches at most two two-second mono buffers (16 * sampleRate bytes total), exposed as syntheticBufferBytes."
+  },
+  "events": [
+    {
+      "event": "theater_ambience",
+      "classification": "native",
+      "timing": "Starts or resumes with a run; loops until pause/reset or replacement by 115.",
+      "channel": "ambience",
+      "concurrency": {
+        "pool": "music-and-ambience",
+        "globalVoiceLimit": 4,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "ambience"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "meteor_song",
+      "classification": "native",
+      "timing": "All three meteor use triggers activated; replaces current main ambience/music source.",
+      "channel": "music",
+      "concurrency": {
+        "pool": "music-and-ambience",
+        "globalVoiceLimit": 4,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "115"
+      ],
+      "source": "BO1-Reimagined-master/maps/zombie_theater_amb.gsc; runtime game.js meteor_egg_trigger",
+      "notes": []
+    },
+    {
+      "event": "fire_sale_music",
+      "classification": "native",
+      "timing": "One separate loop while Fire Sale is active; stopped when it ends or the run resets.",
+      "channel": "music",
+      "concurrency": {
+        "pool": "music-and-ambience",
+        "globalVoiceLimit": 4,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "fire_sale_music"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "round_transitions",
+      "classification": "native",
+      "timing": "Round begins, ends or switches to the hellhound wave. Musical stingers intentionally retain the existing effects bus.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "round",
+        "round_end",
+        "dog_round",
+        "dog_end"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": [
+        "dog_end is available in the manifest; actual dog-round completion routing is game-owned."
+      ]
+    },
+    {
+      "event": "announcer",
+      "classification": "native",
+      "timing": "Powerup collection and dog-wave announcement.",
+      "channel": "dialogue",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "dog_announce",
+        "full_ammo",
+        "insta_kill",
+        "double_points",
+        "nuke",
+        "carpenter",
+        "fire_sale"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "perk_and_upgrade_stings",
+      "classification": "native",
+      "timing": "Perk purchase / Pack-a-Punch start.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "specialty_quickrevive",
+        "specialty_fastreload",
+        "specialty_rof",
+        "specialty_armorvest",
+        "packapunch"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "weapon_fire",
+      "classification": "mixed",
+      "timing": "At a successful magazine-consuming shot; weapon cadence remains controlled by Session.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "resident/wpn/assault/aug/plr/shot/shot_00",
+        "resident/wpn/assault/aug/plr/shot/shot_01",
+        "resident/wpn/assault/aug/plr/shot/shot_02",
+        "resident/wpn/assault/aug/plr/shot/shot_03",
+        "resident/wpn/assault/aug/plr/shot/shot_04",
+        "resident/wpn/assault/famas/plr/shot/shot_00",
+        "resident/wpn/assault/famas/plr/shot/shot_01",
+        "resident/wpn/assault/famas/plr/shot/shot_02",
+        "resident/wpn/assault/famas/plr/shot/shot_03",
+        "resident/wpn/assault/famas/plr/shot/shot_04",
+        "resident/wpn/assault/fnfal/plr/shot/shot_00",
+        "resident/wpn/assault/fnfal/plr/shot/shot_01",
+        "resident/wpn/assault/fnfal/plr/shot/shot_02",
+        "resident/wpn/assault/fnfal/plr/shot/shot_03",
+        "resident/wpn/assault/fnfal/plr/shot/shot_04",
+        "resident/wpn/assault/galil/plr/shot/shot_00",
+        "resident/wpn/assault/galil/plr/shot/shot_01",
+        "resident/wpn/assault/galil/plr/shot/shot_02",
+        "resident/wpn/assault/galil/plr/shot/shot_03",
+        "resident/wpn/assault/galil/plr/shot/shot_04",
+        "resident/wpn/assault/m14/plr/shot/shot_00",
+        "resident/wpn/assault/m14/plr/shot/shot_01",
+        "resident/wpn/assault/m14/plr/shot/shot_02",
+        "resident/wpn/assault/m14/plr/shot/shot_03",
+        "resident/wpn/assault/m14/plr/shot/shot_04",
+        "resident/wpn/assault/m16/plr/shot/shot_00",
+        "resident/wpn/assault/m16/plr/shot/shot_01",
+        "resident/wpn/assault/m16/plr/shot/shot_02",
+        "resident/wpn/assault/m16/plr/shot/shot_03",
+        "resident/wpn/assault/m16/plr/shot/shot_04",
+        "resident/wpn/crossbow/plr/shot/shot_00",
+        "resident/wpn/crossbow/plr/shot/shot_01",
+        "resident/wpn/crossbow/plr/shot/shot_02",
+        "resident/wpn/energy/raygun/plr/shot/ray_shot_f",
+        "resident/wpn/energy/thundergun/plr/shot/wpn_thundergun_fire_plr",
+        "resident/wpn/gren_launcher/attachment/plr/shot/shot_00",
+        "resident/wpn/gren_launcher/china_lake/plr/shot/shot_00",
+        "resident/wpn/lmg/hk21/plr/shot/shot_00",
+        "resident/wpn/lmg/hk21/plr/shot/shot_01",
+        "resident/wpn/lmg/hk21/plr/shot/shot_02",
+        "resident/wpn/lmg/hk21/plr/shot/shot_04",
+        "resident/wpn/lmg/rpk/plr/shot/shot_00",
+        "resident/wpn/lmg/rpk/plr/shot/shot_01",
+        "resident/wpn/lmg/rpk/plr/shot/shot_02",
+        "resident/wpn/lmg/rpk/plr/shot/shot_03",
+        "resident/wpn/lmg/rpk/plr/shot/shot_04",
+        "resident/wpn/melee/ballistic_knife/plr/shot/shot_00",
+        "resident/wpn/melee/ballistic_knife/plr/shot/shot_01",
+        "resident/wpn/melee/ballistic_knife/plr/shot/shot_02",
+        "resident/wpn/pistol/357/plr/shot/shot_00",
+        "resident/wpn/pistol/357/plr/shot/shot_01",
+        "resident/wpn/pistol/357/plr/shot/shot_02",
+        "resident/wpn/pistol/357/plr/shot/shot_03",
+        "resident/wpn/pistol/357/plr/shot/shot_04",
+        "resident/wpn/pistol/cz75/plr/shot/shot_00",
+        "resident/wpn/pistol/cz75/plr/shot/shot_01",
+        "resident/wpn/pistol/cz75/plr/shot/shot_02",
+        "resident/wpn/pistol/cz75/plr/shot/shot_03",
+        "resident/wpn/pistol/cz75/plr/shot/shot_04",
+        "resident/wpn/pistol/m1911/plr/shot/shot_00",
+        "resident/wpn/pistol/m1911/plr/shot/shot_01",
+        "resident/wpn/pistol/m1911/plr/shot/shot_02",
+        "resident/wpn/pistol/m1911/plr/shot/shot_03",
+        "resident/wpn/pistol/m1911/plr/shot/shot_04",
+        "resident/wpn/rocket/rpg/plr/shot/wpn_rpg_shot_plr",
+        "resident/wpn/shotgun/hs10/plr/shot/shot_00",
+        "resident/wpn/shotgun/ithaca/plr/shot/shot_00",
+        "resident/wpn/shotgun/rottweil72/plr/shot/shot_00",
+        "resident/wpn/smg/ak74/plr/shot/shot_00",
+        "resident/wpn/smg/ak74/plr/shot/shot_01",
+        "resident/wpn/smg/ak74/plr/shot/shot_02",
+        "resident/wpn/smg/ak74/plr/shot/shot_03",
+        "resident/wpn/smg/ak74/plr/shot/shot_04",
+        "resident/wpn/smg/g11/plr/shot/shot_00",
+        "resident/wpn/smg/g11/plr/shot/shot_01",
+        "resident/wpn/smg/g11/plr/shot/shot_02",
+        "resident/wpn/smg/g11/plr/shot/shot_03",
+        "resident/wpn/smg/g11/plr/shot/shot_04",
+        "resident/wpn/smg/mp40/plr/shot/shot_00",
+        "resident/wpn/smg/mp40/plr/shot/shot_01",
+        "resident/wpn/smg/mp40/plr/shot/shot_02",
+        "resident/wpn/smg/mp40/plr/shot/shot_03",
+        "resident/wpn/smg/mp40/plr/shot/shot_04",
+        "resident/wpn/smg/mp5/plr/shot/shot_00",
+        "resident/wpn/smg/mp5/plr/shot/shot_01",
+        "resident/wpn/smg/mp5/plr/shot/shot_02",
+        "resident/wpn/smg/mp5/plr/shot/shot_03",
+        "resident/wpn/smg/mp5/plr/shot/shot_04",
+        "resident/wpn/smg/mpl/plr/shot/shot_00",
+        "resident/wpn/smg/mpl/plr/shot/shot_01",
+        "resident/wpn/smg/mpl/plr/shot/shot_02",
+        "resident/wpn/smg/mpl/plr/shot/shot_03",
+        "resident/wpn/smg/mpl/plr/shot/shot_04",
+        "resident/wpn/smg/pm63/plr/shot/shot_00",
+        "resident/wpn/smg/pm63/plr/shot/shot_01",
+        "resident/wpn/smg/pm63/plr/shot/shot_02",
+        "resident/wpn/smg/pm63/plr/shot/shot_03",
+        "resident/wpn/smg/pm63/plr/shot/shot_04",
+        "resident/wpn/smg/spectre/plr/shot/shot_00",
+        "resident/wpn/smg/spectre/plr/shot/shot_01",
+        "resident/wpn/smg/spectre/plr/shot/shot_02",
+        "resident/wpn/smg/spectre/plr/shot/shot_03",
+        "resident/wpn/smg/spectre/plr/shot/shot_04",
+        "resident/wpn/sniper/dragunov/plr/shot/shot_00",
+        "resident/wpn/sniper/l96a1/plr/shot/shot_00",
+        "shared/wpn/pap/pap_flux_left",
+        "shared/wpn/pap/pap_flux_right",
+        "shared/wpn/pap/pap_shot_st"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": [
+        "Source weapon fireSoundPlayer and same-weapon recording folders control shot selection. LAW uses the existing RPG native cue. The explicit Thundergun last-shot option selects its recovered final-shot recording.",
+        "PAP aliases add pap_shot_st and left/right flux layers, following the layer-chain pattern in the supplied reimagined.all.csv; gains and stereo presentation are reconstruction choices.",
+        "Exact Commando, SPAS and Masterkey shot files remain absent. These five base/upgraded/attachment cases retain an explicit synthesized fallback. Masterkey no longer incorrectly plays the AUG rifle shot."
+      ]
+    },
+    {
+      "classification": "native",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "source": "export/web/weapon-audio.js; native game-data.json sound aliases and animation notify names; original archive paths and SHA256 in audio manifest",
+      "event": "weapon_mechanics",
+      "timing": "Recovered animation notetracks trigger reload, rechamber, handling and weapon action samples. Unmatched notetrack aliases stay silent.",
+      "spatial": false,
+      "cueKeys": [
+        "resident/fly/gear/reload/fly_gear_reload_plr_00",
+        "resident/fly/gear/reload/fly_gear_reload_plr_01",
+        "resident/fly/gear/reload/fly_gear_reload_plr_02",
+        "resident/fly/gear/reload/fly_gear_reload_plr_03",
+        "resident/wpn/assault/aug/reload/fly_aug_bolt_back",
+        "resident/wpn/assault/aug/reload/fly_aug_bolt_forward",
+        "resident/wpn/assault/aug/reload/fly_aug_futz",
+        "resident/wpn/assault/aug/reload/fly_aug_mag_in",
+        "resident/wpn/assault/aug/reload/fly_aug_mag_out",
+        "resident/wpn/assault/famas/reload/fly_famas_charge",
+        "resident/wpn/assault/famas/reload/fly_famas_futz",
+        "resident/wpn/assault/famas/reload/fly_famas_mag_in",
+        "resident/wpn/assault/famas/reload/fly_famas_mag_out",
+        "resident/wpn/assault/fnfal/reload/fly_fnfal_charge",
+        "resident/wpn/assault/fnfal/reload/fly_fnfal_futz",
+        "resident/wpn/assault/fnfal/reload/fly_fnfal_mag_in",
+        "resident/wpn/assault/fnfal/reload/fly_fnfal_mag_out",
+        "resident/wpn/assault/galil/reload/fly_galil_charge",
+        "resident/wpn/assault/galil/reload/fly_galil_futz",
+        "resident/wpn/assault/galil/reload/fly_galil_mag_in",
+        "resident/wpn/assault/galil/reload/fly_galil_mag_out",
+        "resident/wpn/assault/m14/reload/fly_m14_bolt_back",
+        "resident/wpn/assault/m14/reload/fly_m14_bolt_release",
+        "resident/wpn/assault/m14/reload/fly_m14_futz",
+        "resident/wpn/assault/m14/reload/fly_m14_mag_in",
+        "resident/wpn/assault/m14/reload/fly_m14_mag_out",
+        "resident/wpn/assault/m16/reload/fly_m16_button",
+        "resident/wpn/assault/m16/reload/fly_m16_charge",
+        "resident/wpn/assault/m16/reload/fly_m16_futz",
+        "resident/wpn/assault/m16/reload/fly_m16_mag_in",
+        "resident/wpn/assault/m16/reload/fly_m16_mag_out",
+        "resident/wpn/crossbow/reload/fly_crossbow_draw",
+        "resident/wpn/crossbow/reload/fly_crossbow_futz",
+        "resident/wpn/crossbow/reload/fly_crossbow_latch",
+        "resident/wpn/crossbow/reload/fly_crossbow_lay_bolt",
+        "resident/wpn/energy/raygun/reload/plr/wpn_ray_reload_battery",
+        "resident/wpn/energy/raygun/reload/plr/wpn_ray_reload_battery_out",
+        "resident/wpn/energy/raygun/reload/plr/wpn_ray_reload_close",
+        "resident/wpn/energy/raygun/reload/plr/wpn_ray_reload_open",
+        "resident/wpn/energy/thundergun/reload/plr/fly_thundergun_cell_replace",
+        "resident/wpn/energy/thundergun/reload/plr/fly_thundergun_cell_slide_lock",
+        "resident/wpn/gren_launcher/attachment/reload/fly_grenlaunch_close",
+        "resident/wpn/gren_launcher/attachment/reload/fly_grenlaunch_gren_in",
+        "resident/wpn/gren_launcher/attachment/reload/fly_grenlaunch_gren_out",
+        "resident/wpn/gren_launcher/attachment/reload/fly_grenlaunch_open",
+        "resident/wpn/gren_launcher/china_lake/foley/fly_china_lake_back",
+        "resident/wpn/gren_launcher/china_lake/foley/fly_china_lake_forward",
+        "resident/wpn/gren_launcher/china_lake/foley/fly_china_lake_sight_up",
+        "resident/wpn/gren_launcher/china_lake/foley/load/gren_load_00",
+        "resident/wpn/gren_launcher/china_lake/foley/load/gren_load_01",
+        "resident/wpn/lmg/hk21/reload/fly_hk21_mag_in",
+        "resident/wpn/lmg/hk21/reload/fly_hk21_mag_out",
+        "resident/wpn/lmg/hk21/reload/fly_hk21_pull",
+        "resident/wpn/lmg/hk21/reload/fly_hk21_release",
+        "resident/wpn/lmg/rpk/reload/fly_rpk_futz",
+        "resident/wpn/lmg/rpk/reload/fly_rpk_mag_in",
+        "resident/wpn/lmg/rpk/reload/fly_rpk_mag_out",
+        "resident/wpn/lmg/rpk/reload/fly_rpk_pull",
+        "resident/wpn/lmg/rpk/reload/fly_rpk_release",
+        "resident/wpn/melee/ballistic_knife/foley/bal_knife_load",
+        "resident/wpn/pistol/357/reload/fly_357_close",
+        "resident/wpn/pistol/357/reload/fly_357_empty",
+        "resident/wpn/pistol/357/reload/fly_357_load",
+        "resident/wpn/pistol/357/reload/fly_357_open",
+        "resident/wpn/pistol/357/reload/fly_357_spin",
+        "resident/wpn/pistol/357/reload/single/fly_357_single_bullet_00",
+        "resident/wpn/pistol/357/reload/single/fly_357_single_bullet_01",
+        "resident/wpn/pistol/cz75/reload/fly_cz75_futz",
+        "resident/wpn/pistol/cz75/reload/fly_cz75_mag_in",
+        "resident/wpn/pistol/cz75/reload/fly_cz75_mag_out",
+        "resident/wpn/pistol/cz75/reload/fly_cz75_slide_back",
+        "resident/wpn/pistol/cz75/reload/fly_cz75_slide_forward",
+        "resident/wpn/pistol/m1911/reload/fly_colt45_futz",
+        "resident/wpn/pistol/m1911/reload/fly_colt45_mag_in",
+        "resident/wpn/pistol/m1911/reload/fly_colt45_mag_out",
+        "resident/wpn/pistol/m1911/reload/fly_colt45_slide_back",
+        "resident/wpn/pistol/m1911/reload/fly_colt45_slide_forward",
+        "resident/wpn/rocket/rpg/foley/fly_rpg_futz",
+        "resident/wpn/rocket/rpg/foley/fly_rpg_latch",
+        "resident/wpn/rocket/rpg/foley/fly_rpg_slide",
+        "resident/wpn/shotgun/foley/load/load_00",
+        "resident/wpn/shotgun/foley/load/load_01",
+        "resident/wpn/shotgun/foley/load/load_02",
+        "resident/wpn/shotgun/foley/load/load_03",
+        "resident/wpn/shotgun/foley/load/load_04",
+        "resident/wpn/shotgun/foley/load/load_05",
+        "resident/wpn/shotgun/hs10/plr/foley/fly_hs10_charge",
+        "resident/wpn/shotgun/rottweil72/foley/fly_rott_close",
+        "resident/wpn/shotgun/rottweil72/foley/fly_rott_open",
+        "resident/wpn/shotgun/rottweil72/foley/fly_rott_shell_in",
+        "resident/wpn/shotgun/rottweil72/foley/fly_rott_switch",
+        "resident/wpn/shotgun/spas/reload/fly_spas_pull",
+        "resident/wpn/shotgun/spas/reload/fly_spas_push",
+        "resident/wpn/smg/g11/reload/fly_g11_futz",
+        "resident/wpn/smg/g11/reload/fly_g11_mag_in",
+        "resident/wpn/smg/g11/reload/fly_g11_mag_out",
+        "resident/wpn/smg/g11/reload/fly_g11_tap",
+        "resident/wpn/smg/g11/reload/spin/fly_g11_spin_00",
+        "resident/wpn/smg/g11/reload/spin/fly_g11_spin_01",
+        "resident/wpn/smg/g11/reload/spin/fly_g11_spin_02",
+        "resident/wpn/smg/mp5/reload/fly_mp5_charge",
+        "resident/wpn/smg/mp5/reload/fly_mp5_futz",
+        "resident/wpn/smg/mp5/reload/fly_mp5_mag_in",
+        "resident/wpn/smg/mp5/reload/fly_mp5_mag_out",
+        "resident/wpn/smg/mp5/reload/fly_mp5_pull_charge",
+        "resident/wpn/smg/mpl/reload/fly_mpl_charge",
+        "resident/wpn/smg/mpl/reload/fly_mpl_futz",
+        "resident/wpn/smg/mpl/reload/fly_mpl_mag_in",
+        "resident/wpn/smg/mpl/reload/fly_mpl_mag_out",
+        "resident/wpn/smg/mpl/reload/fly_mpl_pull_charge",
+        "resident/wpn/smg/mpl/reload/fly_mpl_tap",
+        "resident/wpn/smg/pm63/reload/fly_pm63_charge",
+        "resident/wpn/smg/pm63/reload/fly_pm63_futz",
+        "resident/wpn/smg/pm63/reload/fly_pm63_mag_in",
+        "resident/wpn/smg/pm63/reload/fly_pm63_mag_out",
+        "resident/wpn/smg/pm63/reload/fly_pm63_pull_charge",
+        "resident/wpn/smg/spectre/reload/fly_spectre_charge",
+        "resident/wpn/smg/spectre/reload/fly_spectre_futz",
+        "resident/wpn/smg/spectre/reload/fly_spectre_mag_in",
+        "resident/wpn/smg/spectre/reload/fly_spectre_mag_out",
+        "resident/wpn/smg/spectre/reload/fly_spectre_pull_charge",
+        "resident/wpn/smg/ww2/mp40/foley/fly_mp40_charge",
+        "resident/wpn/smg/ww2/mp40/foley/fly_mp40_mag_in",
+        "resident/wpn/smg/ww2/mp40/foley/fly_mp40_mag_out",
+        "resident/wpn/sniper/dragunov/reload/fly_dragunov_mag_in",
+        "resident/wpn/sniper/dragunov/reload/fly_dragunov_mag_out",
+        "resident/wpn/sniper/dragunov/reload/fly_dragunov_pull",
+        "resident/wpn/sniper/dragunov/reload/fly_dragunov_release",
+        "resident/wpn/sniper/l96a1/reload/fly_l96a1_bb",
+        "resident/wpn/sniper/l96a1/reload/fly_l96a1_bd",
+        "resident/wpn/sniper/l96a1/reload/fly_l96a1_bf",
+        "resident/wpn/sniper/l96a1/reload/fly_l96a1_bu",
+        "resident/wpn/sniper/l96a1/reload/fly_l96a1_futz",
+        "resident/wpn/sniper/l96a1/reload/fly_l96a1_mag_in",
+        "resident/wpn/sniper/l96a1/reload/fly_l96a1_mag_out",
+        "shared/wpn/energy/raygun/raise/activate",
+        "shared/wpn/energy/raygun/raise/hit"
+      ],
+      "notes": [
+        "Same-weapon aliases resolve wpn versus fly prefixes and equivalent native action filenames; Python357, L96 bolt directions, EX41/ChinaLake and M16 grenade-launcher aliases are explicit.",
+        "Shotgun shell insertion uses the recovered shared shotgun shell bank; variants avoid immediate repetition. No unrelated gun mechanics are substituted for unresolved actions.",
+        "128 of 144 distinct sound-notify names resolve across 64 base/upgraded guns plus two attachments; 16 absent action recordings remain silent and are listed in artifacts/v8-audio/weapon-coverage.json."
+      ]
+    },
+    {
+      "event": "grenade_pin_and_throw",
+      "classification": "native",
+      "timing": "Pin and release stages when called by the game throw handler.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "resident/wpn/grenade/foley/pin/pin",
+        "resident/wpn/grenade/foley/throw/gren_throw"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "player_footsteps",
+      "classification": "native",
+      "timing": "Grounded walking or sprinting travel threshold, not a per-frame loop; variations do not immediately repeat.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "shared/fly/footsteps/walk/concrete/concrete_walk_00",
+        "shared/fly/footsteps/walk/concrete/concrete_walk_01",
+        "shared/fly/footsteps/walk/concrete/concrete_walk_02",
+        "shared/fly/footsteps/walk/concrete/concrete_walk_03",
+        "shared/fly/footsteps/walk/concrete/concrete_walk_04",
+        "shared/fly/footsteps/walk/wood/wood_walk_00",
+        "shared/fly/footsteps/walk/wood/wood_walk_01",
+        "shared/fly/footsteps/walk/wood/wood_walk_02",
+        "shared/fly/footsteps/walk/wood/wood_walk_03",
+        "shared/fly/footsteps/walk/wood/wood_walk_04",
+        "shared/fly/footsteps/walk/wood/wood_walk_05",
+        "shared/fly/footsteps/run/carpet/carpet_run_00",
+        "shared/fly/footsteps/run/carpet/carpet_run_01",
+        "shared/fly/footsteps/run/carpet/carpet_run_02",
+        "shared/fly/footsteps/run/carpet/carpet_run_03",
+        "shared/fly/footsteps/run/carpet/carpet_run_05",
+        "shared/fly/footsteps/walk/dirt/dirt_walk_00",
+        "shared/fly/footsteps/walk/dirt/dirt_walk_01",
+        "shared/fly/footsteps/walk/dirt/dirt_walk_02",
+        "shared/fly/footsteps/walk/dirt/dirt_walk_03",
+        "shared/fly/footsteps/walk/dirt/dirt_walk_04",
+        "shared/fly/footsteps/walk/metal/metal_walk_00",
+        "shared/fly/footsteps/walk/metal/metal_walk_01",
+        "shared/fly/footsteps/walk/metal/metal_walk_02",
+        "shared/fly/footsteps/walk/metal/metal_walk_03",
+        "shared/fly/footsteps/walk/metal/metal_walk_04",
+        "shared/fly/footsteps/sprint/concrete/concrete_sprint_00",
+        "shared/fly/footsteps/sprint/concrete/concrete_sprint_01",
+        "shared/fly/footsteps/sprint/concrete/concrete_sprint_02",
+        "shared/fly/footsteps/sprint/concrete/concrete_sprint_03",
+        "shared/fly/footsteps/sprint/concrete/concrete_sprint_04",
+        "shared/fly/footsteps/sprint/wood/wood_sprint_00",
+        "shared/fly/footsteps/sprint/wood/wood_sprint_01",
+        "shared/fly/footsteps/sprint/wood/wood_sprint_02",
+        "shared/fly/footsteps/sprint/wood/wood_sprint_03",
+        "shared/fly/footsteps/sprint/wood/wood_sprint_04",
+        "shared/fly/footsteps/sprint/carpet/carpet_sprint_00",
+        "shared/fly/footsteps/sprint/carpet/carpet_sprint_01",
+        "shared/fly/footsteps/sprint/carpet/carpet_sprint_02",
+        "shared/fly/footsteps/sprint/carpet/carpet_sprint_03",
+        "shared/fly/footsteps/sprint/carpet/carpet_sprint_04",
+        "shared/fly/footsteps/sprint/dirt/dirt_sprint_00",
+        "shared/fly/footsteps/sprint/dirt/dirt_sprint_01",
+        "shared/fly/footsteps/sprint/dirt/dirt_sprint_02",
+        "shared/fly/footsteps/sprint/dirt/dirt_sprint_03",
+        "shared/fly/footsteps/sprint/metal/metal_sprint_00",
+        "shared/fly/footsteps/sprint/metal/metal_sprint_01",
+        "shared/fly/footsteps/sprint/metal/metal_sprint_02",
+        "shared/fly/footsteps/sprint/metal/metal_sprint_03",
+        "shared/fly/footsteps/sprint/metal/metal_sprint_04"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": [
+        "Only wood, concrete, carpet, metal and dirt families are supplied.",
+        "Surface/gait selection is reconstructed. Carpet walking uses the available native run family; unknown materials fall back to concrete.",
+        "Player steps remain centered; surface lookup uses rendered material names, not a recovered native per-triangle surface table."
+      ]
+    },
+    {
+      "event": "player_landing",
+      "classification": "native",
+      "timing": "Airborne-to-grounded transition, excluding reviving movement; one cue per landing.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "shared/fly/footsteps/land/concrete/concrete_00",
+        "shared/fly/footsteps/land/concrete/concrete_01",
+        "shared/fly/footsteps/land/concrete/concrete_02",
+        "shared/fly/footsteps/land/carpet/carpet_00",
+        "shared/fly/footsteps/land/carpet/carpet_01",
+        "shared/fly/footsteps/land/dirt/dirt_00",
+        "shared/fly/footsteps/land/dirt/dirt_01",
+        "shared/fly/footsteps/land/dirt/dirt_02",
+        "shared/fly/footsteps/land/metal/metal_00",
+        "shared/fly/footsteps/land/metal/metal_01",
+        "shared/fly/footsteps/land/wood/wood_00",
+        "shared/fly/footsteps/land/wood/wood_01"
+      ],
+      "source": "export/web/audio/manifest.json; original T5 recordings indexed by material",
+      "notes": [
+        "The material lookup is a reconstruction, not native collision surface metadata."
+      ]
+    },
+    {
+      "event": "grenade_impact",
+      "classification": "native",
+      "timing": "Grenade / explosive projectile detonation.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": true,
+      "cueKeys": [
+        "shared/wpn/grenade/explosion/explode/explode_00",
+        "shared/wpn/grenade/explosion/explode/explode_01",
+        "shared/wpn/grenade/explosion/explode/explode_02"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "raygun_impact",
+      "classification": "native",
+      "timing": "Ray Gun projectile hits a surface or target.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": true,
+      "cueKeys": [
+        "shared/wpn/energy/raygun/projectile/impact/wpn_ray_exp"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "thundergun_impact",
+      "classification": "native",
+      "timing": "Thundergun blast impact.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": true,
+      "cueKeys": [
+        "shared/wpn/energy/thundergun/projectile/impact/impact_00"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "bullet_world_impact",
+      "classification": "synthesized",
+      "timing": "Bullet contacts a wall or prop.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": true,
+      "cueKeys": [],
+      "source": "export/web/audio.js impact procedural noise: 70ms, low-pass 3800Hz; no exact generic bullet impact sample present",
+      "notes": []
+    },
+    {
+      "event": "player_damage",
+      "classification": "synthesized",
+      "timing": "Player receives health damage.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [],
+      "source": "export/web/audio.js hit procedural noise, 80ms",
+      "notes": []
+    },
+    {
+      "event": "hellhound_growl",
+      "classification": "native",
+      "timing": "Quiet Hellhound ambient growl. Chase, attack and death use the separately credited community bank.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "enemy-subpool",
+        "globalVoiceLimit": 10,
+        "policy": "One vocal per actor; eight general effect slots reserved."
+      },
+      "spatial": true,
+      "cueKeys": [
+        "dog"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "melee_swing_and_impact",
+      "classification": "native",
+      "timing": "Strike timeline drives swing and hit once; animation aliases do not duplicate Bowie cues.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "resident/wpn/melee/ballistic_knife/foley/bal_knife_load",
+        "resident/wpn/melee/ballistic_knife/plr/shot/shot_00",
+        "resident/wpn/melee/ballistic_knife/plr/shot/shot_01",
+        "resident/wpn/melee/ballistic_knife/plr/shot/shot_02",
+        "resident/wpn/melee/knife/hit_object/hit_object_00",
+        "resident/wpn/melee/knife/hit_object/hit_object_01",
+        "resident/wpn/melee/knife/hit_object/hit_object_02",
+        "resident/wpn/melee/knife/hit_object/hit_object_03",
+        "resident/wpn/melee/knife/knife_pull/knife_pull_00",
+        "resident/wpn/melee/knife/knife_pull/knife_pull_01",
+        "resident/wpn/melee/knife/knife_pull/knife_pull_02",
+        "resident/wpn/melee/knife/knife_pull/knife_pull_03",
+        "resident/wpn/melee/knife/knife_slash/knife_slash_00",
+        "resident/wpn/melee/knife/knife_slash/knife_slash_01",
+        "resident/wpn/melee/knife/knife_slash/knife_slash_02",
+        "resident/wpn/melee/knife/knife_stab/knife_stab_00",
+        "resident/wpn/melee/knife/knife_stab/knife_stab_01",
+        "resident/wpn/melee/knife/knife_stab/knife_stab_02",
+        "resident/wpn/melee/knife/knife_stab/knife_stab_03",
+        "resident/wpn/melee/knife/knife_whoosh/whoosh_00",
+        "resident/wpn/melee/shovel/hit/hit_00",
+        "resident/wpn/melee/shovel/hit/hit_01",
+        "resident/wpn/melee/shovel/hit/hit_02",
+        "resident/wpn/melee/shovel/hit/hit_03",
+        "resident/wpn/melee/shovel/hit/hit_04",
+        "resident/wpn/melee/shovel/hit/hit_05",
+        "resident/wpn/melee/shovel/pull_out/pull_out_00",
+        "resident/wpn/melee/shovel/pull_out/pull_out_01",
+        "resident/wpn/melee/shovel/pull_out/pull_out_02",
+        "resident/wpn/melee/shovel/slice/slice_00",
+        "resident/wpn/melee/shovel/slice/slice_01",
+        "resident/wpn/melee/shovel/slice/slice_02",
+        "resident/wpn/melee/shovel/sweet/sweet_00",
+        "resident/wpn/melee/shovel/sweet/sweet_01",
+        "resident/wpn/melee/shovel/sweet/sweet_02",
+        "resident/wpn/bowie/bowie_catch",
+        "resident/wpn/bowie/bowie_stab/bowie_stab_00",
+        "resident/wpn/bowie/bowie_stab/bowie_stab_01",
+        "resident/wpn/bowie/bowie_stab/bowie_stab_02",
+        "resident/wpn/bowie/bowie_start",
+        "resident/wpn/bowie/bowie_swing/bowie_swing_00",
+        "resident/wpn/bowie/bowie_swing/bowie_swing_01",
+        "resident/wpn/bowie/bowie_swing/bowie_swing_02",
+        "resident/wpn/bowie/bowie_toss",
+        "resident/wpn/bowie/bowie_turn"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "barrier_repair",
+      "classification": "native",
+      "timing": "Each successful repair action, after repair cooldown.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "board"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "powerup_spawn_and_collect",
+      "classification": "native",
+      "timing": "Pickup appears / is collected; Carpenter repair and Nuke flash emit their event cues.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "resident/evt/zombie_global/powerup/carpenter/end/end_00",
+        "resident/evt/zombie_global/powerup/dbl_points/off/off_00",
+        "resident/evt/zombie_global/powerup/grab/grab_00",
+        "resident/evt/zombie_global/powerup/instakill/instakill_00",
+        "resident/evt/zombie_global/powerup/max_ammo/max_ammo_00",
+        "resident/evt/zombie_global/powerup/spawn/spawn_00"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "nuke_flash",
+      "classification": "native",
+      "timing": "On Nuke pickup activation.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "resident/evt/zombie_global/nuke/nuke",
+        "resident/evt/zombie_global/nuke/nuke_flash"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "perk_bottle",
+      "classification": "native",
+      "timing": "Dispense and recovered animation notetracks for opening, swallowing, breaking and belching.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "resident/evt/zombie_global/perksacola/bottle/belch/belchmn_00",
+        "resident/evt/zombie_global/perksacola/bottle/break/breakmn_00",
+        "resident/evt/zombie_global/perksacola/bottle/deny_00",
+        "resident/evt/zombie_global/perksacola/bottle/dispensemn_00",
+        "resident/evt/zombie_global/perksacola/bottle/open/openmn_00",
+        "resident/evt/zombie_global/perksacola/bottle/swallow/swallowmn_00"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": []
+    },
+    {
+      "event": "mystery_box",
+      "classification": "native",
+      "timing": "Open starts roll/music; close ends offer; teddy whoosh accompanies refund/relocation.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [
+        "resident/evt/zombie_global/box/close/close_00",
+        "resident/evt/zombie_global/box/disappear/disappear_00",
+        "resident/evt/zombie_global/box/land/flux/flux_l",
+        "resident/evt/zombie_global/box/land/flux/flux_r",
+        "resident/evt/zombie_global/box/land/land_00",
+        "resident/evt/zombie_global/box/music_box/music_box_00",
+        "resident/evt/zombie_global/box/open/open_00",
+        "resident/evt/zombie_global/box/poof/poof_00",
+        "resident/evt/zombie_global/box/whoosh/whoosh_00"
+      ],
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "notes": [
+        "Manifest also contains unused box landing and flux components. event(path,volume,position) allows explicit world emitters."
+      ]
+    },
+    {
+      "event": "purchase_link_and_equipment_feedback",
+      "classification": "synthesized",
+      "timing": "Successful purchase, pad link, turret setup and reel interaction; Claymore planting now uses its native cue.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [],
+      "source": "export/web/audio.js buy oscillator, 350ms; empty confirmation oscillator, 60ms",
+      "notes": [
+        "These are clear reconstruction feedback tones, not original mechanism recordings."
+      ]
+    },
+    {
+      "event": "kino_radio_recordings",
+      "classification": "missing",
+      "timing": "Native script waits for trigger damage; triggering player plays vox_zmb_egg_00 then vox_zmb_egg_01 via the shared counter.",
+      "channel": "dialogue",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [],
+      "source": "BO1-Reimagined-master/maps/zombie_theater_amb.gsc:192-224",
+      "notes": [
+        "Required aliases: vox_zmb_egg_00 and vox_zmb_egg_01.",
+        "Neither recording exists in Kino or Moon audio manifests or the uploaded mod audio tree.",
+        "No unrelated voice, synthetic narration or fabricated transcript is substituted.",
+        "The Reimagined teleporter script checks radio_egg_counter == 2 before optional-room selection; scripts are reference material, not a claim the unprovided recordings were recovered."
+      ]
+    },
+    {
+      "event": "missing_original_mechanism_recordings",
+      "classification": "missing",
+      "timing": "Exact original charging, transfer, projector and powered-trap recordings remain unavailable.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "spatial": false,
+      "cueKeys": [],
+      "source": "Complete Phi1ow/kino-der-toten Git tree at 9f871517d87fc702013ef6d9c920f0a23597c8bb and both supplied audio manifests; BO1-Reimagined GSC event aliases",
+      "notes": [
+        "No matching original Kino recordings were found.",
+        "Unrelated Gersh Device teleport sounds are not treated as Kino teleporter recordings.",
+        "Fire/electric trap operation now has an explicitly synthesized positional loop, cataloged separately below.",
+        "No exact evt_teleporter_activate_start/finish, teleport2d, zmb_perks_packa_upgrade/ready/loop/ticktock/deny, zmb_turret_startup/down recordings are supplied. Generic MP turret and Gersh files are not relabeled as those events."
+      ]
+    },
+    {
+      "classification": "native",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "event": "claymore_plant",
+      "timing": "At successful Claymore placement.",
+      "spatial": true,
+      "cueKeys": [
+        "shared/wpn/grenade/claymore/claymore_plant_00"
+      ],
+      "notes": [
+        "Replaces the former synthesized purchase beep; arming and explosion mechanics are unchanged."
+      ]
+    },
+    {
+      "classification": "native",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "event": "monkey_ratchet",
+      "timing": "At a successful Monkey Bomb throw.",
+      "spatial": false,
+      "cueKeys": [
+        "shared/wpn/monkey/monkey_ratchet"
+      ],
+      "notes": [
+        "Exact original first-person animation timing has not been recovered."
+      ]
+    },
+    {
+      "classification": "native",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "oldest voice stopped and disconnected when full"
+      },
+      "source": "export/web/audio/manifest.json; each cue retains original archive/file path and source SHA256",
+      "event": "monkey_lure_song",
+      "timing": "Once the thrown Monkey Bomb settles and acts as a lure, play one original song variant from its world position. Stop on detonation or reset; cancel if removed during decode.",
+      "spatial": true,
+      "cueKeys": [
+        "shared/wpn/monkey/monkey_song_00",
+        "shared/wpn/monkey/monkey_song_01",
+        "shared/wpn/monkey/monkey_song_02"
+      ],
+      "notes": [
+        "Original recordings; the start condition follows this reconstruction's grounded lure state, not an assertion of exact original animation synchronization.",
+        "The existing eight-second fuse is sourced from BO1-Reimagined-master/weapons/sp/zombie_cymbal_monkey."
+      ]
+    },
+    {
+      "event": "electric_trap_loop",
+      "classification": "synthesized",
+      "timing": "Starts when the corresponding trap becomes active; loops until trap expiry/reset. Pause suspends AudioContext. Mute retains the same source behind the master gain, so unmute needs no duplicate/restart.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "One source per active trap; shared oldest-voice eviction and synchronous stop/disconnect cleanup."
+      },
+      "spatial": true,
+      "cueKeys": [],
+      "source": "export/web/audio.js GameAudio.trapLoop: 60Hz hum plus 120Hz harmonic and a 17Hz noise modulation; low-pass 2600Hz",
+      "notes": [
+        "Original procedural audio made for this reconstruction, not a recovered T5 recording.",
+        "Two-second cached PCM buffer with 8ms boundary fades; samples clamped to [-1,1], source gain bounded to 0.45.",
+        "Recent event key trap/electric reports native:false.",
+        "A stopped handle can be stopped again safely."
+      ]
+    },
+    {
+      "event": "fire_trap_loop",
+      "classification": "synthesized",
+      "timing": "Starts when the corresponding trap becomes active; loops until trap expiry/reset. Pause suspends AudioContext. Mute retains the same source behind the master gain, so unmute needs no duplicate/restart.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "One source per active trap; shared oldest-voice eviction and synchronous stop/disconnect cleanup."
+      },
+      "spatial": true,
+      "cueKeys": [],
+      "source": "export/web/audio.js GameAudio.trapLoop: Low rumble, filtered noise and stochastic crackles; low-pass 2200Hz",
+      "notes": [
+        "Original procedural audio made for this reconstruction, not a recovered T5 recording.",
+        "Two-second cached PCM buffer with 8ms boundary fades; samples clamped to [-1,1], source gain bounded to 0.45.",
+        "Recent event key trap/fire reports native:false.",
+        "A stopped handle can be stopped again safely."
+      ]
+    },
+    {
+      "event": "enemy_state_vocals",
+      "classification": "community-recordings-with-native-dog-growl",
+      "timing": "Spawn, periodic ambient/sprint, attack start, actual board tear, death; moving emitters update at 10Hz and panner targets smooth with a 35ms time constant. Priority replacements release the previous source over 18ms before starting, preserving the voice ceiling.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "enemy-subpool",
+        "globalVoiceLimit": 10,
+        "policy": "One vocal per enemy plus one barrier effect and one footfall slot; all share the ten-voice creature limit; maximum three concurrent footfalls; priority replacement waits for the previous live source to finish its release before allocating the new source; eight general-effects slots reserved; reset/removal cancel pending decodes and releases."
+      },
+      "spatial": true,
+      "cueKeys": [
+        "enemy/nzp/zombie/a0",
+        "enemy/nzp/zombie/a1",
+        "enemy/nzp/zombie/a2",
+        "enemy/nzp/zombie/a3",
+        "enemy/nzp/zombie/a4",
+        "enemy/nzp/zombie/a5",
+        "enemy/nzp/zombie/a6",
+        "enemy/nzp/zombie/a7",
+        "enemy/nzp/zombie/d0",
+        "enemy/nzp/zombie/d1",
+        "enemy/nzp/zombie/d2",
+        "enemy/nzp/zombie/d3",
+        "enemy/nzp/zombie/d4",
+        "enemy/nzp/zombie/d5",
+        "enemy/nzp/zombie/d6",
+        "enemy/nzp/zombie/d7",
+        "enemy/nzp/zombie/r0",
+        "enemy/nzp/zombie/r1",
+        "enemy/nzp/zombie/r2",
+        "enemy/nzp/zombie/r3",
+        "enemy/nzp/zombie/r4",
+        "enemy/nzp/zombie/r5",
+        "enemy/nzp/zombie/r6",
+        "enemy/nzp/zombie/r7",
+        "enemy/nzp/zombie/r8",
+        "enemy/nzp/zombie/r9",
+        "enemy/nzp/zombie/t0",
+        "enemy/nzp/zombie/t1",
+        "enemy/nzp/zombie/t2",
+        "enemy/nzp/zombie/t3",
+        "enemy/nzp/zombie/t4",
+        "enemy/nzp/zombie/w0",
+        "enemy/nzp/zombie/w1",
+        "enemy/nzp/zombie/w2",
+        "enemy/nzp/zombie/w3",
+        "enemy/nzp/zombie/w4",
+        "enemy/nzp/zombie/w5",
+        "enemy/nzp/zombie/w6",
+        "enemy/nzp/zombie/w7",
+        "enemy/nzp/zombie/w8",
+        "enemy/nzp/zombie/w9",
+        "enemy/nzp/hound/a0",
+        "enemy/nzp/hound/d0",
+        "enemy/nzp/hound/t0",
+        "enemy/nzp/hound/t1",
+        "enemy/nzp/barrier/barricade_destroy",
+        "dog"
+      ],
+      "source": "export/web/audio/enemies/catalog.json; pinned nzp-team/assets source and Git blob/SHA256; BO1-Reimagined maps/_zombiemode_audio.gsc state and overlap guidance.",
+      "notes": [
+        "47 NZ:P community WAV files are unchanged and retain CC BY-SA 4.0. These are replacements, not exact T5 zombie recordings.",
+        "Nova uses pitch-adapted NZ:P crawler/attack/death families; existing native dog.ogg remains its separate recovered T5 recording.",
+        "Source files, attribution, license and transformation details are packaged under audio/enemies/.",
+        "The recovered barricade.wav is cataloged but not selected; board tear uses barricade_destroy.wav. Generic synthesized growl is no longer used by enemies.",
+        "V1.4 moving creature voices are smoothly low-pass filtered and attenuated when world geometry obstructs the listener-to-emitter segment; this is an authored audibility approximation, not exact original room acoustics.",
+        "V1.5 seeded selection and restrained per-actor pitch/level are authored adaptations using the same credited recordings. Pursuit/spawn gain is reduced relative to attack and death; no room reverb, generated creature sounds or new samples are introduced."
+      ],
+      "variation": {
+        "selection": "Per-run seeded shuffle bags select every recording in an event family before repeating; no immediate repeat at a bag boundary; independent of gameplay random state. A later lifecycle cancellation may prevent a selected request from playing.",
+        "identity": "Seed and actor ID select a stable pitch multiplier in [0.965,1.035] and volume multiplier in [0.92,1]. Existing Nova pitch adaptation remains the base.",
+        "leveling": "Measured decoded RMS attenuates vocal samples above 0.30 for attack/death or 0.26 for other calls. Never boosts, edits, or regenerates source recordings.",
+        "envelope": "6ms onset and 12ms natural ending taper; priority interruption uses a bounded 18ms release. Reset/removal still stop and disconnect immediately."
+      }
+    },
+    {
+      "event": "enemy_surface_footfalls",
+      "classification": "native-recording-adaptation",
+      "timing": "Native walk/sprint animation foot markers during grounded chase movement, within 500 world units of the listener; actual displacement required; duplicate companion footstep markers ignored; minimum 0.11-second cadence.",
+      "channel": "effects",
+      "concurrency": {
+        "pool": "enemy-subpool",
+        "globalVoiceLimit": 10,
+        "maximumFootfalls": 3,
+        "policy": "Separate from actor vocal; cannot replace a vocal of equal/higher priority. Shares existing general effects reserve and lifecycle cleanup."
+      },
+      "spatial": true,
+      "cueKeys": [
+        "shared/fly/footsteps/land/carpet/carpet_00",
+        "shared/fly/footsteps/land/carpet/carpet_01",
+        "shared/fly/footsteps/land/concrete/concrete_00",
+        "shared/fly/footsteps/land/concrete/concrete_01",
+        "shared/fly/footsteps/land/concrete/concrete_02",
+        "shared/fly/footsteps/land/dirt/dirt_00",
+        "shared/fly/footsteps/land/dirt/dirt_01",
+        "shared/fly/footsteps/land/dirt/dirt_02",
+        "shared/fly/footsteps/land/metal/metal_00",
+        "shared/fly/footsteps/land/metal/metal_01",
+        "shared/fly/footsteps/land/wood/wood_00",
+        "shared/fly/footsteps/land/wood/wood_01",
+        "shared/fly/footsteps/run/carpet/carpet_run_00",
+        "shared/fly/footsteps/run/carpet/carpet_run_01",
+        "shared/fly/footsteps/run/carpet/carpet_run_02",
+        "shared/fly/footsteps/run/carpet/carpet_run_03",
+        "shared/fly/footsteps/run/carpet/carpet_run_05",
+        "shared/fly/footsteps/sprint/carpet/carpet_sprint_00",
+        "shared/fly/footsteps/sprint/carpet/carpet_sprint_01",
+        "shared/fly/footsteps/sprint/carpet/carpet_sprint_02",
+        "shared/fly/footsteps/sprint/carpet/carpet_sprint_03",
+        "shared/fly/footsteps/sprint/carpet/carpet_sprint_04",
+        "shared/fly/footsteps/sprint/concrete/concrete_sprint_00",
+        "shared/fly/footsteps/sprint/concrete/concrete_sprint_01",
+        "shared/fly/footsteps/sprint/concrete/concrete_sprint_02",
+        "shared/fly/footsteps/sprint/concrete/concrete_sprint_03",
+        "shared/fly/footsteps/sprint/concrete/concrete_sprint_04",
+        "shared/fly/footsteps/sprint/dirt/dirt_sprint_00",
+        "shared/fly/footsteps/sprint/dirt/dirt_sprint_01",
+        "shared/fly/footsteps/sprint/dirt/dirt_sprint_02",
+        "shared/fly/footsteps/sprint/dirt/dirt_sprint_03",
+        "shared/fly/footsteps/sprint/metal/metal_sprint_00",
+        "shared/fly/footsteps/sprint/metal/metal_sprint_01",
+        "shared/fly/footsteps/sprint/metal/metal_sprint_02",
+        "shared/fly/footsteps/sprint/metal/metal_sprint_03",
+        "shared/fly/footsteps/sprint/metal/metal_sprint_04",
+        "shared/fly/footsteps/sprint/wood/wood_sprint_00",
+        "shared/fly/footsteps/sprint/wood/wood_sprint_01",
+        "shared/fly/footsteps/sprint/wood/wood_sprint_02",
+        "shared/fly/footsteps/sprint/wood/wood_sprint_03",
+        "shared/fly/footsteps/sprint/wood/wood_sprint_04",
+        "shared/fly/footsteps/walk/concrete/concrete_walk_00",
+        "shared/fly/footsteps/walk/concrete/concrete_walk_01",
+        "shared/fly/footsteps/walk/concrete/concrete_walk_02",
+        "shared/fly/footsteps/walk/concrete/concrete_walk_03",
+        "shared/fly/footsteps/walk/concrete/concrete_walk_04",
+        "shared/fly/footsteps/walk/dirt/dirt_walk_00",
+        "shared/fly/footsteps/walk/dirt/dirt_walk_01",
+        "shared/fly/footsteps/walk/dirt/dirt_walk_02",
+        "shared/fly/footsteps/walk/dirt/dirt_walk_03",
+        "shared/fly/footsteps/walk/dirt/dirt_walk_04",
+        "shared/fly/footsteps/walk/metal/metal_walk_00",
+        "shared/fly/footsteps/walk/metal/metal_walk_01",
+        "shared/fly/footsteps/walk/metal/metal_walk_02",
+        "shared/fly/footsteps/walk/metal/metal_walk_03",
+        "shared/fly/footsteps/walk/metal/metal_walk_04",
+        "shared/fly/footsteps/walk/wood/wood_walk_00",
+        "shared/fly/footsteps/walk/wood/wood_walk_01",
+        "shared/fly/footsteps/walk/wood/wood_walk_02",
+        "shared/fly/footsteps/walk/wood/wood_walk_03",
+        "shared/fly/footsteps/walk/wood/wood_walk_04",
+        "shared/fly/footsteps/walk/wood/wood_walk_05"
+      ],
+      "source": "export/web/game-data.json native enemy animation notify tracks; export/web/audio/manifest.json recovered shared T5 movement recordings; export/web/surface-index.json ground material lookup.",
+      "notes": [
+        "Footfalls reuse shared native movement recordings, selected by ground surface and movement speed. These are explicitly adapted and are not a claim of recovered exact T5 zombie, Hellhound or Nova footstep banks.",
+        "Actor mouth/torso vocal positions and near-ground footfall positions are separate; the same bounded spatial occlusion policy applies.",
+        "Surface queries occur only at accepted nearby motion notifies, not every frame."
+      ]
+    },
+    {
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "Existing shared source limit, pause, reset cancellation and disconnection"
+      },
+      "source": "export/web/audio/manifest.json; unchanged shared T5 files verified against the pinned upstream Git/LFS object and encoded SHA256",
+      "event": "weapon_dry_fire",
+      "classification": "native-recording-adaptation",
+      "timing": "An actual empty-trigger attempt, using the existing one-attempt game input guard.",
+      "spatial": false,
+      "cueKeys": [
+        "shared/wpn/assault/dry_fire/plr/dry_fire_00",
+        "shared/wpn/crossbow/dry_fire/plr/dry_fire_00",
+        "shared/wpn/lmg/dry_fire/plr/dry_fire_00",
+        "shared/wpn/pistol/dry_fire/plr/dry_fire_00",
+        "shared/wpn/shotgun/dry_fire/plr/dry_fire_00",
+        "shared/wpn/smg/dry_fire/plr/dry_fire_plr"
+      ],
+      "notes": [
+        "Shared original weapon-category clicks; ballistic knife retains its specified crossbow mechanism. Unsupported Wonder Weapon/launcher clicks remain synthesized, rather than reusing a shot action layer."
+      ]
+    },
+    {
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "Existing shared source limit, pause, reset cancellation and disconnection"
+      },
+      "source": "export/web/audio/manifest.json; unchanged shared T5 files verified against the pinned upstream Git/LFS object and encoded SHA256",
+      "event": "zombie_fatal_head_impact",
+      "classification": "native-recording-adaptation",
+      "timing": "Once for a fatal head hit, at the actual hit location; no extra vocal",
+      "spatial": true,
+      "cueKeys": [
+        "shared/fly/gibs/zombie/head/zombie_head_00",
+        "shared/fly/gibs/zombie/head/zombie_head_01",
+        "shared/fly/gibs/zombie/head/zombie_head_02"
+      ],
+      "notes": [
+        "Native physical effect recording, not a recovered creature voice bank. Selection and mix are reconstructed."
+      ]
+    },
+    {
+      "channel": "effects",
+      "concurrency": {
+        "pool": "effects-and-dialogue",
+        "globalVoiceLimit": 48,
+        "policy": "Existing shared source limit, pause, reset cancellation and disconnection"
+      },
+      "source": "export/web/audio/manifest.json; unchanged shared T5 files verified against the pinned upstream Git/LFS object and encoded SHA256",
+      "event": "zombie_electric_death_impact",
+      "classification": "native-recording-adaptation",
+      "timing": "Once for an electric trap death, at the enemy position; no extra vocal",
+      "spatial": true,
+      "cueKeys": [
+        "shared/fly/gibs/zombie/elec/elec_00"
+      ],
+      "notes": [
+        "Native physical effect recording, not a recovered creature voice bank. Selection and mix are reconstructed."
+      ]
+    }
+  ],
+  "communityAssetCount": 47,
+  "decodedAssetCount": 579
+}

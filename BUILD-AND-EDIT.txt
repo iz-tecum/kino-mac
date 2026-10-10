@@ -1,0 +1,61 @@
+KINO 1.8 — EDITING AND BUILDING
+
+The full project is under project/. Runtime modules and map data are in
+project/export/web; project/AGENTS.md describes the project conventions.
+Run the source with Node.js 24 or newer. From this directory:
+cd project
+node .tools/serve.mjs 5173
+Open http://127.0.0.1:5173/ in Chrome.
+Source play requires no npm installation. Development: npm ci, then npm test.
+Browser tests use installed Chrome; KINO_CHROME selects its executable.
+
+Portable Universal Mac build
+Run these commands from the source archive root, not from project/.
+Requires macOS build tools, Python 3 and Node.js 24+.
+The two official Electron 44.7.0 runtime archives are bundled with hashes in
+desktop-runtime/ (arm64) and desktop-runtime-x64/ (Intel x64).
+1. node desktop/scripts/stage-kino.mjs project/export/web staged-web
+2. Build each architecture separately into fresh local /private/tmp paths:
+python3 desktop/scripts/bundle-macos.py staged-web "/private/tmp/kino18-arm/Kino der Toten.app" --runtime desktop-runtime --icon desktop/kino.icns --credits project/LICENSE --credits project/ASSET_NOTICE.md --credits documentation/CREDITS-AND-SOURCES.txt
+python3 desktop/scripts/bundle-macos.py staged-web "/private/tmp/kino18-intel/Kino der Toten.app" --runtime desktop-runtime-x64 --icon desktop/kino.icns --credits project/LICENSE --credits project/ASSET_NOTICE.md --credits documentation/CREDITS-AND-SOURCES.txt
+3. Install the pinned merger dependency: inside universal-packaging run
+npm ci --ignore-scripts
+4. From this root run:
+node universal-packaging/merge-macos.mjs --x64 "/private/tmp/kino18-intel/Kino der Toten.app" --arm64 "/private/tmp/kino18-arm/Kino der Toten.app" --output "/private/tmp/kino18-universal/Kino der Toten.app" --report "/private/tmp/kino18-universal.json"
+5. Sign and strictly verify the merged app:
+python3 desktop/scripts/sign-universal.py "/private/tmp/kino18-universal/Kino der Toten.app"
+6. Archive the signed app without cloud file-provider metadata:
+ditto -c -k --norsrc --noextattr --keepParent "/private/tmp/kino18-universal/Kino der Toten.app" "/private/tmp/Kino-1.8-Mac.zip"
+The architecture-specific input apps are preserved.
+The merged app requires macOS 13+, WebGL 2-capable graphics, and Intel or Apple Silicon.
+Local ad-hoc signing is not Apple notarization. No step publishes the game.
+
+Changes in this version
+index.html: simple start/pause layout and keyboard focus.
+desktop-settings.js/css: Laptop preset, text size, comfort and accessible panel.
+display-performance.js: deterministic pixel budgets; CSS text stays sharp.
+laptop-input.js/game.js: Z fire, toggle crouch/sprint, wheel preference,
+menu keyboard ownership, display-density updates and safe pause/resume.
+desktop/main.mjs: work-area window size and powerMonitor pause notifications.
+Original maps, recordings, gameplay rules and prior sound/PaP fixes remain.
+
+Tests and scope
+Run npm test inside project/ for rule and unit checks. From this source root,
+node --test desktop/test/*.test.mjs checks window sizing and local-asset sockets.
+The local HTTP transport shares a pool capped at 12 connections and streams
+responses with cancellation support. It retries one read-only request after a
+connection reset before headers; it does not retry HTTP errors, cancellations
+or response body streams.
+New browser scripts: test-laptop-menu-v9.mjs, test-laptop-settings.mjs,
+test-laptop-input-v9.mjs, test-graphics-unavailable.mjs.
+desktop/scripts/check-electron.mjs accepts --app, --output, --profile, --performance,
+--quality laptop, and --expected-arch. Use isolated absolute profile paths.
+Each native launch has a 90-second automation timeout. This bounds the test;
+it does not change game loading or establish a performance target.
+--launch-executable supports an arch -x86_64 wrapper for existing Rosetta,
+without changing the delivered universal binary. This is not native Intel testing.
+Read documentation/VERIFICATION.txt; evidence/current-v1.8 is current.
+Earlier evidence and documentation-v1.7 are preserved as historical records.
+V1.8-CHANGES.patch compares project/ and desktop/ text with the preserved
+v1.7 source, including added text files. It contains no binary asset deltas.
+The original mod archive, asset credits, baseline and earlier patches remain.

@@ -1,0 +1,1345 @@
+--- v1.4/.tools/capture-actor-contact.mjs
++++ v1.5/.tools/capture-actor-contact.mjs
+@@ -0,0 +1,16 @@
++import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {chromium} from 'playwright-core';import {resolveChromeExecutable} from './browser-path.mjs';
++const output=path.resolve('artifacts/v6-actor-rendering');fs.mkdirSync(output,{recursive:true});const report={method:'Controlled power activation and three native enemy spawns on collision-confirmed stage floor. Actual normal-height player settles through collision. Pause menu hidden only for frozen screenshot. Baseline response disables new actor module only.',modes:{}};
++if(process.argv.includes('--after-only'))report.modes.before=JSON.parse(fs.readFileSync(path.join(output,'contact-view-report.json'))).modes.before;
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});
++try{for(const mode of process.argv.includes('--after-only')?['after']:['before','after']){const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage(),entry={errors:[],failedRequests:[]};report.modes[mode]=entry;
++page.on('console',m=>{if(m.type()==='error')entry.errors.push(m.text());});page.on('pageerror',e=>entry.errors.push(String(e)));page.on('requestfailed',r=>entry.failedRequests.push(r.url()));
++await page.addInitScript(()=>{let seed=901;Math.random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};});
++if(mode==='before')await page.route('**/theater-actors.js',r=>r.fulfill({contentType:'text/javascript',body:'export class TheaterActors {update(){} reset(){} dispose(){} snapshot(){return {disabled:true};} sampleIllumination(){return null;}}'}));
++try{await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>window.kino?.debug.getState().ready,null,{timeout:180000});await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);
++entry.frame=await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);const power=kino.debug.getEntities().find(e=>e.targetname==='use_elec_switch');kino.debug.teleportPlayer([power.position[0],power.position[1]-55,power.position[2]]);kino.debug.step(.3);kino.debug.interact();kino.debug.teleportPlayer([300,-14,-1270]);kino.debug.step(2);kino.debug.spawnEnemy([240,-16,-1400],'zombie');kino.debug.spawnEnemy([325,-16,-1420],'dog');kino.debug.spawnEnemy([410,-16,-1440],'nova');kino.debug.step(.2);kino.debug.lookAt([325,7,-1400]);kino.debug.pause();return {state:kino.debug.getState(),actors:kino.debug.actorRenderingState(),lighting:kino.debug.lightingState(),view:kino.debug.viewLightingState()};});
++await page.waitForTimeout(250);await page.screenshot({path:path.join(output,`${mode}-stage-contact.png`),style:'#menu{display:none!important}'});entry.center=await page.evaluate(()=>kino.debug.pickSurface(720,450));
++assert(entry.frame.state.player.grounded,'Stage viewer must settle normally');assert(entry.frame.lighting.power===1,'Controlled stage power must be on');assert(entry.center.every(h=>Math.hypot(...h.point.map((x,i)=>x-entry.frame.state.player.position[i]))>60),'Viewpoint must be clear of close walls');
++if(mode==='after'){assert(entry.frame.actors.samples.some(s=>s.kind==='dog'&&s.contact)&&entry.frame.actors.shadows>=1,'Visible central hound must pass contact-floor check');await page.evaluate(()=>document.exitPointerLock());await page.waitForFunction(()=>!document.pointerLockElement);await page.click('#settings-open');await page.selectOption('[data-setting="quality"]','performance');await page.click('#settings-close');entry.performance=await page.evaluate(()=>{kino.debug.resume();kino.debug.step(.3);kino.debug.pause();return kino.debug.actorRenderingState();});assert(entry.performance.rayBudget===5&&entry.performance.shadows<=8,'Performance preset must reduce ray/contact budget');}
++assert(!entry.errors.length&&!entry.failedRequests.length,'No script/shader/asset errors');
++}finally{await context.close();}}
++report.success=true;}catch(error){report.success=false;report.failure=String(error);process.exitCode=1;}finally{await browser.close();fs.writeFileSync(path.join(output,'contact-view-report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({success:report.success,failure:report.failure,errors:Object.fromEntries(Object.entries(report.modes).map(([k,v])=>[k,[...new Set(v.errors)]]))}));}
+--- v1.4/.tools/test-actor-rendering.mjs
++++ v1.5/.tools/test-actor-rendering.mjs
+@@ -0,0 +1,43 @@
++import fs from 'node:fs';
++import path from 'node:path';
++import assert from 'node:assert/strict';
++import {chromium} from 'playwright-core';
++import {resolveChromeExecutable} from './browser-path.mjs';
++
++const output=path.resolve('artifacts/v6-actor-rendering');fs.mkdirSync(output,{recursive:true});
++const report={method:'Current integrated source; controlled spawns and normal AI/collision update. Comparison alone disables the new actor module through a test response. Paused screenshots hide only the pause menu to expose the frozen rendered frame.',checks:[],modes:{},errors:[]};
++const check=(name,value,details)=>{report.checks.push({name,passed:!!value,details});assert(value,name);};
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});
++try {
++  for(const mode of ['before','after']){
++    const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage(),result={errors:[],failedRequests:[],views:{}};report.modes[mode]=result;
++    page.on('console',m=>{if(m.type()==='error')result.errors.push(m.text());});page.on('pageerror',e=>result.errors.push(String(e)));page.on('requestfailed',r=>result.failedRequests.push(r.url()));
++    await page.addInitScript(()=>{let seed=1701;Math.random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};});
++    if(mode==='before')await page.route('**/theater-actors.js',route=>route.fulfill({contentType:'text/javascript',body:'export class TheaterActors {update(){} reset(){} dispose(){} snapshot(){return {disabled:true};} sampleIllumination(){return null;}}'}));
++    try {
++      await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>window.kino?.debug.getState().ready,null,{timeout:180000});await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);
++      await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);kino.debug.pause();});
++      for(const fixture of [
++        {name:'sun-zombie',kind:'zombie',enemy:[-120,80,1300],viewer:[-120,82,1445]},
++        {name:'shade-zombie',kind:'zombie',enemy:[-200,80,1150],viewer:[-200,82,1300]},
++        {name:'hound',kind:'dog',enemy:[1400,-16,-200],viewer:[1400,-14,0],contact:true},
++        {name:'nova',kind:'nova',enemy:[1400,-16,-200],viewer:[1400,-14,0],contact:true}
++      ]){
++        const sample=await page.evaluate(f=>{kino.debug.reset();kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);kino.debug.resume();kino.debug.teleportPlayer(f.viewer);kino.debug.step(.5);const id=kino.debug.spawnEnemy(f.enemy,f.kind);kino.debug.step(.2);kino.debug.lookAt([f.enemy[0],f.enemy[1]+(f.kind==='zombie'?34:22),f.enemy[2]]);kino.debug.pause();return {id,state:kino.debug.getState(),actors:kino.debug.actorRenderingState(),view:kino.debug.viewLightingState()};},fixture);
++        await page.waitForTimeout(250);await page.screenshot({path:path.join(output,`${mode}-${fixture.name}.png`),style:'#menu{display:none!important}'});result.views[fixture.name]=sample;
++        if(mode==='after'){check(`${fixture.name} receives bounded actor probe`,sample.actors.actors===1&&sample.actors.materials>0,sample.actors);if(fixture.contact)check(`${fixture.name} confirmed contact`,sample.actors.shadows===1,sample.actors);}
++      }
++      if(mode==='after'){
++        check('sunlit torso receives directional sunlight',result.views['sun-zombie'].actors.samples[0].sun>.5,result.views['sun-zombie'].actors.samples[0]);
++        check('shadowed torso rejects direct sunlight',result.views['shade-zombie'].actors.samples[0].sun<.05,result.views['shade-zombie'].actors.samples[0]);
++        const frozen=await page.evaluate(()=>kino.debug.actorRenderingState());await page.waitForTimeout(600);check('pause preserves actor state exactly',JSON.stringify(frozen)===JSON.stringify(await page.evaluate(()=>kino.debug.actorRenderingState())));
++        result.stress=await page.evaluate(()=>{kino.debug.reset();kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);kino.debug.resume();kino.debug.teleportPlayer([300,-14,-1250]);kino.debug.step(.3);for(let i=0;i<24;i++)kino.debug.spawnEnemy([-240+(i%8)*80,-16,-1350-Math.floor(i/8)*80],i%6===0?'dog':'zombie');kino.debug.step(.65);kino.debug.pause();return {actors:kino.debug.actorRenderingState(),state:kino.debug.getState()};});
++        check('24 actor pool stays at one contact draw call',result.stress.actors.actors===24&&result.stress.actors.drawCalls===1&&result.stress.actors.triangles<=48&&result.stress.actors.rayBudget===10,result.stress.actors);
++        result.dead=await page.evaluate(()=>{const id=kino.debug.getState().enemies[0].id;kino.debug.damageEnemy(id,999999);kino.debug.resume();kino.debug.step(.15);kino.debug.pause();return kino.debug.actorRenderingState();});check('corpse keeps bounded contact/material record',result.dead.actors===24&&result.dead.materials<=result.stress.actors.materials,result.dead);
++        result.reset=await page.evaluate(()=>{kino.debug.reset();kino.debug.pause();return kino.debug.actorRenderingState();});check('restart releases all actor material records and contacts',result.reset.actors===0&&result.reset.materials===0&&result.reset.shadows===0,result.reset);
++      }
++      check(`${mode} no script/shader/asset errors`,!result.errors.length&&!result.failedRequests.length,{errors:result.errors,failedRequests:result.failedRequests});
++    } finally {await context.close();}
++  }
++  report.success=report.checks.every(c=>c.passed);
++}catch(error){report.success=false;report.failure=String(error);process.exitCode=1;}finally{await browser.close();fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({success:report.success,checks:report.checks.map(c=>({name:c.name,passed:c.passed})),failure:report.failure,errors:Object.fromEntries(Object.entries(report.modes).map(([k,v])=>[k,[...new Set(v.errors)]])),output}));}
+--- v1.4/.tools/test-audio-refinement.mjs
++++ v1.5/.tools/test-audio-refinement.mjs
+@@ -0,0 +1,47 @@
++import {chromium} from 'playwright-core';
++import {resolveChromeExecutable} from './browser-path.mjs';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++const out=process.env.KINO_AUDIO_REFINEMENT_OUT??'artifacts/v6-audio';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const page=await browser.newPage({viewport:{width:1280,height:800}}),checks=[],errors=[];let pcm,demo,live;
++page.on('pageerror',e=>{errors.push(String(e));console.error(String(e));});page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+' '+r.url());});page.on('requestfailed',r=>errors.push(r.url()+' '+r.failure()?.errorText));
++const pass=(name,detail)=>{checks.push({name,passed:true,detail});console.log('PASS',name);};
++function wav(channels,sampleRate){const length=channels[0].length,data=Buffer.alloc(44+length*channels.length*2);data.write('RIFF',0);data.writeUInt32LE(data.length-8,4);data.write('WAVEfmt ',8);data.writeUInt32LE(16,16);data.writeUInt16LE(1,20);data.writeUInt16LE(channels.length,22);data.writeUInt32LE(sampleRate,24);data.writeUInt32LE(sampleRate*channels.length*2,28);data.writeUInt16LE(channels.length*2,32);data.writeUInt16LE(16,34);data.write('data',36);data.writeUInt32LE(data.length-44,40);let offset=44;for(let i=0;i<length;i++)for(const channel of channels){data.writeInt16LE(Math.round(Math.max(-1,Math.min(1,channel[i]))*32767),offset);offset+=2;}return data;}
++try{
++ const base=process.env.KINO_URL??'http://127.0.0.1:5173/';await page.route(base+'audio-refinement-harness',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><title>Controlled creature mixer</title>'}));await page.goto(base+'audio-refinement-harness');console.log('Rendering controlled real-mixer audio');
++ pcm=await page.evaluate(async()=>{
++  const {GameAudio}=await import('/audio.js'),result=[];
++  const manifest=await(await fetch('/audio/manifest.json')).json();for(const item of Object.values(manifest))item.url='/'+item.url;
++  for(const fade of [0,.018]){
++   const a=new GameAudio();a.manifest=manifest;a.ctx=new OfflineAudioContext(2,96000,48000);a.master=a.ctx.createGain();a.master.gain.value=.42;a.master.connect(a.ctx.destination);a.setListener([0,48,0]);
++   const source=await a.native('enemy/nzp/zombie/r0',.58,false,{position:[-100,48,-160],envelope:true,levelRms:.26});const held=a.ctx.suspend(.5),render=a.ctx.startRendering();await held;const boundary=a.ctx.currentTime;a.stopSource(source,fade);await a.ctx.resume();const b=await render;
++   const channels=[...Array(b.numberOfChannels)].map((_,c)=>Array.from(b.getChannelData(c))),index=Math.round(boundary*b.sampleRate);let jump=0,peak=0,power=0;
++   for(const data of channels){for(let i=index-1;i<=index+1;i++)jump=Math.max(jump,Math.abs(data[i]-data[i-1]));for(const n of data){peak=Math.max(peak,Math.abs(n));power+=n*n;}}
++   result.push({fade,boundary,jump,peak,rms:Math.sqrt(power/(b.length*b.numberOfChannels)),samplesAtCutoff:channels.map(c=>c.slice(index-3,index+4))});
++  }return result;
++ });
++ assert(pcm.every(p=>p.rms>0&&p.peak<1));assert(pcm[1].jump<pcm[0].jump*.35,'soft replacement must reduce the measured cutoff discontinuity');pass('Actual PCM replacement taper reduces abrupt waveform cutoff without clipping',pcm);
++ demo=await page.evaluate(async()=>{
++  const {GameAudio}=await import('/audio.js'),{EnemyAudio}=await import('/enemy-audio.js'),a=new GameAudio();a.manifest=await(await fetch('/audio/manifest.json')).json();for(const item of Object.values(a.manifest))item.url='/'+item.url;
++  a.ctx=new OfflineAudioContext(2,14*48000,48000);a.master=a.ctx.createGain();a.master.gain.value=.42;a.master.connect(a.ctx.destination);a.setListener([0,48,0]);a.setOcclusionTest((listener,position)=>position[0]<500);a.enemyAudio=new EnemyAudio(a,{seed:1505});
++  await Promise.all(Object.keys(a.manifest).filter(k=>k.startsWith('enemy/nzp/')).map(k=>a.buffer(k)));
++  const settle=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
++  const schedule=[{at:0,label:'near left approach call',id:11,event:'sprint',p:[-100,0,-180]},{at:.5,label:'same actor interrupts approach with attack',id:11,event:'attack',p:[-100,0,-180]},{at:.56,label:'release processing boundary'},{at:1.7,label:'same actor, different attack recording',id:11,event:'attack',p:[-100,0,-180]},{at:3.2,label:'different actor on right',id:12,event:'attack',p:[120,0,-180]},{at:4.8,label:'distant clear actor on left',id:13,event:'attack',p:[-850,0,-650]},{at:6.4,label:'wall-obstructed actor on right',id:14,event:'attack',p:[520,0,-100]},{at:8,label:'near Nova adaptation',id:15,kind:'nova',event:'attack',p:[80,0,-200]},{at:9.6,label:'near Hellhound',id:16,kind:'dog',event:'attack',p:[-140,0,-160]},{at:11,label:'small crowd with distinct voices',id:17,event:'attack',p:[-130,0,-190]},{at:11.16,label:'small crowd second voice',id:18,event:'attack',p:[140,0,-210]}];
++  const apply=item=>{if(item.event)a.enemy(item.event,item.p,{id:item.id,kind:item.kind??'zombie'});};apply(schedule[0]);await settle();
++  const pauses=schedule.slice(1).map(item=>({item,held:a.ctx.suspend(item.at)})),render=a.ctx.startRendering();let maximum=0;
++  for(const {item,held}of pauses){await held;apply(item);await settle();maximum=Math.max(maximum,a.voices.size);await a.ctx.resume();}
++  const b=await render,channels=Array.from({length:b.numberOfChannels},(_,c)=>Array.from(b.getChannelData(c)));let peak=0,power=0;for(const data of channels)for(const n of data){peak=Math.max(peak,Math.abs(n));power+=n*n;}
++  return{sampleRate:b.sampleRate,seconds:b.duration,channels,peak,rms:Math.sqrt(power/(b.length*b.numberOfChannels)),maximumVoices:maximum,schedule,events:a.snapshot().recentEvents};
++ });
++ assert.equal(demo.seconds,14);assert(demo.peak<1&&demo.rms>0);assert(demo.events.some(e=>e.occluded));assert(demo.events.some(e=>e.enemyKind==='nova'));assert(demo.events.some(e=>e.enemyKind==='dog'));const same=demo.events.filter(e=>e.enemyId===11);assert.equal(same.length,3);assert.equal(new Set(same.map(e=>e.voicePitch)).size,1);assert.notEqual(same[1].key,same[2].key);assert(demo.events.every(e=>e.levelGain<=1&&e.voicePitch>=.965&&e.voicePitch<=1.035));
++ fs.writeFileSync(out+'/creature-mixer-demo.wav',wav(demo.channels,demo.sampleRate));delete demo.channels;pass('Saved 14-second stereo mixer demonstration: identities, transitions, near/far, wall muffling, Nova and Hellhound',demo);
++ const loadingFailure=new Promise((_,reject)=>page.once('pageerror',reject));await page.goto(base);await Promise.race([page.waitForFunction(()=>globalThis.kino?.debug.getState().ready,null,{timeout:180000}),loadingFailure]);await page.click('#start');
++ await page.evaluate(()=>{kino.debug.reset();kino.debug.setActive(true);kino.debug.setInvulnerable(true);kino.debug.setAutoSpawn(false);kino.debug.teleportPlayer([0,100,1120]);kino.debug.step(.7);});
++ const id=await page.evaluate(()=>{const p=kino.debug.getState().player.feet;return kino.debug.spawnEnemy([p[0],p[1],p[2]-40],'zombie');});await page.evaluate(()=>kino.debug.step(.03));await page.waitForFunction(id=>kino.debug.audioState().recentEvents.some(e=>e.enemyId===id&&e.enemyEvent==='attack'),id);
++ const attack=await page.evaluate(id=>kino.debug.audioState().recentEvents.find(e=>e.enemyId===id&&e.enemyEvent==='attack'),id);assert(attack.voicePitch>=.965&&attack.voicePitch<=1.035);assert(attack.levelGain>0&&attack.levelGain<=1);
++ await page.evaluate(id=>kino.debug.damageEnemy(id),id);await page.waitForFunction(id=>kino.debug.audioState().recentEvents.some(e=>e.enemyId===id&&e.enemyEvent==='death'),id);const death=await page.evaluate(id=>kino.debug.audioState().recentEvents.find(e=>e.enemyId===id&&e.enemyEvent==='death'),id);assert.equal(attack.voiceIdentity,death.voiceIdentity);assert.equal(attack.voicePitch,death.voicePitch);pass('Actual gameplay attack and death preserve the same restrained actor voice and recording levels',{attack,death});
++ await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.waitForFunction(()=>kino.debug.audioState().state==='suspended');const held=await page.evaluate(()=>kino.debug.audioState());await page.waitForTimeout(150);assert.deepEqual((await page.evaluate(()=>kino.debug.audioState())).recentEvents,held.recentEvents);await page.evaluate(()=>kino.debug.resume());await page.waitForFunction(()=>kino.debug.audioState().state==='running');await page.evaluate(()=>kino.debug.reset());await page.waitForTimeout(50);live=await page.evaluate(()=>kino.debug.audioState());assert.equal(live.voices,0);assert.equal(live.enemy.active,0);assert.equal(live.enemy.retiringVoices,0);assert.equal(live.pendingVoices,0);pass('Actual window blur pauses input/audio; resume restores playback and reset cancels all creature sources');
++ assert.equal(errors.length,0,errors.join('\n'));pass('No script, decode, shader or failed-request errors');
++}catch(error){checks.push({name:'Failure',passed:false,error:String(error),stack:error.stack});console.error(error);process.exitCode=1;await page.screenshot({path:out+'/failure.png'}).catch(()=>{});}
++finally{fs.writeFileSync(out+'/report.json',JSON.stringify({checks,errors,pcm,demo,live},null,2));await browser.close();}
+--- v1.4/.tools/test-controller-motion.mjs
++++ v1.5/.tools/test-controller-motion.mjs
+@@ -0,0 +1,55 @@
++import {chromium} from 'playwright-core';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import {resolveChromeExecutable} from './browser-path.mjs';
++const out='artifacts/v6-controller';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++let page=await browser.newPage({viewport:{width:1440,height:900}});const checks=[],errors=[];
++const monitor=p=>{p.on('pageerror',e=>errors.push(String(e)));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});p.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});};monitor(page);
++const pass=(name,detail)=>{checks.push({name,passed:true,detail});console.log('PASS',name);};
++try{
++ await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>window.kino?.debug.getState().ready,null,{timeout:180000});await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);
++ await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);kino.debug.step(.5);});
++ const stance=await page.evaluate(()=>{
++  const key=(type,code)=>window.dispatchEvent(new KeyboardEvent(type,{code,bubbles:true})),d=kino.debug;
++  const standing=structuredClone(d.getState().player);key('keydown','KeyC');d.step(1/60);const transition=structuredClone(d.getState().player);d.step(.5);const crouched=structuredClone(d.getState().player);key('keyup','KeyC');d.step(.5);const restored=structuredClone(d.getState().player);
++  return {standing,transition,crouched,restored};
++ });
++ assert(stance.standing.view.smoothing);assert(stance.transition.crouched);assert(stance.transition.view.eyeHeight>40&&stance.transition.view.eyeHeight<60);assert(Math.abs(stance.crouched.view.eyeHeight-40)<.01);assert(!stance.restored.crouched);assert(Math.abs(stance.restored.view.eyeHeight-60)<.01);pass('actual Kino crouch and stand ease while physical stance changes immediately',stance);
++ const pause=await page.evaluate(()=>{
++  const key=(type,code)=>window.dispatchEvent(new KeyboardEvent(type,{code,bubbles:true})),d=kino.debug;
++  d.teleportPlayer([-488,0,-1246]);d.step(.5);d.lookAt([-488,44,-1446]);key('keydown','KeyW');d.step(.2);const moving=structuredClone(d.getState().player);d.pause();const before=structuredClone(d.getState().player);key('keyup','KeyW');d.resume();d.step(.3);const after=structuredClone(d.getState().player);return {moving,before,after};
++ });
++ fs.writeFileSync(`${out}/pause-probe.json`,JSON.stringify(pause,null,2));assert(Math.abs(pause.moving.velocity.z)+Math.abs(pause.moving.velocity.x)>100);assert(Math.hypot(pause.after.feet[0]-pause.before.feet[0],pause.after.feet[2]-pause.before.feet[2])<.001);pass('real pause/resume does not replay held movement or horizontal momentum',pause);
++ const route=await page.evaluate(()=>{
++  const d=kino.debug,key=(type,code)=>window.dispatchEvent(new KeyboardEvent(type,{code,bubbles:true}));const door=d.getEntities().find(e=>e.target==='foyer_top_door'&&e.targetname==='zombie_door');d.grantPoints(1000);d.teleportPlayer(door.position);d.step(.15);if(!d.interact())throw new Error('Controlled route door setup failed');d.teleportPlayer([-115,100,1254]);d.step(.5);
++  const path=d.navigationPath(structuredClone(d.getState().player).feet,[582,340,641]),samples=[];let failed=null;
++  for(const waypoint of path.slice(1)){
++   let reached=false;key('keydown','KeyW');
++   for(let i=0;i<600;i++){
++    const p=structuredClone(d.getState().player);if(Math.hypot(p.feet[0]-waypoint[0],p.feet[2]-waypoint[2])<12){reached=true;break;}
++    d.lookAt([waypoint[0],p.position[1],waypoint[2]]);d.step(1/60);const s=structuredClone(d.getState().player);samples.push({feet:s.feet,eye:s.position,stepOffset:s.view.stepOffset,grounded:s.grounded});
++   }
++   key('keyup','KeyW');if(!reached){failed={waypoint,player:structuredClone(d.getState().player)};break;}
++  }
++  d.step(.3);return {path,failed,final:structuredClone(d.getState().player),samples};
++ });
++ fs.writeFileSync(`${out}/route-probe.json`,JSON.stringify(route,null,2));assert.equal(route.failed,null,JSON.stringify(route.failed));assert(route.samples.length>100);assert(route.final.feet[1]>300);pass('actual W input walks the complete lobby staircase without mid-route teleporting',route);await page.screenshot({path:`${out}/01-upper-stairs.png`});
++ const jump=await page.evaluate(()=>{
++  const d=kino.debug,key=(type,code)=>window.dispatchEvent(new KeyboardEvent(type,{code,bubbles:true}));d.teleportPlayer([-488,0,-1246]);d.step(.5);const before=structuredClone(d.getState().player);key('keydown','Space');d.step(.1);key('keyup','Space');const rising=structuredClone(d.getState().player);d.pause();const paused=structuredClone(d.getState().player);d.resume();d.step(.1);const resumed=structuredClone(d.getState().player);d.step(1);return {before,rising,paused,resumed,landed:structuredClone(d.getState().player)};
++ });
++ assert(jump.rising.velocity.y>0);assert.equal(jump.paused.velocity.y,jump.rising.velocity.y);assert(jump.resumed.velocity.y<jump.paused.velocity.y);assert(jump.landed.grounded);assert(Math.abs(jump.landed.feet[1]-jump.before.feet[1])<.2);pass('pause preserves a real jump vertical velocity and normal landing',jump);
++ const teleport=await page.evaluate(()=>{
++  const d=kino.debug;window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyC',bubbles:true}));d.step(.1);d.teleportPlayer([582,340,641]);const state=structuredClone(d.getState().player);window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyC',bubbles:true}));return state;
++ });assert(!teleport.crouched);assert.equal(teleport.position[1],teleport.feet[1]+60);pass('crouched teleport immediately resets the rendered eye to the standing destination',teleport);
++ await page.close();page=await browser.newPage({viewport:{width:1440,height:900}});monitor(page);
++ await page.goto('http://127.0.0.1:5173/moon.html?mode=explore',{timeout:180000});await page.waitForFunction(()=>window.moon?.ready||document.querySelector('#error')?.textContent,null,{timeout:180000});assert(await page.evaluate(()=>Boolean(window.moon?.ready)),await page.locator('#error').textContent());await page.click('#start');await page.waitForFunction(()=>moon.debug.snapshot().active);await page.waitForTimeout(500);
++ const moonStart=await page.evaluate(()=>({state:moon.debug.snapshot(),smooth:moon.player.smoothCamera}));assert(!moonStart.smooth);assert(moonStart.state.grounded);
++ await page.keyboard.down('KeyS');await page.waitForTimeout(600);await page.keyboard.up('KeyS');const moved=await page.evaluate(()=>moon.debug.snapshot());assert(Math.hypot(moved.position[0]-moonStart.state.position[0],moved.position[2]-moonStart.state.position[2])>20);
++ await page.screenshot({path:`${out}/02-moon-default-controller.png`});
++ const moonReset=await page.evaluate(()=>{
++  const p=moon.player;p.setInput({crouch:true,jump:true});p.step(.01);const target=p.camera.position.clone();target.y=80;p.reset(target,{eye:true,resolve:false});return {eye:p.camera.position.toArray(),crouched:p.crouched,input:{...p.input},smooth:p.smoothCamera};
++ });assert.equal(moonReset.eye[1],80);assert(!moonReset.crouched);assert(!moonReset.input.jump);pass('preserved Moon uses unsmoothed controller, native spawn/movement and corrected eye reset',{moonStart,moved,moonReset});
++ assert.equal(errors.length,0,errors.join('\n'));pass('zero script, shader, or missing-asset errors');
++}catch(e){checks.push({name:'runtime failure',passed:false,error:String(e),stack:e.stack});console.error(e);process.exitCode=1;await page.screenshot({path:`${out}/failure.png`}).catch(()=>{});}
++finally{fs.writeFileSync(`${out}/runtime-report.json`,JSON.stringify({method:'Controlled real game keyboard paths with debug setup and deterministic simulation steps; Moon uses wall-clock input. This verifies controller behavior, not survival or performance.',checks,errors},null,2));await browser.close();}
+--- v1.4/.tools/test-controller-routes.mjs
++++ v1.5/.tools/test-controller-routes.mjs
+@@ -0,0 +1,30 @@
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import * as THREE from 'three';
++import { PlayerController } from '../export/web/player-controller.js';
++import { deserializeCollisionWorld } from '../export/web/collision-world.js';
++import { init, importNavMesh, NavMeshQuery } from '@recast-navigation/core';
++const meta=JSON.parse(fs.readFileSync('export/web/collision.json')),bytes=fs.readFileSync('export/web/collision.bin');
++const physics=deserializeCollisionWorld(meta,bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength));
++await init();const {navMesh}=importNavMesh(new Uint8Array(fs.readFileSync('export/web/navigation.bin')));
++const query=new NavMeshQuery(navMesh,{maxNodes:16384});query.defaultQueryHalfExtents={x:70,y:100,z:70};
++fs.mkdirSync('artifacts/v6-controller',{recursive:true});
++const camera=new THREE.PerspectiveCamera();camera.rotation.order='YXZ';
++const player=new PlayerController(camera,physics,{spawn:new THREE.Vector3(-115,100,1254),radius:14,height:70,eyeHeight:60,moveSpeed:190,gravity:800,jumpHeight:39,fallResetY:-300,maxSubSteps:12,groundSnapSpeed:10,smoothCamera:true});
++const results=[];
++for(const [name,start,end]of [['lobby stairs',[-115,100,1254],[582,340,641]],['theater to stage',[-115,100,1254],[-488,0,-1246]],['upper hall to dining',[582,340,641],[1300,0,-400]],['lower hall to alley',[-580,100,641],[-1500,0,0]]]){
++ player.setPosition(new THREE.Vector3(...start));for(let i=0;i<90;i++)player.update(1/60,{});
++ const path=query.computePath(player.getFeetPosition(),new THREE.Vector3(...end)).path;
++ let failure=null,steps=0,maxEyeLift=0,maxFeetLift=0;
++ for(const waypoint of path.slice(1)){
++  let reached=false;
++  for(let i=0;i<600;i++){
++   const feet=player.getFeetPosition();if(Math.hypot(feet.x-waypoint.x,feet.z-waypoint.z)<12){reached=true;break;}
++   camera.lookAt(waypoint.x,camera.position.y,waypoint.z);const before=player.feetPosition.y,eyeBefore=camera.position.y;player.update(1/60,{forward:1});maxEyeLift=Math.max(maxEyeLift,camera.position.y-eyeBefore);maxFeetLift=Math.max(maxFeetLift,player.feetPosition.y-before);steps++;
++  }
++  if(!reached){failure={waypoint,feet:player.getFeetPosition().toArray(),state:player.state};break;}
++ }
++ const result={name,passed:!failure,steps,maxEyeLift,maxFeetLift,failure,feet:player.getFeetPosition().toArray()};results.push(result);console.log(JSON.stringify(result));
++}
++fs.writeFileSync('artifacts/v6-controller/native-routes.json',JSON.stringify(results,null,2));
++assert(results.every(r=>r.passed),'Physical routes must be walkable without teleporting between waypoints');
+--- v1.4/.tools/test-enemy-audio.mjs
++++ v1.5/.tools/test-enemy-audio.mjs
+@@ -18,8 +18,8 @@
+  spatial=await page.evaluate(async()=>{const {GameAudio}=await import('./audio.js'),results=[];for(const config of [{x:-240,z:-240},{x:240,z:-240},{x:-900,z:-900},{x:-240,z:-240,mute:true}]){const a=new GameAudio();await a.load();a.ctx=new OfflineAudioContext(2,144000,48000);a.master=a.ctx.createGain();a.master.gain.value=config.mute?0:.42;a.master.connect(a.ctx.destination);a.setListener([0,0,0]);await a.native('enemy/nzp/zombie/a0',.58,false,{position:[config.x,0,config.z]});const b=await a.ctx.startRendering();results.push({...config,rms:[0,1].map(c=>{let power=0;for(const n of b.getChannelData(c))power+=n*n;return Math.sqrt(power/b.length);})});}return results;});
+  assert(spatial[0].rms[0]>spatial[0].rms[1]*1.1);assert(spatial[1].rms[1]>spatial[1].rms[0]*1.1);assert(spatial[2].rms[0]<spatial[0].rms[0]*.3);assert.deepEqual(spatial[3].rms,[0,0]);pass('Actual recorded creature HRTF output follows direction, distance and master mute (automated PCM)',spatial);
+  for(const kind of ['zombie','dog','nova']){
+-  await fresh();const id=await page.evaluate(kind=>{const p=kino.debug.getState().player.feet;return kino.debug.spawnEnemy([p[0]+10,p[1],p[2]-42],kind);},kind);await step(.03);await cue(id,'attack');const attack=(await state()).recentEvents.find(e=>e.enemyId===id&&e.enemyEvent==='attack');assert.equal(attack.enemyKind,kind);assert.equal(attack.sourceType,'community-recording');assert.equal(attack.native,false);assert.equal(attack.playbackRate,kind==='nova'?1.25:1);assert(attack.position.length===3);assert.match(attack.key,kind==='dog'?/\/hound\/a/:/\/zombie\/a/);
+-  await page.evaluate(id=>kino.debug.damageEnemy(id),id);await cue(id,'death');const death=(await state()).recentEvents.find(e=>e.enemyId===id&&e.enemyEvent==='death');assert.match(death.key,kind==='dog'?/\/hound\/d/:/\/zombie\/d/);assert.equal(death.playbackRate,kind==='nova'?1.18:1);const voices=(await state()).enemy.voices.filter(e=>e.id===id);assert(voices.length<=1);assert(voices.every(e=>e.event==='death'));pass(kind+' actual attack and kill emit distinct spatial state recordings with one actor vocal',{attack,death});
++  await fresh();const id=await page.evaluate(kind=>{const p=kino.debug.getState().player.feet;return kino.debug.spawnEnemy([p[0]+10,p[1],p[2]-42],kind);},kind);await step(.03);await cue(id,'attack');const attack=(await state()).recentEvents.find(e=>e.enemyId===id&&e.enemyEvent==='attack');assert.equal(attack.enemyKind,kind);assert.equal(attack.sourceType,'community-recording');assert.equal(attack.native,false);assert(attack.voicePitch>=.965&&attack.voicePitch<=1.035);assert.equal(attack.playbackRate,(kind==='nova'?1.25:1)*attack.voicePitch);assert(attack.position.length===3);assert.match(attack.key,kind==='dog'?/\/hound\/a/:/\/zombie\/a/);
++  await page.evaluate(id=>kino.debug.damageEnemy(id),id);await cue(id,'death');const death=(await state()).recentEvents.find(e=>e.enemyId===id&&e.enemyEvent==='death');assert.match(death.key,kind==='dog'?/\/hound\/d/:/\/zombie\/d/);assert.equal(death.voiceIdentity,attack.voiceIdentity);assert.equal(death.playbackRate,(kind==='nova'?1.18:1)*attack.voicePitch);const voices=(await state()).enemy.voices.filter(e=>e.id===id);assert(voices.length<=1);assert(voices.every(e=>e.event==='death'));pass(kind+' actual attack and kill emit distinct spatial state recordings with one actor vocal',{attack,death});
+  }
+  await fresh();const barrier=await page.evaluate(()=>kino.debug.spawnCandidates()[0]);assert(barrier);const barrierId=await page.evaluate(b=>{kino.debug.setBoards(b.id,6);kino.debug.teleportPlayer(b.inside);return kino.debug.spawnBarrierEnemy(b.id);},barrier);await step(1.2);await cue(barrierId,'barrier');await cue(barrierId,'teardown');const tear=(await state()).recentEvents.filter(e=>e.enemyId===barrierId);assert(tear.some(e=>e.key==='enemy/nzp/barrier/barricade_destroy'));assert(tear.some(e=>e.enemyEvent==='teardown'&&e.key.includes('/zombie/t')));pass('Actual boarded-window tear emits wood break and actor teardown vocal',tear);
+  await fresh();const spawnId=await page.evaluate(()=>{const p=kino.debug.getState().player.feet;return kino.debug.spawnEnemy([p[0]+220,p[1],p[2]-220],'zombie');});await cue(spawnId,'spawn');const before=(await state()).enemy.voices.find(v=>v.id===spawnId);await step(.35);const after=(await state()).enemy.voices.find(v=>v.id===spawnId);assert(before&&after);assert(Math.hypot(...before.position.map((n,i)=>n-after.position[i]))>1);pass('Live chase updates the playing emitter position',{before,after});
+--- v1.4/.tools/test-input-refinement.mjs
++++ v1.5/.tools/test-input-refinement.mjs
+@@ -0,0 +1,33 @@
++import {chromium} from 'playwright-core';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import {resolveChromeExecutable} from './browser-path.mjs';
++const out=process.env.KINO_INPUT_OUT??'artifacts/v6-input';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const page=await browser.newPage({viewport:{width:1440,height:900}}),checks=[],errors=[];
++page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
++const pass=(name,detail)=>{checks.push({name,passed:true,detail});console.log('PASS',name);};
++const state=()=>page.evaluate(()=>kino.debug.getState());
++const ready=()=>page.waitForFunction(()=>kino.debug.getState().viewmodelReady);
++const key=(type,code)=>page.evaluate(({type,code})=>dispatchEvent(new KeyboardEvent(type,{code,bubbles:true})),{type,code});
++try{
++ await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>globalThis.kino?.debug.getState().ready,null,{timeout:120000});await page.click('#start');
++ await page.evaluate(()=>{kino.debug.setInvulnerable(true);kino.debug.setAutoSpawn(false);kino.debug.step(1);kino.debug.shoot();kino.debug.reload();kino.debug.step(.2);});
++ await key('keydown','KeyQ');await key('keyup','KeyQ');let s=await state();assert(s.reloadLeft>0);assert.equal(s.weapon.id,'m1911_zm');
++ pass('one-weapon switch leaves the active reload intact',{reloadLeft:s.reloadLeft});
++ await page.waitForTimeout(400);assert(await page.locator('#reload-progress').isVisible());await page.screenshot({path:out+'/reload-progress.png'});
++ const progress=await page.locator('#reload-progress-fill').evaluate(el=>el.style.transform);assert(!['scaleX(0)','scaleX(1)'].includes(progress));
++ await page.evaluate(()=>kino.debug.step(4));assert.equal((await state()).weapon.mag,8);assert(!(await page.locator('#reload-progress').isVisible()));pass('reload progress reflects the real pending transfer and hides on completion',{progress});
++ await page.evaluate(()=>kino.debug.giveWeapon('m14_zm'));await ready();await page.evaluate(()=>kino.debug.step(1));
++ await page.evaluate(()=>{for(let i=0;i<50;i++)dispatchEvent(new WheelEvent('wheel',{deltaY:12,bubbles:true,cancelable:true}));});
++ assert.equal((await state()).weapon.id,'m1911_zm');await ready();await page.waitForTimeout(220);
++ await page.evaluate(()=>dispatchEvent(new WheelEvent('wheel',{deltaY:120,bubbles:true,cancelable:true})));assert.equal((await state()).weapon.id,'m14_zm');pass('trackpad gesture with 50 wheel events causes one switch; next gesture switches normally');await ready();
++ await page.evaluate(()=>{dispatchEvent(new WheelEvent('wheel',{deltaY:120,ctrlKey:true}));dispatchEvent(new WheelEvent('wheel',{deltaX:150,deltaY:10}));});assert.equal((await state()).weapon.id,'m14_zm');pass('pinch zoom and horizontal scrolling do not switch weapons');
++ await page.evaluate(()=>{kino.debug.step(1);kino.debug.shoot();kino.debug.reload();});await key('keydown','Digit2');await key('keyup','Digit2');s=await state();assert(s.reloadLeft>0);await page.keyboard.press('Digit1');assert.equal((await state()).reloadLeft,0);await ready();pass('same-slot key preserves reload; a different slot cancels it cleanly');
++ await page.evaluate(()=>kino.debug.step(1));await page.keyboard.down('KeyW');await page.mouse.down();await page.keyboard.press('Escape');await page.mouse.up();await page.keyboard.up('KeyW');
++ s=await state();assert(!s.active);assert(!s.input.primary&&!s.input.ads);const feet=s.player.feet,time=s.time,mag=s.weapon.mag;
++ await page.waitForTimeout(300);assert.equal((await state()).time,time);
++ await page.click('#start');await page.waitForTimeout(220);s=await state();assert.equal(s.weapon.mag,mag);assert(Math.hypot(...s.player.feet.map((v,i)=>v-feet[i]))<2);pass('pause clears held movement/fire and resume cannot leak a menu click into a shot');
++ await page.evaluate(()=>{kino.debug.reset();kino.debug.setActive(true);kino.debug.setAutoSpawn(false);});await ready();assert.equal((await state()).inventory.length,1);assert.equal((await state()).weapon.mag,8);assert.equal(errors.length,0);pass('restart clears tested input and reload state without browser errors');
++}catch(e){checks.push({passed:false,error:String(e),stack:e.stack,state:await state().catch(()=>null)});console.error(e);process.exitCode=1;await page.screenshot({path:out+'/failure.png'}).catch(()=>{});}
++finally{fs.writeFileSync(out+'/report.json',JSON.stringify({method:'Actual game in isolated Chrome, normal key/mouse transitions and synthetic trackpad event bursts. Debug grants, timing and invulnerability isolate transitions. No physical trackpad or high-refresh display claim.',checks,errors},null,2));await browser.close();}
+--- v1.4/.tools/test-presentation.mjs
++++ v1.5/.tools/test-presentation.mjs
+@@ -3,7 +3,7 @@
+ import fs from 'node:fs';
+ import assert from 'node:assert/strict';
+ 
+-const out='artifacts/presentation';fs.mkdirSync(out,{recursive:true});
++const out=process.env.KINO_PRESENTATION_OUT??'artifacts/presentation';fs.mkdirSync(out,{recursive:true});
+ const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
+ const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[],checks=[];
+ page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+--- v1.4/AUDIO-EVENT-CATALOG.json
++++ v1.5/AUDIO-EVENT-CATALOG.json
+@@ -1,6 +1,6 @@
+ {
+   "schema": "kino-audio-event-catalog-v1",
+-  "scope": "Kino reconstruction, including v1.4 enemy presentation refinements",
++  "scope": "Kino reconstruction, including v1.5 creature voice and transition refinements",
+   "nativeAssetCount": 517,
+   "newSharedNativeAssetCount": 72,
+   "assetManifest": "export/web/audio/manifest.json",
+@@ -31,7 +31,7 @@
+   },
+   "lifecycle": {
+     "pause": "Suspend AudioContext; retain existing voices for resume.",
+-    "reset": "Invalidate pending decodes, stop sources, disconnect all gain/filter/panner nodes, clear recent-event history.",
++    "reset": "Invalidate pending decodes and pending vocal replacements, stop sources including retiring voices, disconnect all gain/filter/panner nodes, clear recent-event history.",
+     "voiceLimits": {
+       "effectsAndDialogue": 48,
+       "musicAndAmbience": 4
+@@ -1110,12 +1110,12 @@
+     {
+       "event": "enemy_state_vocals",
+       "classification": "community-recordings-with-native-dog-growl",
+-      "timing": "Spawn, periodic ambient/sprint, attack start, actual board tear, death; moving emitters update at 10Hz. Higher priority vocals interrupt lower ones on the same actor.",
++      "timing": "Spawn, periodic ambient/sprint, attack start, actual board tear, death; moving emitters update at 10Hz and panner targets smooth with a 35ms time constant. Priority replacements release the previous source over 18ms before starting, preserving the voice ceiling.",
+       "channel": "effects",
+       "concurrency": {
+         "pool": "enemy-subpool",
+         "globalVoiceLimit": 10,
+-        "policy": "One vocal per enemy plus one barrier effect and one footfall slot; all share the ten-voice creature limit; maximum three concurrent footfalls; priority interruption; eight general-effects slots reserved; reset/removal cancel pending decodes."
++        "policy": "One vocal per enemy plus one barrier effect and one footfall slot; all share the ten-voice creature limit; maximum three concurrent footfalls; priority replacement waits for the previous live source to finish its release before allocating the new source; eight general-effects slots reserved; reset/removal cancel pending decodes and releases."
+       },
+       "spatial": true,
+       "cueKeys": [
+@@ -1173,8 +1173,15 @@
+         "Nova uses pitch-adapted NZ:P crawler/attack/death families; existing native dog.ogg remains its separate recovered T5 recording.",
+         "Source files, attribution, license and transformation details are packaged under audio/enemies/.",
+         "The recovered barricade.wav is cataloged but not selected; board tear uses barricade_destroy.wav. Generic synthesized growl is no longer used by enemies.",
+-        "V1.4 moving creature voices are smoothly low-pass filtered and attenuated when world geometry obstructs the listener-to-emitter segment; this is an authored audibility approximation, not exact original room acoustics."
+-      ]
++        "V1.4 moving creature voices are smoothly low-pass filtered and attenuated when world geometry obstructs the listener-to-emitter segment; this is an authored audibility approximation, not exact original room acoustics.",
++        "V1.5 seeded selection and restrained per-actor pitch/level are authored adaptations using the same credited recordings. Pursuit/spawn gain is reduced relative to attack and death; no room reverb, generated creature sounds or new samples are introduced."
++      ],
++      "variation": {
++        "selection": "Per-run seeded shuffle bags select every recording in an event family before repeating; no immediate repeat at a bag boundary; independent of gameplay random state. A later lifecycle cancellation may prevent a selected request from playing.",
++        "identity": "Seed and actor ID select a stable pitch multiplier in [0.965,1.035] and volume multiplier in [0.92,1]. Existing Nova pitch adaptation remains the base.",
++        "leveling": "Measured decoded RMS attenuates vocal samples above 0.30 for attack/death or 0.26 for other calls. Never boosts, edits, or regenerates source recordings.",
++        "envelope": "6ms onset and 12ms natural ending taper; priority interruption uses a bounded 18ms release. Reset/removal still stop and disconnect immediately."
++      }
+     },
+     {
+       "event": "enemy_surface_footfalls",
+--- v1.4/export/web/audio.js
++++ v1.5/export/web/audio.js
+@@ -9,7 +9,7 @@
+ const stoppedSource=Object.freeze({stop(){},disconnect(){}});
+ const vector=v=>{const a=Array.isArray(v)?v:[v?.x,v?.y,v?.z];return a.length===3&&a.every(Number.isFinite)?a.slice():null;};
+ export class GameAudio {
+-  constructor(){this._enabled=true;this.ctx=null;this.manifest={};this.buffers=new Map();this.bufferSizes=new Map();this.bufferBytes=0;this.maxBufferBytes=Infinity;this.synthBuffers=new Map();this.preload=true;this.played=[];this.music=null;this.musicToken=0;this.variants=new Map();this.lastVariants=new Map();this.recentEvents=[];this.listenerState=null;this.mix={master:100,effects:100,music:100,ambience:100,dialogue:100};this.groups=null;this.maxVoices=48;this.maxMusicVoices=4;this.voices=new Set();this.musicVoices=new Set();this.sourceVoices=new WeakMap();this.pendingVoices=new Set();this.playbackToken=0;this.acceptPlayback=true;}
++  constructor(){this._enabled=true;this.ctx=null;this.manifest={};this.buffers=new Map();this.bufferSizes=new Map();this.bufferBytes=0;this.maxBufferBytes=Infinity;this.synthBuffers=new Map();this.recordingLevels=new WeakMap();this.preload=true;this.played=[];this.music=null;this.musicToken=0;this.variants=new Map();this.lastVariants=new Map();this.recentEvents=[];this.listenerState=null;this.mix={master:100,effects:100,music:100,ambience:100,dialogue:100};this.groups=null;this.maxVoices=48;this.maxMusicVoices=4;this.voices=new Set();this.musicVoices=new Set();this.sourceVoices=new WeakMap();this.pendingVoices=new Set();this.playbackToken=0;this.acceptPlayback=true;}
+   async load(){const r=await fetch('audio/manifest.json');if(!r.ok)throw new Error('Audio manifest HTTP '+r.status);this.manifest=await r.json();}
+   enemy(event,position,meta){this.enemyAudio??=new EnemyAudio(this);return this.enemyAudio.emit(event,position,meta);}
+   setOcclusionTest(test){this.occlusionTest=typeof test==='function'?test:null;}
+@@ -143,14 +143,26 @@
+     const cleanup=()=>{
+       if(cleaned)return;cleaned=true;voices.delete(voice);this.sourceVoices.delete(source);
+       for(const node of nodes)try{node.disconnect();}catch{}
+-      source.onended=null;
++      source.onended=null;voice.resolveRelease?.();
+       if(this.music===source)this.music=null;if(this.saleMusic===source)this.saleMusic=null;
+     };
+     const voice={source,key,channel,cleanup,stop(){try{source.stop();}catch{}cleanup();}};
++    voice.release=seconds=>{
++      if(cleaned)return Promise.resolve();if(voice.releasePromise)return voice.releasePromise;
++      const param=voice.gain?.gain;if(!param?.linearRampToValueAtTime){voice.stop();return Promise.resolve();}
++      const now=this.ctx.currentTime,duration=Math.max(.004,Math.min(.04,seconds));
++      voice.releasePromise=new Promise(resolve=>voice.resolveRelease=resolve);
++      if(param.cancelAndHoldAtTime)param.cancelAndHoldAtTime(now);else{param.cancelScheduledValues?.(now);param.setValueAtTime(param.value,now);}
++      param.linearRampToValueAtTime(0,now+duration);try{source.stop(now+duration);}catch{voice.stop();}return voice.releasePromise;
++    };
+     source.onended=cleanup;voices.add(voice);this.sourceVoices.set(source,voice);return voice;
+   }
+-  stopSource(source){if(!source)return;const voice=this.sourceVoices.get(source);if(voice)voice.stop();else try{source.stop();}catch{}}
+-  moveSource(source,position){const voice=source&&this.sourceVoices.get(source),p=vector(position);if(!voice||!p)return;for(const node of voice.spatialNodes??[]){if(node.positionX){node.positionX.value=p[0];node.positionY.value=p[1];node.positionZ.value=p[2];}else node.setPosition?.(...p);}}
++  stopSource(source,fadeSeconds=0){
++    if(!source)return Promise.resolve();const voice=this.sourceVoices.get(source);
++    if(voice){if(fadeSeconds>0)return voice.release(fadeSeconds);voice.stop();}else try{source.stop();}catch{}
++    return Promise.resolve();
++  }
++  moveSource(source,position){const voice=source&&this.sourceVoices.get(source),p=vector(position);if(!voice||!p)return;for(const node of voice.spatialNodes??[]){if(node.positionX){for(const [axis,i]of [['X',0],['Y',1],['Z',2]]){const param=node['position'+axis];if(voice.smoothMotion&&param.setTargetAtTime)param.setTargetAtTime(p[i],this.ctx.currentTime,.035);else param.value=p[i];}}else node.setPosition?.(...p);}}
+   setSourceOcclusion(source,amount){
+     const state=source&&this.sourceVoices.get(source)?.occlusion;if(!state||!Number.isFinite(amount))return;
+     const value=Math.max(0,Math.min(1,amount));if(value===state.value)return;state.value=value;
+@@ -171,6 +183,12 @@
+     }).catch(error=>{this.buffers.delete(key);throw error;});
+     this.buffers.set(key,pending);return pending;
+   }
++  recordingGain(buffer,targetRms){
++    if(!Number.isFinite(targetRms)||targetRms<=0||!buffer.getChannelData)return 1;
++    let rms=this.recordingLevels.get(buffer);
++    if(rms===undefined){let sum=0;for(let c=0;c<buffer.numberOfChannels;c++)for(const value of buffer.getChannelData(c))sum+=value*value;rms=Math.sqrt(sum/(buffer.length*buffer.numberOfChannels));this.recordingLevels.set(buffer,rms);}
++    return rms>0?Math.min(1,targetRms/rms):1;
++  }
+   async native(key,volume=1,loop=false,options={}){
+     if(!this.ctx||!this.acceptPlayback||options.signal?.aborted)return stoppedSource;
+     const request={token:this.playbackToken};this.pendingVoices.add(request);
+@@ -178,10 +196,15 @@
+       const b=await this.buffer(key);
+       if(request.token!==this.playbackToken||!this.acceptPlayback||options.signal?.aborted||options.shouldStart?.()===false)return stoppedSource;
+       const source=this.ctx.createBufferSource(),gain=this.ctx.createGain(),channel=this.channel(key,loop);
+-      source.buffer=b;source.loop=loop;if(source.playbackRate&&Number.isFinite(options.playbackRate))source.playbackRate.value=Math.max(.65,Math.min(1.6,options.playbackRate));gain.gain.value=volume;source.connect(gain);const spatial=this.output(gain,channel,options);
+-      const voice=this.trackVoice(source,[source,gain,...spatial],key,channel,loop||channel==='music'||channel==='ambience');voice.spatial=spatial.length>0;voice.spatialNodes=spatial.length?[spatial[0]]:[];voice.occlusion=spatial.occlusion;
++      source.buffer=b;source.loop=loop;if(source.playbackRate&&Number.isFinite(options.playbackRate))source.playbackRate.value=Math.max(.65,Math.min(1.6,options.playbackRate));const levelGain=this.recordingGain(b,options.levelRms);gain.gain.value=volume*levelGain;
++      if(options.envelope&&!loop&&gain.gain.linearRampToValueAtTime){
++        const now=this.ctx.currentTime,length=(b.duration??b.length/this.ctx.sampleRate)/(source.playbackRate?.value||1),attack=Math.min(.006,length/4),release=Math.min(.012,length/4);
++        gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(volume*levelGain,now+attack);gain.gain.setValueAtTime(volume*levelGain,now+length-release);gain.gain.linearRampToValueAtTime(0,now+length);
++      }
++      source.connect(gain);const spatial=this.output(gain,channel,options);
++      const voice=this.trackVoice(source,[source,gain,...spatial],key,channel,loop||channel==='music'||channel==='ambience');voice.spatial=spatial.length>0;voice.spatialNodes=spatial.length?[spatial[0]]:[];voice.occlusion=spatial.occlusion;voice.gain=gain;voice.smoothMotion=!!options.smoothMotion;
+       try{source.start();}catch(error){voice.stop();throw error;}
+-      this.played.push(key);if(this.played.length>30)this.played.shift();this.recordEvent(key,channel,options.position,this.manifest[key]?.native!==false,{sourceType:this.manifest[key]?.sourceType??'native-recording',...options.event});return source;
++      this.played.push(key);if(this.played.length>30)this.played.shift();this.recordEvent(key,channel,options.position,this.manifest[key]?.native!==false,{sourceType:this.manifest[key]?.sourceType??'native-recording',...(Number.isFinite(options.levelRms)?{levelGain}:{}),...options.event});return source;
+     }finally{this.pendingVoices.delete(request);}
+   }
+   async playMusic(key){
+--- v1.4/export/web/enemy-audio.js
++++ v1.5/export/web/enemy-audio.js
+@@ -20,12 +20,30 @@
+   return Object.keys(manifest).filter(k=>k.startsWith('shared/fly/footsteps/walk/concrete/'));
+ }
+ 
++// A per-run audio PRNG is independent of gameplay/spawn randomness.
++const hash=value=>{let h=2166136261;for(const c of String(value)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}h=Math.imul(h^h>>>16,0x7feb352d);h=Math.imul(h^h>>>15,0x846ca68b);return(h^h>>>16)>>>0;};
++export function enemyVoiceProfile(id,kind,seed=0){
++  const identity=hash(seed+':'+kind+':'+id),pitch=.965+(identity&65535)/65535*.07;
++  return{identity,pitch,level:.92+(identity>>>16)/65535*.08};
++}
+ export class EnemyAudio {
+-  constructor(audio,{random=Math.random,maxVoices=10}={}){this.audio=audio;this.random=random;this.maxVoices=maxVoices;this.entries=new Map();this.cooldowns=new Map();this.last=new Map();this.stepBanks=new Map();this.behindAt=0;this.accepted=0;this.suppressed=0;this.occlusionChecks=0;}
+-  stop(entry){entry.controller.abort();this.audio.stopSource(entry.source);if(this.entries.get(entry.slot)===entry)this.entries.delete(entry.slot);}
++  constructor(audio,{random=Math.random,maxVoices=10,seed=Math.floor(random()*4294967295)}={}){this.audio=audio;this.seed=seed>>>0;this.randomState=this.seed;this.bags=new Map();this.retiring=new Map();this.maxVoices=maxVoices;this.entries=new Map();this.cooldowns=new Map();this.last=new Map();this.stepBanks=new Map();this.behindAt=0;this.accepted=0;this.suppressed=0;this.occlusionChecks=0;}
++  random(){let n=this.randomState=(this.randomState+0x6D2B79F5)>>>0;n=Math.imul(n^n>>>15,n|1);n^=n+Math.imul(n^n>>>7,n|61);return((n^n>>>14)>>>0)/4294967296;}
++  select(bank,keys){
++    let bag=this.bags.get(bank);if(!bag?.length){bag=keys.slice();for(let i=bag.length-1;i>0;i--){const j=Math.floor(this.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}
++      if(bag.length>1&&bag.at(-1)===this.last.get(bank))[bag[0],bag[bag.length-1]]=[bag.at(-1),bag[0]];this.bags.set(bank,bag);}
++    const key=bag.pop();if(key)this.last.set(bank,key);return key;
++  }
++  stop(entry,fade=0){
++    entry.controller.abort();if(this.entries.get(entry.slot)===entry)this.entries.delete(entry.slot);
++    if(!fade)for(const [source,retired]of this.retiring)if(retired.id===entry.id)this.audio.stopSource(source);
++    if(!entry.source)return entry.transition??null;
++    const source=entry.source;if(fade)this.retiring.set(source,entry);
++    return this.audio.stopSource(source,fade).finally(()=>this.retiring.delete(source));
++  }
+   prune(){for(const entry of this.entries.values())if(entry.source&&!this.audio.sourceVoices.has(entry.source))this.entries.delete(entry.slot);}
+-  remove(id){for(const entry of [...this.entries.values()])if(entry.id===id)this.stop(entry);for(const key of this.cooldowns.keys())if(key.startsWith(id+':'))this.cooldowns.delete(key);}
+-  reset(){for(const entry of [...this.entries.values()])this.stop(entry);this.cooldowns.clear();this.last.clear();this.behindAt=0;this.accepted=this.suppressed=this.occlusionChecks=0;}
++  remove(id){for(const entry of [...this.entries.values()])if(entry.id===id)this.stop(entry);for(const [source,entry]of this.retiring)if(entry.id===id)this.audio.stopSource(source);for(const key of this.cooldowns.keys())if(key.startsWith(id+':'))this.cooldowns.delete(key);}
++  reset(){for(const entry of [...this.entries.values()])this.stop(entry);for(const source of this.retiring.keys())this.audio.stopSource(source);this.retiring.clear();this.cooldowns.clear();this.last.clear();this.bags.clear();this.randomState=this.seed;this.behindAt=0;this.accepted=this.suppressed=this.occlusionChecks=0;}
+   acoustics(entry,force=false){
+     const now=this.audio.ctx?.currentTime??0;if(!force&&now<entry.acousticAt)return;
+     entry.acousticAt=now+.2;entry.occlusion=this.audio.occlusionAt(entry.position);this.occlusionChecks++;this.audio.setSourceOcclusion(entry.source,entry.occlusion);
+@@ -55,32 +73,38 @@
+     if(previous&&(previous.priority>priority||priority<=1&&previous.priority===priority)){this.suppressed++;return false;}
+     const stepBank=surfaceFromMaterial(meta.surface)+':'+(meta.speed>110?'sprint':'walk');
+     if(event==='step'&&!this.stepBanks.has(stepBank))this.stepBanks.set(stepBank,enemyFootstepKeys(audio.manifest,meta.surface,meta.speed));
+-    const keys=event==='step'?this.stepBanks.get(stepBank):enemyCueKeys(audio.manifest,kind,event),bank=kind+':'+event+(event==='step'?':'+stepBank:''),last=this.last.get(bank),choices=keys.length>1?keys.filter(k=>k!==last):keys;
+-    const key=choices[Math.min(choices.length-1,Math.floor(this.random()*choices.length))];if(!key)return false;
+-    if(previous)this.stop(previous);
++    const keys=event==='step'?this.stepBanks.get(stepBank):enemyCueKeys(audio.manifest,kind,event),bank=kind+':'+event+(event==='step'?':'+stepBank:'');
++    if(!keys.length)return false;
++    let transition=previous?this.stop(previous,.018):null;
+     if(event==='step'&&[...this.entries.values()].filter(e=>e.event==='step').length>=3){this.suppressed++;return false;}
+     // Creature voices cannot fill the general effects ceiling or steal the
+     // final eight slots needed by movement, weapons and interaction feedback.
+-    const pending=[...this.entries.values()].filter(e=>!e.source).length;
+-    if(this.entries.size>=this.maxVoices||audio.voices.size+pending>=Math.max(1,audio.maxVoices-8)){
++    const creatureSources=new Set([...this.entries.values()].map(e=>e.source).filter(Boolean));for(const source of this.retiring.keys())creatureSources.add(source);
++    const generalVoices=audio.voices.size-[...creatureSources].filter(source=>audio.sourceVoices.has(source)).length;
++    // A fading predecessor and its queued replacement share one future slot.
++    if(this.entries.size>=this.maxVoices||generalVoices+this.entries.size>=Math.max(1,audio.maxVoices-8)){
+       const lower=[...this.entries.values()].filter(e=>e.priority<priority).sort((a,b)=>a.priority-b.priority||a.started-b.started)[0];
+-      if(lower)this.stop(lower);else{this.suppressed++;return false;}
++      if(lower){const releasing=this.stop(lower,.018);if(releasing)transition=transition?Promise.all([transition,releasing]):releasing;}else{this.suppressed++;return false;}
+     }
+-    const playbackRate=event==='step'?1:kind==='nova'?(event==='death'?1.18:1.25):1;
+-    const volume=event==='step'?(kind==='zombie'?.26:.2):event==='barrier'?.3:event==='ambient'?.38:event==='death'?.62:kind==='dog'?.63:.58;
+-    const entry={slot,id,kind,event,key,priority,position:p,started:now,controller:new AbortController(),source:null};
++    const key=this.select(bank,keys),vocal=event!=='step'&&event!=='barrier',profile=enemyVoiceProfile(id,kind,this.seed);
++    const playbackRate=vocal?(kind==='nova'?(event==='death'?1.18:1.25):1)*profile.pitch:1;
++    const levelRms=vocal?(['attack','death'].includes(event)?.30:.26):undefined;
++    const baseVolume=event==='step'?(kind==='zombie'?.26:.2):event==='barrier'?.3:event==='ambient'?.38:event==='spawn'?.42:event==='sprint'?.46:event==='death'?.62:kind==='dog'?.63:.58;
++    const volume=baseVolume*(vocal?profile.level:1);
++    const entry={slot,id,kind,event,key,priority,position:p,started:now,controller:new AbortController(),source:null,transition,playbackRate,voiceIdentity:profile.identity};
+     this.acoustics(entry,true);
+     this.entries.set(slot,entry);this.last.set(bank,key);this.cooldowns.set(cooldown,now+({step:.11,attack:.55,death:3,barrier:.7,teardown:2,behind:5}[event]??2));this.accepted++;
+     if(event==='behind')this.behindAt=now+5;
+-    audio.native(key,volume,false,{position:p,occlusion:entry.occlusion,signal:entry.controller.signal,playbackRate,shouldStart:()=>{
++    const play=()=>audio.native(key,volume,false,{position:entry.position,occlusion:entry.occlusion,signal:entry.controller.signal,playbackRate,levelRms,envelope:vocal,smoothMotion:true,shouldStart:()=>{
+       // General effects can arrive while a recording decodes. Recheck here so
+       // completing creature requests never evict weapon or movement feedback.
+       if(audio.voices.size>=Math.max(1,audio.maxVoices-8)){this.suppressed++;return false;}return true;
+-    },event:{enemyId:id,enemyKind:kind,enemyEvent:event,playbackRate,occluded:entry.occlusion>0,...(event==='step'?{adaptation:'shared-native-surface-footfall',surface:surfaceFromMaterial(meta.surface)}:{})}}).then(source=>{
++    },event:{enemyId:id,enemyKind:kind,enemyEvent:event,playbackRate,...(vocal?{voiceIdentity:profile.identity,voicePitch:profile.pitch,voiceLevel:profile.level}:{}),occluded:entry.occlusion>0,...(event==='step'?{adaptation:'shared-native-surface-footfall',surface:surfaceFromMaterial(meta.surface)}:{})}});
++    (transition?transition.then(play):play()).then(source=>{
+       if(entry.controller.signal.aborted||this.entries.get(slot)!==entry){audio.stopSource(source);return;}
+       entry.source=source;audio.moveSource(source,entry.position);audio.setSourceOcclusion(source,entry.occlusion);this.prune();
+     }).catch(error=>{this.stop(entry);console.error(error);});
+     return key;
+   }
+-  snapshot(){this.prune();return {active:this.entries.size,maxVoices:this.maxVoices,footstepVoices:[...this.entries.values()].filter(e=>e.event==='step').length,accepted:this.accepted,suppressed:this.suppressed,occlusionChecks:this.occlusionChecks,voices:[...this.entries.values()].map(e=>({id:e.id,kind:e.kind,event:e.event,key:e.key,pending:!e.source,occluded:e.occlusion>0,position:e.position.slice()}))};}
++  snapshot(){this.prune();return {active:this.entries.size,maxVoices:this.maxVoices,footstepVoices:[...this.entries.values()].filter(e=>e.event==='step').length,accepted:this.accepted,suppressed:this.suppressed,occlusionChecks:this.occlusionChecks,retiringVoices:this.retiring.size,voiceSeed:this.seed,voices:[...this.entries.values()].map(e=>({id:e.id,kind:e.kind,event:e.event,key:e.key,pending:!e.source,playbackRate:e.playbackRate,voiceIdentity:e.voiceIdentity,occluded:e.occlusion>0,position:e.position.slice()}))};}
+ }
+--- v1.4/export/web/game.js
++++ v1.5/export/web/game.js
+@@ -18,6 +18,9 @@
+ import { KinoTraps } from './kino-traps.js';
+ import { InteractionUI } from './interaction-ui.js';
+ import { describeInteraction } from './interaction-state.js';
++import { FramePacer, WheelIntent, reloadPresentation } from './input-timing.js';
++import { TheaterActors } from './theater-actors.js';
++import { ViewLighting } from './view-lighting.js';
+ 
+ const $=id=>document.getElementById(id), keys=new Set(),audio=new GameAudio();
+ const settings=loadSettings();
+@@ -26,7 +29,8 @@
+ audio.maxBufferBytes=(profile.mobile?16:64)*1024*1024;audio.preload=!profile.mobile;
+ const renderer=new THREE.WebGLRenderer({antialias:!profile.mobile,powerPreference:profile.mobile?'default':'high-performance'});
+ renderer.setPixelRatio(Math.min(devicePixelRatio,profile.mobile?1:qualitySettings(settings.quality).ratio));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
+-let previous=performance.now(),lastRendered=0,renderedFrames=0,contextLost=false,resizeTimer;
++const framePacer=new FramePacer(),wheelIntent=new WheelIntent();
++let renderedFrames=0,contextLost=false,resizeTimer;
+ renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=settings.brightness;renderer.autoClear=false;
+ document.body.prepend(renderer.domElement);
+ const scene=new THREE.Scene();scene.background=new THREE.Color(0x101319);scene.fog=new THREE.FogExp2(0x14181b,.00032);
+@@ -35,9 +39,9 @@
+ const fill=new THREE.DirectionalLight(0x7b91af,.07);fill.position.set(-1,.5,-.5);scene.add(fill);
+ const camera=new THREE.PerspectiveCamera(settings.fov,innerWidth/innerHeight,1,14000);camera.rotation.order='YXZ';camera.position.set(-101,168,1256);camera.lookAt(160,170,850);
+ const viewScene=new THREE.Scene(),viewCamera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.01,200);
+-viewScene.add(new THREE.AmbientLight(0xafbac9,.55));const vl=new THREE.DirectionalLight(0xe2d7c4,.8);vl.position.set(0,4,2);viewScene.add(vl);
++const viewAmbient=new THREE.AmbientLight(0xafbac9,.55);viewScene.add(viewAmbient);const vl=new THREE.DirectionalLight(0xe2d7c4,.8);vl.position.set(0,4,2);viewScene.add(vl);const viewLighting=new ViewLighting(viewAmbient,vl);
+ const muzzle=new THREE.PointLight(0xffc276,0,240,1);scene.add(muzzle);
+-let data,world,session,player,enemies,view,powerups,perkDrink,mysteryBox,features,theaterLighting,theaterAtmosphere,trapSystem,ready=false,active=false,started=false,primary=false,primaryPressed=false,ads=false;
++let data,world,session,player,enemies,view,powerups,perkDrink,mysteryBox,features,theaterLighting,theaterAtmosphere,actorRendering,trapSystem,ready=false,active=false,started=false,primary=false,primaryPressed=false,ads=false;
+ let touchRepairHeld=false;
+ let prompt=null,promptText='',toastUntil=0,announcementUntil=0,hitUntil=0,flashUntil=0,spawn;
+ let lastPhase='',lastRound=0,frameTime=0,frameCount=0,fps=0,debugVisible=false,teleportPending=0,linkUntil=0,returnAt=0,cooldownUntil=0,repairLeft=0,burstLeft=0;
+@@ -64,7 +68,7 @@
+   onAction:action=>{
+     if(!active||session.phase==='reviving')return;
+     if(action==='reload')reload();if(action==='melee')melee();if(action==='grenade')throwGrenade();if(action==='use')interact();
+-    if(action==='weapon'){session.switchWeapon();equipView();}
++    if(action==='weapon')switchWeapon();
+     if(action==='claymore')features.placeClaymore();if(action==='equipment')features.throwMonkey();
+     if(action==='attachment'&&session.toggleAttachment())equipView();
+   },
+@@ -76,7 +80,8 @@
+ function announce(title,small='KINO DER TOTEN',duration=4){$('announcement-title').textContent=title;$('announcement-small').textContent=small;$('announcement').style.opacity=1;announcementUntil=session.time+duration;}
+ function setActive(value){
+   active=!!value&&ready&&session.phase!=='gameover';$('menu').hidden=active;document.body.classList.toggle('menu-open',!active);keys.clear();primary=false;primaryPressed=false;ads=false;reloadShot=false;
+-  mousePrimary=mouseAim=false;touchRepairHeld=false;touchControls.reset();touchControls.setEnabled(active&&session.phase!=='reviving',active);
++  mousePrimary=mouseAim=false;touchRepairHeld=false;wheelIntent.reset();framePacer.reset();touchControls.reset();touchControls.setEnabled(active&&session.phase!=='reviving',active);
++  if(!active)player?.clearInput({stopHorizontal:true});
+   if(active&&audio.ctx)audio.start();else if(!active)audio.pause();
+   if(active){if(!started){started=true;announce('Round 1','SURVIVE');audio.play('round');}else if(session.phase==='preparing')announce('Round '+session.round,'PREPARE YOURSELF');}
+   else if(started&&session.phase!=='gameover'){$('start').innerHTML='RESUME GAME <span>→</span>';$('restart').hidden=false;$('menu-status').textContent='Paused · Round '+session.round;}
+@@ -86,11 +91,11 @@
+ renderer.domElement.addEventListener('click',()=>{if(!active)start();});
+ document.addEventListener('pointerlockchange',()=>{if(touchControls.mode&&!document.pointerLockElement)return;setActive(document.pointerLockElement===renderer.domElement);});
+ function suspendRendering(){renderer.setAnimationLoop(null);if(ready){setActive(false);document.exitPointerLock?.();}audio.pause();}
+-function resumeRendering(){previous=performance.now();lastRendered=0;if(!document.hidden&&!contextLost)renderer.setAnimationLoop(renderFrame);}
++function resumeRendering(){framePacer.reset();if(!document.hidden&&!contextLost)renderer.setAnimationLoop(renderFrame);}
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)suspendRendering();else resumeRendering();});
+ addEventListener('pagehide',suspendRendering);
+ addEventListener('pageshow',resumeRendering);
+-renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();contextLost=true;suspendRendering();$('start').disabled=true;$('menu-status').textContent='Graphics paused. Waiting for Safari to restore the game…';});
++renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();contextLost=true;suspendRendering();$('start').disabled=true;$('menu-status').textContent='Graphics paused. Waiting for the renderer to recover…';});
+ renderer.domElement.addEventListener('webglcontextrestored',()=>{contextLost=false;$('start').disabled=!ready;$('menu-status').textContent='Graphics restored · tap to resume';resumeRendering();});
+ addEventListener('blur',()=>{keys.clear();primary=false;ads=false;if(started&&active){setActive(false);document.exitPointerLock?.();}});
+ addEventListener('mousemove',e=>{if(!active||document.pointerLockElement!==renderer.domElement)return;const sensitivity=(ads?.0012*settings.aimSensitivity:.002)*settings.sensitivity;camera.rotation.y-=e.movementX*sensitivity;camera.rotation.x=THREE.MathUtils.clamp(camera.rotation.x-e.movementY*sensitivity*(settings.invertLook?-1:1),-1.5,1.5);});
+@@ -103,14 +108,14 @@
+   if(e.code==='KeyR')reload();if(e.code==='KeyV')melee();if(e.code==='KeyG')throwGrenade();if(e.code==='KeyF'||e.code==='KeyE')interact();
+   if(e.code==='Digit4')features.placeClaymore();if(e.code==='KeyX')features.throwMonkey();
+   if(e.code==='Digit5'&&session.toggleAttachment())equipView();
+-  if(e.code==='Digit1'||e.code==='Digit2'){session.switchWeapon(e.code==='Digit1'?0:1);equipView();}
+-  if(e.code==='KeyQ'){session.switchWeapon();equipView();}
++  if(e.code==='Digit1'||e.code==='Digit2')switchWeapon(e.code==='Digit1'?0:1);
++  if(e.code==='KeyQ')switchWeapon();
+   if(e.code==='KeyM'){audio.enabled=!audio.enabled;toast(audio.enabled?'Sound on':'Sound off');}
+   if(e.code==='F3'){debugVisible=!debugVisible;$('debug').hidden=!debugVisible;}
+   if(e.code==='Escape'){setActive(false);document.exitPointerLock?.();}
+ });
+ addEventListener('keyup',e=>keys.delete(e.code));
+-addEventListener('wheel',()=>{if(active){session.switchWeapon();equipView();}});
++addEventListener('wheel',e=>{if(!active)return;e.preventDefault();if(wheelIntent.consume(e,performance.now()))switchWeapon();},{passive:false});
+ addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{const width=innerWidth,height=innerHeight,current=renderer.getSize(new THREE.Vector2());if(current.x===width&&current.y===height)return;camera.aspect=viewCamera.aspect=width/height;camera.updateProjectionMatrix();viewCamera.updateProjectionMatrix();renderer.setSize(width,height);},profile.mobile?150:0);});
+ 
+ function damage(n,source){
+@@ -176,6 +181,7 @@
+   return true;
+ }
+ function warmViewAudio(){if(view?.ready)audio.warmWeapon(session.def,Object.values(view.rig.data).flatMap(d=>(d.notifies??[]).map(n=>n.name)));}
++function switchWeapon(slot){if(!active||!session.switchWeapon(slot))return false;burstLeft=0;reloadShot=false;primaryPressed=false;equipView();return true;}
+ async function equipView(){reloadShot=false;await view.equip(session.def);warmViewAudio();}
+ function reload(){if(!view.ready)return;const empty=session.weapon.mag===0;if(session.reload()){burstLeft=0;ads=false;lastReloadSerial=session.reloadSerial;view.reload(empty,session.reloadDuration,session.reloadStage);}}
+ function melee(){
+@@ -286,6 +292,7 @@
+ function reset(){
+   pendingMelee=null;lastReloadSerial=0;reloadShot=false;
+   touchControls.reset();stepDistance=0;airborneTime=0;airbornePeak=0;damageHeadingUntil=0;mousePrimary=mouseAim=false;toastUntil=0;announcementUntil=0;hitUntil=0;flashUntil=0;primary=false;primaryPressed=false;ads=false;keys.clear();
++  actorRendering?.reset();viewLighting.reset();
+   session.setProfile(settings.profile);session.reset();enemies.reset();world.reset(session);player.setSpawn(vector(spawn.position));player.respawn();camera.rotation.set(0,spawn.yaw-Math.PI/2,0);
+   powerups.reset();perkDrink.stop();mysteryBox.reset();
+   features?.reset();trapSystem?.reset();
+@@ -363,7 +370,7 @@
+     }
+   }
+   muzzle.intensity=Math.max(0,muzzle.intensity-dt*2200);camera.fov=THREE.MathUtils.damp(camera.fov,ads&&!session.def.dualWield&&!session.drinking&&!session.meleeLeft&&!session.reloadLeft?Math.min(settings.fov,session.def.adsFov||56):settings.fov,12,dt);camera.updateProjectionMatrix();
+-  if(player){theaterLighting?.update(camera.position,session.power,session.time,{pixelHeight:innerHeight*renderer.getPixelRatio()});audio.setListener(camera.position,camera.getWorldDirection(audioForward),audioUp.set(0,1,0).applyQuaternion(camera.quaternion));theaterAtmosphere?.update(session.time,session.power,{...settings,pixelHeight:innerHeight*renderer.getPixelRatio()});world?.daylight?.update(session.time,{...settings,pixelHeight:innerHeight*renderer.getPixelRatio()});}
++  if(player){theaterLighting?.update(camera.position,session.power,session.time,{pixelHeight:innerHeight*renderer.getPixelRatio()});actorRendering?.update(enemies,player.getFeetPosition(),session.time,settings);viewLighting.update(actorRendering?.sampleIllumination(player.getFeetPosition(),{height:48}),active?dt:0);audio.setListener(camera.position,camera.getWorldDirection(audioForward),audioUp.set(0,1,0).applyQuaternion(camera.quaternion));theaterAtmosphere?.update(session.time,session.power,{...settings,pixelHeight:innerHeight*renderer.getPixelRatio()});world?.daylight?.update(session.time,{...settings,pixelHeight:innerHeight*renderer.getPixelRatio()});}
+   hud();
+ }
+ function hud(){
+@@ -372,6 +379,7 @@
+   $('round').textContent=s.round<=5?'I'.repeat(s.round):String(s.round);$('remaining').textContent=s.phase==='preparing'?'STARTS IN '+Math.max(0,Math.ceil(s.countdown)):(s.total-s.killed)+' REMAINING';
+   $('points').textContent=s.points.toLocaleString();$('mag').textContent=s.weaponUnavailable?'—':w.mag;$('reserve').textContent=s.weaponUnavailable?'—':w.reserve;$('weapon-name').textContent=s.weaponUnavailable?(s.pack?'Weapon in Pack-a-Punch':'No weapon'):s.def.name;$('grenades').textContent='G · '+s.grenades+' GRENADES'+(s.claymoresOwned?'  |  4 · '+s.claymores+' CLAYMORES':'')+(s.monkeysOwned?'  |  X · '+s.monkeys+' MONKEYS':'');$('reload-label').textContent=s.weaponUnavailable?'':s.reloadLeft>0?'RELOADING':w.mag===0?'R TO RELOAD':s.weapon.upgraded&&data.weapons[w.id].upgrade?.attachment?'5 · SWITCH ATTACHMENT':'';
+   if(touchControls.mode){$('grenades').textContent=$('grenades').textContent.replace('G · ','').replace('4 · ','').replace('X · ','');$('reload-label').textContent=$('reload-label').textContent.replace('R TO RELOAD','TAP RELOAD').replace('5 · SWITCH ATTACHMENT','TAP ALT FIRE');}
++  const reloadState=reloadPresentation(s);$('reload-progress').hidden=!reloadState;$('reload-progress-fill').style.transform=`scaleX(${reloadState?.progress??0})`;if(reloadState)$('reload-label').textContent=reloadState.label+(reloadState.detail?' · '+reloadState.detail:'');
+   $('health-fill').style.width=(100*s.health/s.maxHealth)+'%';$('health-label').textContent=Math.ceil(s.health)+' / '+s.maxHealth;
+   $('hurt').style.opacity=s.health<s.maxHealth?(1-s.health/s.maxHealth)*.8:0;$('hitmarker').style.opacity=hitUntil>s.time?1:0;$('flash').style.opacity=Math.min(settings.reducedFlashes?.12:1,Math.max(0,flashUntil-s.time));
+   interactionUI.update(active?describeInteraction({target:prompt,session:s,data,doors:world.doors,perks:perkInfo,mysteryBox,features,traps:trapSystem,repairLeft,holding:keys.has('KeyF')||keys.has('KeyE')||touchRepairHeld,key:touchControls.mode?'USE':'F',teleportPending,cooldownUntil,linkUntil,fallback:promptText}):null);
+@@ -407,6 +415,8 @@
+   setRoomRandomSequence:values=>{const sequence=Array.isArray(values)?values.filter(n=>Number.isFinite(n)&&n>=0&&n<1):[];features.events.random=()=>sequence.length?sequence.shift():session.random();},
+   mapState:()=>({environment:world.environment,surface:world.surfaceAt(player.getFeetPosition()),quickReviveVisible:world.entities.get(data.entities.find(e=>e.model==='zombie_vending_revive')?.id)?.visible,reviveCollision:world.reviveClip?.enabled,teleportPending,returnAt,cooldownUntil,particles:combatParticles.snapshot()}),
+   weaponVisual:()=>view.snapshot(),
++  actorRenderingState:()=>actorRendering?.snapshot(),
++  viewLightingState:()=>viewLighting.snapshot(),
+   lastShot:()=>lastShot,
+   setInvulnerable:value=>{session.effects.invulnerable=value?Infinity:0;},
+   aimAtEnemy:(id,head=true)=>{const z=enemies.list.find(z=>z.id===id);if(z)camera.lookAt(head?enemies.headPosition(z):z.root.position.clone().add(new THREE.Vector3(0,z.kind==='zombie'?40:25,0)));},
+@@ -421,22 +431,22 @@
+ try{
+   progress('Loading game data',5);data=await fetch('game-data.json').then(r=>r.json());session=new Session(data,Math.random,{profile:settings.profile});theaterLighting=new TheaterLighting(scene,data);theaterAtmosphere=new TheaterAtmosphere(scene,data);world=new World(scene,data);await world.load(progress);audio.setOcclusionTest((listener,source)=>world.lineClear(vector(listener),vector(source)));theaterLighting.bind(world);
+   spawn=data.entities.find(e=>e.targetname==='initial_spawn_points'&&e.script_int==='1');
+-  player=new PlayerController(camera,world.physics,{spawn:vector(spawn.position),spawnIsEye:false,radius:14,height:70,eyeHeight:60,moveSpeed:190,sprintSpeed:285,crouchSpeed:95,gravity:800,jumpHeight:39,fallResetY:-800,maxSubSteps:12,groundSnapSpeed:10});
++  player=new PlayerController(camera,world.physics,{spawn:vector(spawn.position),spawnIsEye:false,radius:14,height:70,eyeHeight:60,moveSpeed:190,sprintSpeed:285,crouchSpeed:95,gravity:800,jumpHeight:39,fallResetY:-800,maxSubSteps:12,groundSnapSpeed:10,smoothCamera:true});
+   camera.rotation.set(0,spawn.yaw-Math.PI/2,0);world.setDoors(session);
+   progress('Loading weapons and the undead',85);view=new ViewWeapon(viewScene,data,(name,def)=>audio.notify(name,def));view.bobAmount=settings.weaponBob?1:0;enemies=new Enemies(scene,world,data,session,{damage,kill,hit,sound:(event,p,meta)=>audio.enemy(event,p,meta)});
+   world.actors=()=>enemies.list;
+   trapSystem=new KinoTraps({scene,data,session,world,enemies,player,audio,damage});
+   powerups=new Powerups(scene,data,audio,collect);perkDrink=new PerkDrink(viewScene,data,audio);mysteryBox=new MysteryBox(scene,world,data,session,audio,toast);
+   features=new KinoFeatures({scene,world,data,session,enemies,player,camera,audio,effect,damage,toast});
+-  await Promise.all([enemies.load(),equipView(),audio.load(),powerups.load(),perkDrink.load(),mysteryBox.load(),features.load()]);theaterLighting.prepareActors(enemies);player.update(.05,{});ready=true;
+-  progress('Ready',100);$('loading').hidden=true;$('start').disabled=contextLost;$('menu-status').textContent=contextLost?'Graphics paused. Waiting for Safari to restore the game…':touchControls.mode?'Tap to enter the theater':'Click to capture the mouse · Esc to pause';
++  await Promise.all([enemies.load(),equipView(),audio.load(),powerups.load(),perkDrink.load(),mysteryBox.load(),features.load()]);theaterLighting.prepareActors(enemies);actorRendering=new TheaterActors(scene,world);player.update(.05,{});ready=true;
++  progress('Ready',100);$('loading').hidden=true;$('start').disabled=contextLost;$('menu-status').textContent=contextLost?'Graphics paused. Waiting for the renderer to recover…':touchControls.mode?'Tap to enter the theater':'Click to capture the mouse · Esc to pause';
+ }catch(error){console.error(error);errors.push(String(error));$('load-label').textContent='Unable to start: '+error.message;$('menu-status').textContent='A required file could not load. Reopen the app, or retry below.';$('start').disabled=false;$('start').textContent='RETRY LOADING';$('start').addEventListener('click',()=>location.reload(),{once:true});}
+ renderer.info.autoReset=false;
+ function renderFrame(now){
+   if(document.hidden||contextLost)return;
+-  const interval=active?1000/(profile.mobile?30:qualitySettings(settings.quality).fps):1000/20;
+-  if(lastRendered&&now-lastRendered<interval-1)return;
+-  lastRendered=now;const dt=Math.min((now-previous)/1000,.06);previous=now;frameTime+=dt;frameCount++;renderedFrames++;
++  const timing=framePacer.sample(now,active?(profile.mobile?30:qualitySettings(settings.quality).fps):20);
++  if(!timing)return;
++  const {dt,elapsed}=timing;frameTime+=elapsed;frameCount++;renderedFrames++;
+   if(frameTime>.75){fps=Math.round(frameCount/frameTime);frameTime=0;frameCount=0;}
+   update(dt);renderer.info.reset();renderer.clear();renderer.render(scene,camera);if(ready&&started){renderer.clearDepth();renderer.render(viewScene,viewCamera);}
+ }
+--- v1.4/export/web/index.html
++++ v1.5/export/web/index.html
+@@ -36,6 +36,7 @@
+ .kino-ui #perks{margin-bottom:10px}.kino-ui .perk{width:24px;height:24px;box-shadow:0 2px 5px #0009}
+ .kino-ui #weapon-panel{right:32px;bottom:50px;text-shadow:0 2px 6px #000;max-width:38vw}.kino-ui #weapon-name{font-size:12px;letter-spacing:1.3px;line-height:1.5;margin-top:5px}
+ .kino-ui #ammo{gap:10px;margin-top:3px;font-variant-numeric:tabular-nums}.kino-ui #mag{font-size:48px;line-height:1.2;font-weight:600;letter-spacing:-1.7px}.kino-ui #ammo>span{font-size:17px}.kino-ui #ammo>span:first-of-type{font-size:24px}
++.kino-ui #reload-progress{height:2px;width:112px;margin:7px 0 5px auto;background:#ffffff1c;overflow:hidden}.kino-ui #reload-progress i{display:block;width:100%;height:100%;background:var(--ui-brass);transform-origin:left}
+ .kino-ui #grenades{font-size:9px;letter-spacing:.75px;color:#cabfa6}.kino-ui #reload-label{font-size:9px;letter-spacing:1px;color:#ead092}
+ .kino-ui #controls-hint{left:32px;bottom:18px;font-size:9px;color:#d0c5aa94;letter-spacing:.1px}.kino-ui #effects{bottom:35px;gap:13px}.kino-ui .powerup-timer img{height:36px;width:36px}
+ .kino-ui #toast{font-size:12px;letter-spacing:.4px;top:23%;padding:9px 16px;background:linear-gradient(90deg,transparent,#101513e6 18%,#101513e6 82%,transparent);max-width:80vw;text-align:center}.kino-ui #toast:empty{display:none}
+@@ -75,7 +76,7 @@
+ <div id="announcement"><span id="announcement-small"></span><strong id="announcement-title"></strong></div><div id="prompt"></div><div id="toast"></div>
+ <div id="round-panel"><span class="eyebrow">ROUND</span><strong id="round">I</strong><span id="remaining"></span></div>
+ <div id="player-panel"><div id="perks"></div><span class="hud-label">POINTS</span><div class="points"><span>✦</span> <strong id="points">500</strong></div><div class="health-track"><i id="health-fill"></i></div><span id="health-label">100 / 100</span></div>
+-<div id="weapon-panel"><span class="hud-label">EQUIPPED</span><div id="weapon-name">M1911</div><div id="ammo"><strong id="mag">8</strong><span>/</span><span id="reserve">32</span></div><div id="reload-label"></div><div id="grenades">G · 4 GRENADES</div></div>
++<div id="weapon-panel"><span class="hud-label">EQUIPPED</span><div id="weapon-name">M1911</div><div id="ammo"><strong id="mag">8</strong><span>/</span><span id="reserve">32</span></div><div id="reload-label"></div><div id="reload-progress" hidden aria-hidden="true"><i id="reload-progress-fill"></i></div><div id="grenades">G · 4 GRENADES</div></div>
+ <div id="effects"></div><div id="objective"></div><div id="controls-hint">WASD move · Shift sprint · R reload · F use · V knife · Esc pause</div><div id="debug" hidden></div>
+ <section id="menu" aria-label="Kino der Toten menu">
+   <div class="menu-grain"></div><div class="menu-frame" aria-hidden="true"></div>
+--- v1.4/export/web/input-timing.js
++++ v1.5/export/web/input-timing.js
+@@ -0,0 +1,45 @@
++// Browser timestamps stay separate from paused gameplay time.
++export class FramePacer {
++  constructor(){this.reset();}
++  reset(){this.deadline=null;this.previous=null;this.interval=null;}
++  sample(now,fps){
++    if(!Number.isFinite(now)||!Number.isFinite(fps)||fps<=0)return null;
++    const interval=1000/fps;
++    if(this.interval!==interval){this.interval=interval;this.deadline=now;}
++    // Native 60 Hz callbacks can arrive about 1 ms early and compensate on
++    // the next tick. Accept that jitter without shifting the deadline grid;
++    // otherwise a slightly early callback becomes a whole skipped frame.
++    const tolerance=Math.min(1.25,interval/4);
++    if(now+tolerance<this.deadline)return null;
++    const elapsed=this.previous===null?0:Math.max(0,(now-this.previous)/1000);
++    this.previous=now;
++    // Preserve fractional refresh periods (e.g. 60 FPS on a 144 Hz display).
++    // A stall discards missed renders; there is never a catch-up render burst.
++    this.deadline=now-this.deadline>interval*3?now+interval:
++      this.deadline+Math.max(1,Math.floor((now-this.deadline)/interval+1e-7)+1)*interval;
++    return {elapsed,dt:Math.min(elapsed,.06)};
++  }
++}
++
++export class WheelIntent {
++  constructor(){this.reset();}
++  reset(){this.last=-Infinity;this.total=0;this.direction=0;this.used=false;}
++  consume(event,now){
++    if(event.ctrlKey||event.metaKey||!Number.isFinite(event.deltaY)||!Number.isFinite(now)||Math.abs(event.deltaX??0)>Math.abs(event.deltaY)||event.deltaY===0)return false;
++    const direction=Math.sign(event.deltaY);
++    if(now-this.last>180||direction!==this.direction){this.total=0;this.used=false;}
++    this.last=now;this.direction=direction;
++    const delta=event.deltaY*(event.deltaMode===1?40:event.deltaMode===2?120:1);
++    this.total+=Math.abs(delta);
++    if(this.used||this.total<35)return false;
++    this.used=true;return true;
++  }
++}
++
++export function reloadPresentation(session){
++  if(session.weaponUnavailable||session.reloadLeft<=0)return null;
++  const segmented=!!session.def.segmentedReload,stage=session.reloadStage;
++  return {progress:Math.max(0,Math.min(1,1-session.reloadLeft/Math.max(.001,session.reloadDuration))),
++    label:segmented&&stage==='shell'?'LOADING SHELL':segmented&&stage==='end'?'READYING':'RELOADING',
++    detail:segmented?`${session.weapon.mag} / ${session.def.clipSize}`:''};
++}
+--- v1.4/export/web/kino-session.js
++++ v1.5/export/web/kino-session.js
+@@ -73,7 +73,12 @@
+   }
+   fire(){return !this.busy&&!this.weaponUnavailable&&super.fire();}
+   reload(){return !this.busy&&!this.weaponUnavailable&&super.reload();}
+-  switchWeapon(slot){if(this.busy)return false;this.leaveAttachment();super.switchWeapon(slot);return true;}
++  switchWeapon(slot){
++    if(this.busy||this.inventory.length<2)return false;
++    const target=slot??(this.slot+1)%this.inventory.length;
++    if(!Number.isInteger(target)||target<0||target>=this.inventory.length||target===this.slot)return false;
++    this.leaveAttachment();super.switchWeapon(target);return true;
++  }
+   giveWeapon(id){
+     if(this.busy||!this.data.weapons[id])return false;
+     this.leaveAttachment();
+--- v1.4/export/web/moon-combat.js
++++ v1.5/export/web/moon-combat.js
+@@ -25,12 +25,19 @@
+     const response=await fetch('moon/combat-data.json');if(!response.ok)throw new Error('Missing Moon combat assets; rebuild Moon.');
+     this.data=await response.json();this.session=new MoonSession(this.data);
+     this.view=new ViewWeapon(this.viewScene,this.data,(name,def)=>this.audio.notify(name,def));
+-    this.enemies=new MoonEnemies(this.scene,this.world,this.data,this.session,{damage:n=>this.damage(n),kill:z=>this.onKill(z),hit:(z,head)=>this.hit(z,head),sound:(kind,p)=>this.audio.play(kind,Math.max(0,1-p.distanceTo(this.camera.position)/1000))});
++    this.enemies=new MoonEnemies(this.scene,this.world,this.data,this.session,{damage:n=>this.damage(n),kill:z=>this.onKill(z),hit:(z,head)=>this.hit(z,head),sound:(kind,p)=>this.enemySound(kind,p)});
+     this.pickups=new Powerups(this.scene,this.data,this.audio,type=>this.collect(type));
+     this.perkDrink=new PerkDrink(this.viewScene,this.data,this.audio);this.equipmentModels={};
+     await Promise.all([this.audio.load(),this.enemies.load(),this.pickups.load(),this.equip(),this.perkDrink.load(),
+       ...Object.entries(this.data.equipment).map(async([id,d])=>this.equipmentModels[id]=await loadModel(d.worldModel))]);
+   }
++  enemySound(event,position){
++    // Moon retains its existing generic growl/board cues. The shared enemy
++    // interface also sends lifecycle updates, which are not playable sounds.
++    const cue={growl:'growl',ambient:'growl',sprint:'growl',behind:'growl',board:'board',barrier:'board'}[event];
++    if(!cue||!position?.isVector3||![position.x,position.y,position.z].every(Number.isFinite))return;
++    this.audio.play(cue,Math.max(0,1-position.distanceTo(this.camera.position)/1000));
++  }
+   async equip(){
+     const suit=!!this.features?.state.suit;
+     if(suit!==this.handSuit){this.view.currentId=null;this.handSuit=suit;}
+--- v1.4/export/web/player-controller.js
++++ v1.5/export/web/player-controller.js
+@@ -240,6 +240,15 @@
+     this._ladderExitTimer = 0;
+     this._ladderStall = 0;
+ 
++    // Rendering can interpolate the fixed simulation without changing the
++    // capsule, movement speeds, collision response, or native jump trajectory.
++    // Opt in per map; existing controller users retain direct camera tracking.
++    this.smoothCamera = options.smoothCamera === true;
++    this._viewPrevious = new THREE.Vector3();
++    this._viewCurrent = new THREE.Vector3();
++    this._viewEye = this._standingEyeHeight;
++    this._viewStepOffset = 0;
++
+     if (collisionSource && !sourceIsOctree) {
+       this.buildCollision(collisionSource);
+     }
+@@ -302,7 +311,9 @@
+    */
+   reset(position = this.spawn, { eye = this.spawnIsEye, resolve = true } = {}) {
+     const target = copyPosition(position, this.spawn);
+-    const feetY = eye ? target.y - this._eyeHeight : target.y;
++    // Reset always restores the standing capsule, including an eye-coordinate
++    // respawn made while crouched.
++    const feetY = eye ? target.y - this._standingEyeHeight : target.y;
+ 
+     this.collider.start.set(target.x, feetY + this.radius, target.z);
+     this.collider.end.set(target.x, feetY + this._segmentLength(this.height) + this.radius, target.z);
+@@ -318,6 +329,7 @@
+     this._ladderExitTimer = 0;
+ 
+     if (resolve && this.worldReady) this._resolveOverlaps();
++    this.clearInput();
+     this._syncCamera();
+     return this;
+   }
+@@ -362,6 +374,24 @@
+     return this;
+   }
+ 
++  /** Discard paused/focus-lost input without cancelling an airborne fall. */
++  clearInput({ stopHorizontal = false } = {}) {
++    this.input.forward = 0;
++    this.input.strafe = 0;
++    this.input.sprint = false;
++    this.input.crouch = false;
++    this.input.jump = false;
++    this._jumpHeld = false;
++    this._jumpBufferTimer = 0;
++    this._accumulator = 0;
++    if (stopHorizontal) {
++      this.velocity.x = 0;
++      this.velocity.z = 0;
++    }
++    this._resetView();
++    return this;
++  }
++
+   setEnabled(enabled) {
+     this.enabled = Boolean(enabled);
+     if (!this.enabled) {
+@@ -390,9 +420,11 @@
+     );
+ 
+     let steps = 0;
+-    while (this._accumulator >= this.fixedTimeStep && steps < this.maxSubSteps) {
+-      this._stepFixed(this.fixedTimeStep);
+-      this._accumulator -= this.fixedTimeStep;
++    // Tolerate floating-point roundoff at an exact step boundary (for example
++    // 144 render frames accumulating 120 physics steps in one second).
++    while (this._accumulator + 1e-10 >= this.fixedTimeStep && steps < this.maxSubSteps) {
++      this._advanceFixed(this.fixedTimeStep);
++      this._accumulator = Math.max(0, this._accumulator - this.fixedTimeStep);
+       steps += 1;
+     }
+ 
+@@ -403,8 +435,8 @@
+   /** Force one fixed simulation step, useful for deterministic tests. */
+   step(deltaSeconds = this.fixedTimeStep) {
+     if (!this.enabled) return this.state;
+-    this._stepFixed(clamp(numberOr(deltaSeconds, this.fixedTimeStep), 0, this.maxDelta));
+-    this._syncCamera();
++    this._advanceFixed(clamp(numberOr(deltaSeconds, this.fixedTimeStep), 0, this.maxDelta));
++    this._syncCamera(1);
+     return this.state;
+   }
+ 
+@@ -417,6 +449,7 @@
+       crouched: this.crouched,
+       onLadder: this.onLadder,
+       worldReady: this.worldReady,
++      view: { smoothing: this.smoothCamera, eyeHeight: this.smoothCamera ? this._viewEye : this._eyeHeight, stepOffset: this._viewStepOffset },
+     };
+   }
+ 
+@@ -845,8 +878,49 @@
+     return true;
+   }
+ 
+-  _syncCamera() {
++  _resetView() {
++    this._viewEye = this._eyeHeight;
++    this._viewStepOffset = 0;
++    this._viewCurrent.set(this.collider.start.x, this.collider.start.y - this.radius + this._viewEye, this.collider.start.z);
++    this._viewPrevious.copy(this._viewCurrent);
++  }
++
++  _advanceFixed(dt) {
++    const previousY = this.collider.start.y;
++    const wasGrounded = this.onFloor;
++    this._viewPrevious.copy(this._viewCurrent);
++    this._stepFixed(dt);
++    if (!this.smoothCamera) return;
++
++    const blend = 1 - Math.exp(-20 * dt);
++    this._viewEye += (this._eyeHeight - this._viewEye) * blend;
++    // In open space the eye can ease down into crouch. Under an actual low
++    // ceiling, keep the eye inside the cleared capsule instead of peeking
++    // through geometry during that transition.
++    if (this._viewEye + 8 > this.currentHeight && !this._canUseHeight(this._viewEye + 8)) {
++      this._viewEye = Math.min(this._viewEye, this._eyeHeight);
++    }
++
++    this._viewStepOffset *= Math.exp(-20 * dt);
++    const rise = this.collider.start.y - previousY;
++    if (wasGrounded && this.onFloor && rise > 2 && rise <= this.stepHeight + this.skin * 2) {
++      this._viewStepOffset = Math.max(-this.stepHeight, this._viewStepOffset - rise);
++    }
++    this._viewCurrent.set(this.collider.start.x, this.collider.start.y - this.radius + this._viewEye + this._viewStepOffset, this.collider.start.z);
++    // A reset inside the physics step must not interpolate back through the map.
++    if (Math.abs(rise) > this.height * 2) this._viewPrevious.copy(this._viewCurrent);
++  }
++
++  _syncCamera(alpha = this._accumulator / this.fixedTimeStep) {
+     const feetY = this.collider.start.y - this.radius;
++    if (this.smoothCamera) {
++      this.camera.position.lerpVectors(this._viewPrevious, this._viewCurrent, clamp(alpha, 0, 1));
++      const eyeAboveFeet = this.camera.position.y - feetY;
++      if (eyeAboveFeet + 8 > this.currentHeight && !this._canUseHeight(eyeAboveFeet + 8)) {
++        this.camera.position.y = Math.min(this.camera.position.y, feetY + this._eyeHeight);
++      }
++      return;
++    }
+     this.camera.position.set(this.collider.start.x, feetY + this._eyeHeight, this.collider.start.z);
+   }
+ }
+--- v1.4/export/web/theater-actors.js
++++ v1.5/export/web/theater-actors.js
+@@ -0,0 +1,130 @@
++import * as THREE from 'three';
++import {surfaceReceivers} from './theater-surface-light.js';
++
++const fallback = [.10,.115,.13], down = new THREE.Vector3(0,-1,0), up = new THREE.Vector3(0,1,0);
++const cellSize = 64;
++function regionFor(position, margin=3) {
++  let best=-1,distance=margin;
++  for(const [i,r]of surfaceReceivers.entries()){const d=Math.abs(position.y-r.height);if(d>=distance||(margin>3&&r.height>position.y+6)||position.x<r.bounds[0]||position.x>r.bounds[2]||position.z<r.bounds[1]||position.z>r.bounds[3])continue;best=i;distance=d;}
++  return best;
++}
++const keyFor=(r,x,z)=>`${r}:${Math.floor(x/cellSize)}:${Math.floor(z/cellSize)}`;
++
++/** Compact spatial averages of existing floor irradiance, never a new bake.
++ * Floors transfer a restrained diffuse bounce estimate to moving actors. */
++export function collectActorProbes(scene, scale=4) {
++  const cells=new Map(),position=new THREE.Vector3(),normal=new THREE.Vector3(),matrix=new THREE.Matrix3();
++  scene.updateMatrixWorld(true);
++  scene.traverse(mesh=>{
++    if(!mesh.isMesh||mesh.isInstancedMesh||mesh.isSkinnedMesh||!mesh.visible)return;
++    const a=mesh.geometry.attributes;if(!a.kinoBaseLight||!a.normal)return;
++    matrix.getNormalMatrix(mesh.matrixWorld);
++    for(let i=0;i<a.position.count;i++){
++      normal.fromBufferAttribute(a.normal,i).applyMatrix3(matrix).normalize();if(normal.y<.94)continue;
++      position.fromBufferAttribute(a.position,i).applyMatrix4(mesh.matrixWorld);const region=regionFor(position);if(region<0)continue;
++      const key=keyFor(region,position.x,position.z);let c=cells.get(key);if(!c){c={region,x:0,z:0,n:0,base:[0,0,0],power:[0,0,0]};cells.set(key,c);}c.x+=position.x;c.z+=position.z;c.n++;
++      for(let j=0;j<3;j++){c.base[j]+=Math.max(0,a.kinoBaseLight.getComponent(i,j)-(a.kinoSolarLight?.getComponent(i,j)||0))*scale;c.power[j]+=(a.kinoPowerLight?.getComponent(i,j)||0)*scale;}
++    }
++  });
++  for(const c of cells.values()){c.x/=c.n;c.z/=c.n;for(let j=0;j<3;j++){c.base[j]/=c.n;c.power[j]/=c.n;}}
++  return cells;
++}
++
++export function sampleActorBounce(cells, region, position, power=0) {
++  const x=Math.floor(position.x/cellSize),z=Math.floor(position.z/cellSize),sum=[0,0,0];let total=0;
++  for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++){
++    const c=cells.get(`${region}:${x+dx}:${z+dz}`);if(!c)continue;
++    const weight=1/(64+(c.x-position.x)**2+(c.z-position.z)**2);total+=weight;
++    for(let j=0;j<3;j++)sum[j]+=(c.base[j]*.45+c.power[j]*power*.35)*weight;
++  }
++  return total?sum.map((v,j)=>THREE.MathUtils.clamp(v/total+fallback[j]*.35,fallback[j]*.65,.65)):fallback.slice();
++}
++
++/** Project an actor-height point down the original sun vector onto an existing
++ * receiver. This reuses the static visibility atlas: a conservative approximation
++ * where static obstacles below the actor can also shadow its projected sample. */
++export function sampleActorSun(field, region, position, height=32) {
++  if(region<0||!field?.texture?.image?.data)return 0;
++  const p=field.plan,r=p.regions[region],sun=p.sunDirection;if(!r||sun[1]<=.01)return 0;
++  const y=position.y+height-r.height,x=position.x-y*sun[0]/sun[1],z=position.z-y*sun[2]/sun[1],b=r.bounds;
++  const u=(x-b[0])/(b[2]-b[0]),v=(z-b[1])/(b[3]-b[1]);if(u<0||u>1||v<0||v>1)return 0;
++  const sx=r.tile[0]*p.tileSize+u*(p.tileSize-1),sy=r.tile[1]*p.tileSize+v*(p.tileSize-1),ix=Math.floor(sx),iy=Math.floor(sy),fx=sx-ix,fy=sy-iy,raw=field.texture.image.data;
++  const at=(x,y)=>raw[Math.min(p.height-1,y)*p.width+Math.min(p.width-1,x)]/255;
++  return (at(ix,iy)*(1-fx)+at(ix+1,iy)*fx)*(1-fy)+(at(ix,iy+1)*(1-fx)+at(ix+1,iy+1)*fx)*fy;
++}
++
++export function installActorProbeMaterial(material, uniforms) {
++  if(!material?.isMeshStandardMaterial)return material;
++  const prior=material.onBeforeCompile,shade=material.clone();shade.userData={...material.userData,kinoSpatialActorProbe:true};
++  shade.onBeforeCompile=shader=>{
++    prior.call(material,shader);
++    shader.uniforms.kinoActorAmbient=uniforms.ambient;shader.uniforms.kinoActorSun=uniforms.sun;shader.uniforms.kinoActorSunDirection=uniforms.direction;
++    shader.fragmentShader='uniform vec3 kinoActorAmbient;uniform vec3 kinoActorSun;uniform vec3 kinoActorSunDirection;\n'+shader.fragmentShader;
++    // Replace the established v1.4 constant, retaining any unrelated source hook.
++    shader.fragmentShader=shader.fragmentShader.replace('irradiance += PI * vec3(.10,.115,.13);','');
++    shader.fragmentShader=shader.fragmentShader.replace('#include <lights_fragment_maps>', '#include <lights_fragment_maps>\n#if defined(RE_IndirectDiffuse)\nirradiance += PI * (kinoActorAmbient + kinoActorSun * max(0.,dot(normal,normalize((viewMatrix*vec4(kinoActorSunDirection,0.)).xyz))));\n#endif');
++  };
++  shade.customProgramCacheKey=()=> 'kino-spatial-actor-probe-v1';return shade;
++}
++
++export function verifyContactFloor(world, position, region, radius) {
++  if(region<0)return null;const y=surfaceReceivers[region].height,normal=new THREE.Vector3();
++  if(position.y<y-5||position.y>y+58)return null;
++  for(const [x,z]of [[0,0],[radius,0],[-radius,0],[0,radius],[0,-radius]]){
++    const ray=new THREE.Ray(new THREE.Vector3(position.x+x,y+22,position.z+z),down),hit=world.raycast(ray,0,48);
++    const point=hit?.point||hit?.position;if(!point||Math.abs(point.y-y)>1.5||!hit.triangle)return null;
++    hit.triangle.getNormal(normal);if(normal.y<.95)return null;
++  }
++  return y;
++}
++
++export class TheaterActors {
++  constructor(scene,world,{capacity=36}={}) {
++    this.scene=scene;this.world=world;this.capacity=Math.min(36,Math.max(1,capacity));this.records=new Map();this.lastTime=null;this.cursor=0;
++    this.probes=collectActorProbes(scene,world.lightfield?.manifest?.scale||4);this.field=world.surfaceSunlight;
++    this.direction=new THREE.Vector3(...(this.field?.plan.sunDirection||[.179,.754,.633])).normalize();this.sunColor=new THREE.Color(...(this.field?.plan.color||[.91,.86,.73]));this.matrix=new THREE.Matrix4();this.quaternion=new THREE.Quaternion();this.scale=new THREE.Vector3();this.position=new THREE.Vector3();
++    const geometry=new THREE.PlaneGeometry(2,2).rotateX(-Math.PI/2);this.opacity=new THREE.InstancedBufferAttribute(new Float32Array(this.capacity),1);geometry.setAttribute('contactOpacity',this.opacity);
++    const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1,
++      vertexShader:'attribute float contactOpacity;varying vec2 contactUV;varying float amount;void main(){contactUV=uv*2.-1.;amount=contactOpacity;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.);}',
++      fragmentShader:'varying vec2 contactUV;varying float amount;void main(){float r=dot(contactUV,contactUV);if(r>=1.)discard;float a=pow(1.-r,2.2)*amount;gl_FragColor=vec4(0.,0.,0.,a);}' });
++    this.shadows=new THREE.InstancedMesh(geometry,material,this.capacity);this.shadows.name='Pooled actor floor contact';this.shadows.count=0;this.shadows.frustumCulled=false;this.shadows.renderOrder=3;this.shadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(this.shadows);
++    this.stats={probeCells:this.probes.size,actors:0,shadows:0,floorChecks:0,rayBudget:0,materials:0,quality:'balanced'};
++  }
++  attach(actor) {
++    const uniforms={ambient:{value:new THREE.Color(...fallback)},sun:{value:new THREE.Color(0,0,0)},direction:{value:this.direction}},variants=new Map(),meshes=[];
++    actor.root.traverse(mesh=>{if(!mesh.isMesh)return;const original=mesh.material;const apply=m=>{if(!variants.has(m))variants.set(m,installActorProbeMaterial(m,uniforms));return variants.get(m);};mesh.material=Array.isArray(original)?original.map(apply):apply(original);meshes.push({mesh,original});});
++    const record={actor,uniforms,variants,meshes,ambient:fallback.slice(),ambientTarget:new THREE.Color(...fallback),sunTarget:new THREE.Color(0,0,0),sun:0,region:-1,floor:null,checkedAt:-Infinity,checkedPosition:new THREE.Vector3(Infinity,Infinity,Infinity)};this.records.set(actor.id,record);return record;
++  }
++  release(record) {for(const {mesh,original}of record.meshes)mesh.material=original;for(const [original,shade]of record.variants)if(shade!==original)shade.dispose();this.records.delete(record.actor.id);}
++  update(enemies,viewer,time,{quality='balanced'}={}) {
++    const dt=this.lastTime===null?1:Math.max(0,Math.min(.1,time-this.lastTime));this.lastTime=time;
++    const actors=[...enemies.list,...enemies.dead].filter(a=>a.root.visible).sort((a,b)=>a.root.position.distanceToSquared(viewer)-b.root.position.distanceToSquared(viewer)).slice(0,this.capacity),ids=new Set(actors.map(a=>a.id));
++    if(dt===0&&quality===this.stats.quality&&actors.length===this.records.size&&actors.every(a=>this.records.has(a.id)))return;
++    for(const record of [...this.records.values()])if(!ids.has(record.actor.id))this.release(record);
++    for(const actor of actors)if(!this.records.has(actor.id))this.attach(actor);
++    const interval=quality==='performance'?.32:.18,maxChecks=quality==='performance'?1:2,shadowLimit=quality==='performance'?8:this.capacity;let checks=0;
++    for(let n=0;n<actors.length&&checks<maxChecks;n++){
++      const actor=actors[(this.cursor+n)%actors.length],r=this.records.get(actor.id),p=actor.root.position;if(time-r.checkedAt<interval)continue;
++      r.checkedAt=time;r.checkedPosition.copy(p);r.region=regionFor(p,60);r.floor=null;
++      r.ambient=sampleActorBounce(this.probes,r.region,p,this.world.lightfield?.power.value||0);
++      r.sun=sampleActorSun(this.field,r.region,p,actor.kind==='zombie'?34:18);
++      r.ambientTarget.fromArray(r.ambient);r.sunTarget.copy(this.sunColor).multiplyScalar(r.sun*(this.field?.plan.energy||1.35));
++      if(p.distanceToSquared(viewer)<650**2&&!['barricade','entering'].includes(actor.state))r.floor=verifyContactFloor(this.world,p,r.region,actor.kind==='dog'?20:14);
++      checks++;
++    }
++    this.cursor=actors.length?(this.cursor+maxChecks)%actors.length:0;
++    let count=0,materials=0;const blend=1-Math.exp(-dt*12);
++    for(const actor of actors){const r=this.records.get(actor.id),p=actor.root.position;materials+=r.variants.size;
++      r.uniforms.ambient.value.lerp(r.ambientTarget,blend);r.uniforms.sun.value.lerp(r.sunTarget,blend);
++      if(count>=shadowLimit||r.floor===null||p.distanceToSquared(r.checkedPosition)>32**2||p.y<r.floor-2||p.y>r.floor+58)continue;
++      const radius=actor.kind==='dog'?23:actor.kind==='nova'?19:16,fade=THREE.MathUtils.clamp(1-Math.max(0,p.y-r.floor-4)/54,0,1)*(actor.state==='dead'?Math.min(1,actor.life/2):1);
++      this.position.set(p.x,r.floor+.2,p.z);this.quaternion.setFromAxisAngle(up,-actor.root.rotation.y);this.scale.set(radius,1,radius*.78);this.matrix.compose(this.position,this.quaternion,this.scale);this.shadows.setMatrixAt(count,this.matrix);this.opacity.setX(count,.34*fade);count++;
++    }
++    this.shadows.count=count;this.shadows.visible=count>0;this.shadows.instanceMatrix.needsUpdate=true;this.opacity.needsUpdate=true;
++    Object.assign(this.stats,{actors:actors.length,shadows:count,floorChecks:checks,rayBudget:maxChecks*5,materials,quality});
++  }
++  reset(){for(const r of [...this.records.values()])this.release(r);this.shadows.count=0;this.shadows.visible=false;this.lastTime=null;this.cursor=0;this.stats.actors=this.stats.shadows=this.stats.materials=0;}
++  sampleIllumination(feet,{height=32,power=this.world.lightfield?.power.value||0}={}){const region=regionFor(feet,60);return {region,ambient:sampleActorBounce(this.probes,region,feet,power),sunVisibility:sampleActorSun(this.field,region,feet,height),sunColor:this.sunColor.toArray(),sunEnergy:this.field?.plan.energy||1.35};}
++  snapshot(){return {...this.stats,drawCalls:this.shadows.visible?1:0,triangles:this.shadows.count*2,samples:[...this.records.values()].slice(0,8).map(r=>({id:r.actor.id,kind:r.actor.kind,region:r.region,sun:r.sun,ambient:r.ambient,contact:r.floor!==null}))};}
++  dispose(){this.reset();this.shadows.removeFromParent();this.shadows.geometry.dispose();this.shadows.material.dispose();}
++}
+--- v1.4/export/web/view-lighting.js
++++ v1.5/export/web/view-lighting.js
+@@ -0,0 +1,23 @@
++import * as THREE from 'three';
++
++// First-person hands retain a readable exposure floor, with restrained room
++// colour and sun response. This approximates bounce, not native T5 light probes.
++export class ViewLighting {
++  constructor(ambient,key){
++    this.ambient=ambient;this.key=key;this.baseAmbient=ambient.color.clone();this.baseKey=key.color.clone();
++    this.targetAmbient=new THREE.Color();this.targetKey=new THREE.Color();this.sunColor=new THREE.Color();this.reset();
++  }
++  reset(){this.ambient.color.copy(this.baseAmbient);this.key.color.copy(this.baseKey);this.ambient.intensity=.55;this.key.intensity=.8;}
++  update(sample,dt){
++    if(!sample||dt<=0)return;
++    const light=sample.ambient.map(v=>Number.isFinite(v)?Math.max(0,v):.115);
++    const luminance=.2126*light[0]+.7152*light[1]+.0722*light[2],sun=THREE.MathUtils.clamp(sample.sunVisibility||0,0,1),blend=1-Math.exp(-5*Math.min(dt,.1));
++    const ambient=THREE.MathUtils.clamp(.49+luminance*.5+sun*.08,.53,.85),key=.77+sun*.4;
++    this.targetAmbient.fromArray(light).multiplyScalar(.5/Math.max(.05,luminance));
++    this.targetAmbient.lerp(this.baseAmbient,.82);
++    this.targetKey.copy(this.baseKey).lerp(this.sunColor.fromArray(sample.sunColor),sun*.22);
++    this.ambient.intensity=THREE.MathUtils.lerp(this.ambient.intensity,ambient,blend);this.key.intensity=THREE.MathUtils.lerp(this.key.intensity,key,blend);
++    this.ambient.color.lerp(this.targetAmbient,blend);this.key.color.lerp(this.targetKey,blend);
++  }
++  snapshot(){return {ambient:this.ambient.intensity,key:this.key.intensity,ambientColor:this.ambient.color.toArray(),keyColor:this.key.color.toArray()};}
++}
+--- v1.4/test/enemy-audio.test.mjs
++++ v1.5/test/enemy-audio.test.mjs
+@@ -4,12 +4,12 @@
+ import crypto from 'node:crypto';
+ import * as THREE from 'three';
+ import {GameAudio} from '../export/web/audio.js';
+-import {EnemyAudio,enemyCueKeys,enemyFootstepKeys} from '../export/web/enemy-audio.js';
++import {EnemyAudio,enemyCueKeys,enemyFootstepKeys,enemyVoiceProfile} from '../export/web/enemy-audio.js';
+ import {Enemies} from '../export/web/enemies.js';
+ const manifest=JSON.parse(fs.readFileSync(new URL('../export/web/audio/manifest.json',import.meta.url)));
+ const catalog=JSON.parse(fs.readFileSync(new URL('../export/web/audio/enemies/catalog.json',import.meta.url)));
+ const settle=()=>new Promise(r=>setImmediate(r));
+-class Param{constructor(){this.value=0;}setValueAtTime(v){this.value=v;}exponentialRampToValueAtTime(v){this.value=v;}setTargetAtTime(v,time,constant){this.value=v;this.target={value:v,time,constant};}}
++class Param{constructor(){this.value=0;}setValueAtTime(v){this.value=v;}exponentialRampToValueAtTime(v){this.value=v;}setTargetAtTime(v,time,constant){this.value=v;this.target={value:v,time,constant};}linearRampToValueAtTime(v,time){this.ramps??=[];this.ramps.push({value:v,time});}cancelAndHoldAtTime(time){this.held=time;}}
+ class AudioNode{constructor(type){this.type=type;this.connections=[];for(const k of ['gain','frequency','positionX','positionY','positionZ','playbackRate'])this[k]=new Param();}connect(n){this.connections.push(n);}disconnect(){this.connections=[];}start(){this.started=true;}stop(t){this.stopped=true;if(t===undefined)this.onended?.();}}
+ class Context{constructor(){this.state='running';this.currentTime=10;this.sampleRate=8000;this.destination={};this.nodes=[];this.listener={};}node(t){const n=new AudioNode(t);this.nodes.push(n);return n;}createGain(){return this.node('gain');}createBufferSource(){return this.node('source');}createPanner(){return this.node('panner');}createBiquadFilter(){return this.node('filter');}createBuffer(c,l){const data=Array.from({length:c},()=>new Float32Array(l));return{length:l,numberOfChannels:c,getChannelData:i=>data[i]};}async suspend(){this.state='suspended';}async resume(){this.state='running';}}
+ function setup(){const a=new GameAudio();a.manifest=manifest;a.ctx=new Context();a.master=a.ctx.createGain();a.groups={effects:a.ctx.createGain()};a.buffer=async()=>({length:8000,numberOfChannels:1});a.enemyAudio=new EnemyAudio(a,{random:()=>0});a.setListener([0,48,0]);return a;}
+@@ -24,7 +24,7 @@
+  assert.equal(enemyCueKeys(manifest,'zombie','attack').length,8);assert.equal(enemyCueKeys(manifest,'zombie','death').length,8);assert.equal(enemyCueKeys(manifest,'zombie','sprint').length,10);assert.equal(enemyCueKeys(manifest,'nova','ambient').length,5);assert.deepEqual(enemyCueKeys(manifest,'dog','ambient'),['dog']);assert.deepEqual(enemyCueKeys(manifest,'dog','attack'),['enemy/nzp/hound/a0']);assert.equal(enemyCueKeys(manifest,'zombie','unknown').length,0);assert.match(catalog.fidelity,/approximate/);
+ });
+ test('actual playback uses effects HRTF and moving emitter height, with separate Nova rate',async()=>{
+- const a=setup();a.enemy('attack',[100,10,-100],meta(1,'nova'));await settle();const voice=[...a.voices][0],p=voice.spatialNodes[0];assert.equal(p.panningModel,'HRTF');assert.equal(p.connections[0],a.groups.effects);assert.equal(voice.source.playbackRate.value,1.25);assert.equal(p.positionY.value,30);
++ const a=setup();a.enemy('attack',[100,10,-100],meta(1,'nova'));await settle();const voice=[...a.voices][0],p=voice.spatialNodes[0];assert.equal(p.panningModel,'HRTF');assert.equal(p.connections[0],a.groups.effects);assert.equal(voice.source.playbackRate.value,1.25*enemyVoiceProfile(1,'nova',0).pitch);assert.equal(p.positionY.value,30);
+  a.enemy('update',[-200,20,-40],meta(1,'nova'));assert.deepEqual([p.positionX.value,p.positionY.value,p.positionZ.value],[-200,40,-40]);assert.equal(a.snapshot().recentEvents[0].native,false);assert.equal(a.snapshot().recentEvents[0].sourceType,'community-recording');a.enemy('remove',null,meta(1));assert.equal(a.voices.size,0);
+  a.enemy('barrier',[100,10,-100],meta(2));await settle();a.enemy('update',[200,20,-100],meta(2));assert.equal([...a.voices][0].spatialNodes[0].positionY.value,45);
+ });
+@@ -110,3 +110,32 @@
+   const committed=actor.root.rotation.y;player.set(z,0,-x);e.update(.2,player);assert.equal(actor.root.rotation.y,committed,'windup must not swivel to follow a dodge');
+  }
+ });
++
++test('seeded vocal shuffle exhausts all eight attack recordings before repeating and preserves actor identity',async()=>{
++ const sequence=async seed=>{const a=setup();a.enemyAudio=new EnemyAudio(a,{seed});const events=[];for(let i=0;i<17;i++){a.enemy('attack',[80,0,-100],meta(17));await settle();events.push(a.snapshot().recentEvents.at(-1));a.enemy('remove',null,meta(17));}return events;};
++ const first=await sequence(913),replay=await sequence(913),other=await sequence(914);assert.deepEqual(first.map(e=>e.key),replay.map(e=>e.key));assert.notDeepEqual(first.map(e=>e.key),other.map(e=>e.key));
++ assert.equal(new Set(first.slice(0,8).map(e=>e.key)).size,8);assert.equal(new Set(first.slice(8,16).map(e=>e.key)).size,8);assert(first.every((e,i)=>!i||e.key!==first[i-1].key));assert.equal(new Set(first.map(e=>e.voiceIdentity)).size,1);assert.equal(new Set(first.map(e=>e.playbackRate)).size,1);
++ const identities=Array.from({length:24},(_,i)=>enemyVoiceProfile(i,'zombie',913));assert(identities.every(v=>v.pitch>=.965&&v.pitch<=1.035&&v.level>=.92&&v.level<=1));assert(new Set(identities.map(v=>v.pitch)).size>20);assert(Math.max(...identities.map(v=>v.pitch))-Math.min(...identities.map(v=>v.pitch))>.05,'consecutive IDs must span the available voice range');assert.deepEqual(enemyVoiceProfile(3,'zombie',913),enemyVoiceProfile(3,'zombie',913));
++});
++test('recording leveling only attenuates louder PCM, caches its scan, and never changes samples or default callers',async()=>{
++ const a=setup(),pcm=new Float32Array([.5,-.5,.5,-.5]);let reads=0;const b={length:4,numberOfChannels:1,getChannelData(){reads++;return pcm;}};assert.equal(a.recordingGain(b,.25),.5);assert.equal(a.recordingGain(b,.75),1);assert.equal(reads,1);assert.deepEqual([...pcm],[.5,-.5,.5,-.5]);
++ a.buffer=async()=>b;await a.native('dog',.6,false,{levelRms:.25});assert.equal(a.snapshot().recentEvents.at(-1).levelGain,.5);assert.equal([...a.voices].at(-1).gain.gain.value,.3);await a.native('dog',.6);assert.equal([...a.voices].at(-1).gain.gain.value,.6);assert.equal(a.snapshot().recentEvents.at(-1).levelGain,undefined);
++});
++test('attack replaces a live growl with an 18ms fade and starts only after the predecessor releases its voice slot',async()=>{
++ const a=setup();a.enemy('sprint',[0,0,-100],meta(1));await settle();const old=[...a.voices][0],oldSource=old.source;
++ a.enemy('attack',[0,0,-100],meta(1));await settle();assert.equal(a.voices.size,1);assert(a.sourceVoices.has(oldSource));assert.equal(a.enemyAudio.snapshot().retiringVoices,1);assert.equal(a.snapshot().recentEvents.at(-1).enemyEvent,'sprint');assert.deepEqual(old.gain.gain.ramps.at(-1),{value:0,time:10.018});assert.equal(old.gain.gain.held,10);
++ oldSource.onended();await settle();assert.equal(a.voices.size,1);assert(!a.sourceVoices.has(oldSource));assert.equal(a.enemyAudio.snapshot().retiringVoices,0);assert.equal(a.snapshot().recentEvents.at(-1).enemyEvent,'attack');assert.equal(old.gain.connections.length,0);
++ const active=[...a.voices][0];assert.equal(active.gain.gain.ramps[0].time,10.006,'short onset ramp prevents full-amplitude sample starts');assert.equal(active.gain.gain.ramps.at(-1).value,0,'natural end is tapered');
++});
++test('reset during a release immediately disconnects the old source and prevents its queued replacement',async()=>{
++ const a=setup();a.enemy('sprint',[0,0,-100],meta(1));await settle();const old=[...a.voices][0];a.enemy('attack',[0,0,-100],meta(1));assert.equal(a.enemyAudio.snapshot().retiringVoices,1);await a.reset();await settle();assert.equal(a.voices.size,0);assert.equal(a.enemyAudio.snapshot().active,0);assert.equal(a.enemyAudio.snapshot().retiringVoices,0);assert.equal(a.pendingVoices.size,0);assert.equal(old.gain.connections.length,0);assert.equal(a.snapshot().recentEvents.length,0);
++});
++test('ten interrupted crowd vocals never exceed ten live creature sources and smooth their moving panners',async()=>{
++ const a=setup();for(let id=1;id<=10;id++)a.enemy('spawn',[id,0,-100],meta(id));await settle();const old=[...a.voices];for(let id=1;id<=10;id++)a.enemy('attack',[id,0,-100],meta(id));await settle();assert.equal(a.voices.size,10);assert.equal(a.enemyAudio.snapshot().active,10);assert.equal(a.enemyAudio.snapshot().retiringVoices,10);
++ for(const voice of old){voice.source.onended();await settle();assert(a.voices.size<=10);}assert.equal(a.voices.size,10);assert.equal(a.enemyAudio.snapshot().retiringVoices,0);
++ a.enemy('update',[120,0,-100],meta(1));const voice=[...a.voices].find(v=>v.spatialNodes[0].positionX.value===120);assert(voice);assert.equal(voice.spatialNodes[0].positionX.target.constant,.035);await a.reset();assert.equal(a.voices.size,0);
++});
++test('an existing attacker can change vocal at the general reserve ceiling without losing its reserved creature slot',async()=>{
++ const a=setup();for(let i=0;i<38;i++)a.playAt('impact',[i,0,-100]);a.enemy('attack',[0,0,-100],meta(1));a.enemy('attack',[20,0,-100],meta(2));await settle();assert.equal(a.voices.size,40);a.ctx.currentTime+=.6;
++ const old=[...a.voices].find(v=>v.key.startsWith('enemy/'));assert(a.enemy('attack',[0,0,-100],meta(1)),'replacing an actor must reuse its reserved slot');old.source.onended();await settle();assert.equal(a.voices.size,40);assert.equal(a.enemyAudio.snapshot().active,2);assert.equal(a.maxVoices-a.voices.size,8);
++});
+--- v1.4/test/input-timing.test.mjs
++++ v1.5/test/input-timing.test.mjs
+@@ -0,0 +1,75 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import {FramePacer,WheelIntent,reloadPresentation} from '../export/web/input-timing.js';
++import {KinoSession} from '../export/web/kino-session.js';
++const data=JSON.parse(fs.readFileSync(new URL('../export/web/game-data.json',import.meta.url)));
++
++test('frame caps retain their average rate on non-divisible refresh rates',()=>{
++  for(const hz of [60,90,120,144,165,240])for(const cap of [30,60,120]){
++    const p=new FramePacer(),frames=[];
++    for(let i=0;i<hz*10;i++){const t=p.sample(i*1000/hz,cap);if(t)frames.push(t);}
++    assert(Math.abs(frames.length-Math.min(hz,cap)*10)<=1,`${hz}Hz / ${cap} cap gave ${frames.length}`);
++    assert(frames.every(t=>t.dt>=0&&t.dt<=.06));
++  }
++});
++test('stalls and resume do not create catch-up bursts or sleep-sized simulation steps',()=>{
++  const p=new FramePacer();p.sample(0,60);const stall=p.sample(100000,60);
++  assert.equal(stall.dt,.06);assert.equal(stall.elapsed,100);assert.equal(p.sample(100001,60),null);
++  p.reset();assert.deepEqual(p.sample(200000,60),{elapsed:0,dt:0});
++  assert.equal(p.sample(200001,60),null);assert(p.sample(200017,60));
++});
++test('matching 60 and 120 Hz caps accept alternating early display ticks without dropping half the frames',()=>{
++  for(const hz of [60,120]){
++    const p=new FramePacer(),accepted=[];
++    for(let i=0;i<=hz*5;i++){
++      const now=i*1000/hz+(i%2?-.6:0),sample=p.sample(now,hz);
++      if(sample)accepted.push(sample);
++    }
++    assert.equal(accepted.length,hz*5+1,`${hz} Hz must retain all display ticks`);
++    assert(Math.abs(accepted.reduce((sum,s)=>sum+s.elapsed,0)-5)<1e-9,'accepted deltas still represent actual elapsed time');
++  }
++});
++test('recorded native RAF jitter is accepted regardless of deadline phase, without uncapping faster displays',()=>{
++  // Consecutive lobby RAF intervals 65..104 from the first v1.5 native
++  // packaged benchmark, retained in artifacts/v6-pacing-jitter. Rounded to
++  // their recorded 0.1 ms precision; the shortest/longest pair is 15.7/17.7.
++  const intervals=[16.6,16.7,16.6,16.5,16.9,16.7,16.7,16.6,16.6,15.8,17.6,16.7,16.6,16.6,16.7,16.3,16.4,17.4,16.2,17.1,16.7,16.6,16.7,16.7,16.6,16.7,16.6,16.7,16.7,16.6,16.7,15.7,17.7,16.6,16.7,16.7,16.7,16.6,15.8,17.5];
++  for(let phase=0;phase<=16.5;phase+=.25){
++    const p=new FramePacer();p.sample(-phase,60);let now=0,count=0;
++    for(const dt of intervals){now+=dt;if(p.sample(now,60))count++;}
++    assert.equal(count,intervals.length,`native jitter at deadline phase ${phase} ms`);
++  }
++  for(const hz of [90,120,144,165,240]){
++    const p=new FramePacer();let count=0;
++    for(let i=0;i<hz*10;i++)if(p.sample(i*1000/hz+(i%2?-.6:0),60))count++;
++    assert(Math.abs(count-600)<=1,`${hz} Hz jitter must still honor the 60 FPS cap, got ${count}`);
++  }
++});
++test('trackpad inertia switches once per gesture; horizontal scrolling and pinch do not switch',()=>{
++  const w=new WheelIntent();let count=0;
++  for(let t=0;t<900;t+=15)count+=Number(w.consume({deltaY:t<100?10:2},t));
++  assert.equal(count,1);assert(w.consume({deltaY:100},1100));
++  assert(!w.consume({deltaY:120,ctrlKey:true},1400));
++  assert(!w.consume({deltaX:130,deltaY:12},1500));
++  assert(w.consume({deltaY:-1,deltaMode:1},1600));w.reset();assert(w.consume({deltaY:120},1601));
++});
++test('switching to the held slot or with one weapon cannot cancel a reload or re-draw the gun',()=>{
++  const s=new KinoSession(data);s.weapon.mag=2;assert(s.reload());const left=s.reloadLeft;
++  assert.equal(s.switchWeapon(),false);assert.equal(s.reloadLeft,left);
++  s.cancelReload();s.giveWeapon('m14_zm');s.weapon.mag=1;assert(s.reload());
++  const duration=s.reloadLeft;assert.equal(s.switchWeapon(s.slot),false);assert.equal(s.reloadLeft,duration);
++  for(const invalid of [-1,2,.5,NaN])assert.equal(s.switchWeapon(invalid),false);
++  assert(s.switchWeapon());assert.equal(s.reloadLeft,0);assert.equal(s.weapon.id,'m1911_zm');
++});
++test('blocked switching preserves action state; a real switch cancels the old reload',()=>{
++  const s=new KinoSession(data);s.giveWeapon('m14_zm');s.meleeLeft=.5;const slot=s.slot;
++  assert.equal(s.switchWeapon(),false);assert.equal(s.slot,slot);assert.equal(s.meleeLeft,.5);
++});
++test('reload indicator follows actual stage timing and ammunition without changing it',()=>{
++  const s=new KinoSession(data);s.weapon.mag=2;assert(s.reload());s.update(s.reloadDuration/2);
++  const r=reloadPresentation(s);assert.equal(r.progress,.5);assert.equal(r.label,'RELOADING');assert.equal(s.weapon.mag,2);
++  s.cancelReload();assert.equal(reloadPresentation(s),null);
++  s.giveWeapon('ithaca_zm');s.weapon.mag=1;assert(s.reload());
++  assert(reloadPresentation(s).detail.includes('1 /'));
++});
+--- v1.4/test/moon-sound-compatibility.test.mjs
++++ v1.5/test/moon-sound-compatibility.test.mjs
+@@ -0,0 +1,24 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import * as THREE from 'three';
++import {MoonCombat} from '../export/web/moon-combat.js';
++import {MoonEnemies} from '../export/web/moon-enemies.js';
++
++const setup=()=>{const calls=[],combat=Object.create(MoonCombat.prototype);combat.audio={play:(...args)=>calls.push(args)};combat.camera={position:new THREE.Vector3()};return{combat,calls};};
++
++test('shared enemy reset with a null position is safe for Moon area transitions',()=>{
++ const {combat,calls}=setup(),enemies=new MoonEnemies(new THREE.Scene(),{}, {},{time:0},{sound:(event,p)=>combat.enemySound(event,p)});
++ assert.doesNotThrow(()=>enemies.reset());assert.equal(calls.length,0);assert.equal(enemies.list.length,0);assert.equal(enemies.dead.length,0);assert.equal(enemies.spawnDelay,2);
++});
++test('Moon never renders shared lifecycle or unsupported actor events as generic oscillator tones',()=>{
++ const {combat,calls}=setup(),p=new THREE.Vector3(300,0,0);
++ for(const event of ['reset','update','remove','spawn','step','attack','death','teardown']){combat.enemySound(event,p);combat.enemySound(event,null);}
++ for(const p of [null,undefined,[],new THREE.Vector3(NaN,0,0)])combat.enemySound('ambient',p);
++ assert.deepEqual(calls,[]);
++});
++test('Moon preserves distance-scaled legacy growls and board cues for matching state events',()=>{
++ const {combat,calls}=setup(),p=new THREE.Vector3(300,0,400);
++ for(const event of ['growl','ambient','sprint','behind','board','barrier'])combat.enemySound(event,p);
++ assert.deepEqual(calls,[['growl',.5],['growl',.5],['growl',.5],['growl',.5],['board',.5],['board',.5]]);
++ combat.enemySound('ambient',new THREE.Vector3(2000,0,0));assert.deepEqual(calls.at(-1),['growl',0]);
++});
+--- v1.4/test/player-controller.test.mjs
++++ v1.5/test/player-controller.test.mjs
+@@ -0,0 +1,99 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import * as THREE from 'three';
++import { PlayerController, buildCollisionOctree } from '../export/web/player-controller.js';
++const close=(a,b,e=1e-7)=>assert(Math.abs(a-b)<=e,`${a} != ${b}`);
++function scene(...boxes){
++  const group=new THREE.Group();
++  for(const [size,position] of boxes){const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size));mesh.position.set(...position);group.add(mesh);}
++  return buildCollisionOctree(group);
++}
++const floor=()=>scene([[2000,20,2000],[0,-10,0]]);
++function player(world=floor(),options={}){
++  return new PlayerController(new THREE.PerspectiveCamera(),world,{spawn:new THREE.Vector3(0,.05,0),radius:14,height:70,eyeHeight:60,moveSpeed:190,sprintSpeed:285,crouchSpeed:95,gravity:800,jumpHeight:39,groundSnapSpeed:10,maxSubSteps:12,...options});
++}
++function run(p,seconds,input={},hz=120){for(let i=0;i<Math.round(seconds*hz);i++)p.update(1/hz,input);}
++
++test('pause discards momentum and buffered actions but preserves the airborne vertical trajectory',()=>{
++  for(const smoothCamera of [false,true]){
++    const p=player(undefined,{smoothCamera});run(p,.3,{forward:1});assert(p.velocity.z<-180);
++    p.setInput({forward:1,sprint:true,crouch:true,jump:true});p.update(.003);
++    const feet=p.feetPosition.clone();p.clearInput({stopHorizontal:true});run(p,.3);
++    close(p.feetPosition.x,feet.x);close(p.feetPosition.z,feet.z);assert(p.isGrounded);assert(!p.crouched);
++    p.update(1/60,{jump:true});assert(p.velocity.y>0,'a fresh press after pause still jumps');
++    const vertical=p.velocity.y;p.velocity.x=80;p.clearInput({stopHorizontal:true});close(p.velocity.y,vertical);close(p.velocity.x,0);
++    p.update(1/120,{});assert(p.velocity.y<vertical&&p.velocity.y>0,'gravity resumes normally');
++  }
++});
++
++test('crouched eye-coordinate respawn restores the requested eye and accepts a fresh jump',()=>{
++  for(const smoothCamera of [false,true]){
++    const p=player(undefined,{smoothCamera});run(p,.1,{crouch:true,jump:true});assert(p.crouched);
++    p.reset(new THREE.Vector3(25,60.05,30),{eye:true});close(p.camera.position.y,60.05);close(p.feetPosition.y,.05);assert(!p.crouched);
++    run(p,.05);p.update(1/60,{jump:true});assert(p.velocity.y>0);assert.equal(p.input.forward,0);
++  }
++});
++
++test('opt-in camera smoothing leaves all fixed-step collision, sprint, crouch and jump motion unchanged',()=>{
++  const world=scene([[2000,20,2000],[0,-10,0]],[[300,16,100],[0,8,-180]],[[200,200,20],[0,100,-350]]);
++  const direct=player(world),smooth=player(world,{smoothCamera:true});
++  for(let i=0;i<500;i++){
++    const input={forward:i<420?1:0,sprint:i<100,crouch:i>=220&&i<300,jump:i===150};
++    for(const p of [direct,smooth])p.update(1/120,input);
++    assert.deepEqual(smooth.feetPosition.toArray(),direct.feetPosition.toArray());assert.deepEqual(smooth.velocity.toArray(),direct.velocity.toArray());
++    close(direct.camera.position.y,direct.feetPosition.y+direct.eyeHeight);
++    close(direct.camera.position.z,direct.feetPosition.z);
++  }
++});
++
++test('render interpolation removes repeated high-refresh movement poses without predicting through walls',()=>{
++  const world=scene([[2000,20,2000],[0,-10,0]],[[300,200,20],[0,100,-250]]);
++  const direct=player(world),smooth=player(world,{smoothCamera:true});
++  run(direct,.5,{forward:1});run(smooth,.5,{forward:1});
++  const deltas=[[],[]];
++  for(let i=0;i<72;i++)for(const [j,p]of [direct,smooth].entries()){
++    const z=p.camera.position.z;p.update(1/144,{forward:1});deltas[j].push(Math.abs(p.camera.position.z-z));
++    assert(p.camera.position.z>=p.feetPosition.z-1e-8,'view never extrapolates ahead into the wall');
++    assert(p.camera.position.distanceTo(p.feetPosition.clone().add(new THREE.Vector3(0,60,0)))<2,'latency stays within one 120 Hz step');
++  }
++  assert(deltas[0].filter(v=>v<1e-8).length>=10);assert(deltas[1].every(v=>v>1),'smooth motion advances on every 144 Hz frame');
++  run(smooth,1,{forward:1});assert(smooth.feetPosition.z>=-226.01);assert(smooth.camera.position.z>=-226.01);
++});
++
++test('a real 16-unit stair keeps capsule traversal while reducing the single-frame camera lift',()=>{
++  const world=scene([[2000,20,2000],[0,-10,0]],[[300,16,300],[0,8,-250]]);
++  const peaks=[];
++  for(const smoothCamera of [false,true]){
++    const p=player(world,{smoothCamera});let peak=0;
++    for(let i=0;i<240;i++){const y=p.camera.position.y;p.update(1/120,{forward:i<160?1:0});peak=Math.max(peak,p.camera.position.y-y);}
++    assert(Math.abs(p.feetPosition.y-16)<.1);close(p.camera.position.y,p.feetPosition.y+60,.1);peaks.push(peak);
++  }
++  assert(peaks[0]>3,`fixture must exercise a discrete stair, got ${peaks}`);assert(peaks[1]<peaks[0]*.65,`step smoothing must reduce the actual lift, got ${peaks}`);
++});
++
++test('stance easing stays below a real low ceiling and standing waits for clearance',()=>{
++  const world=scene([[2000,20,2000],[0,-10,0]],[[160,20,130],[0,62,-180]]);
++  const p=player(world,{smoothCamera:true});run(p,.1);const before=p.camera.position.y;p.update(1/60,{crouch:true});
++  assert(p.camera.position.y<before&&p.camera.position.y>p.feetPosition.y+40,'open crouch eases instead of dropping twenty units');
++  run(p,1.8,{forward:1,crouch:true});assert(p.feetPosition.z<-130);assert(p.camera.position.y<52);
++  run(p,.5,{});assert(p.crouched,'release under the beam cannot stand');assert(p.camera.position.y<52);
++  run(p,1.8,{forward:1});run(p,.5);assert(!p.crouched);close(p.camera.position.y,p.feetPosition.y+60,.1);
++});
++
++test('camera transitions remain frame-rate independent and reset never interpolates across a teleport',()=>{
++  const values=[30,60,144].map(hz=>{
++    const p=player(undefined,{smoothCamera:true});run(p,.5,{crouch:true},hz);run(p,.5,{},hz);const result={feet:p.feetPosition.toArray(),eye:p.camera.position.y};
++    p.setPosition(new THREE.Vector3(100,200,300));assert.deepEqual(p.camera.position.toArray(),[100,260,300]);p.update(0);assert.deepEqual(p.camera.position.toArray(),[100,260,300]);return result;
++  });
++  for(const result of values.slice(1)){assert.deepEqual(result.feet,values[0].feet);close(result.eye,values[0].eye,.001);}
++});
++
++test('one real second advances identical gravity at 30, 60 and 144 Hz, including the exact final boundary',()=>{
++  for(const smoothCamera of [false,true]){
++    const drops=[30,60,144].map(hz=>{
++      const p=player(null,{smoothCamera,spawn:new THREE.Vector3(0,1000,0)});run(p,1,{},hz);
++      close(p.velocity.y,-800,1e-6);return p.feetPosition.y;
++    });
++    for(const y of drops.slice(1))close(y,drops[0]);
++  }
++});
+--- v1.4/test/theater-actors.test.mjs
++++ v1.5/test/theater-actors.test.mjs
+@@ -0,0 +1,13 @@
++import test from 'node:test';import assert from 'node:assert/strict';import * as THREE from 'three';
++import {collectActorProbes,sampleActorBounce,sampleActorSun,installActorProbeMaterial,verifyContactFloor,TheaterActors} from '../export/web/theater-actors.js';
++import {surfaceReceivers} from '../export/web/theater-surface-light.js';
++const triangle=new THREE.Triangle(new THREE.Vector3(-1000,80,-1000),new THREE.Vector3(-1000,80,2000),new THREE.Vector3(1000,80,-1000));
++function makeField(value=255){const plan={width:1024,height:1536,tileSize:512,sunDirection:[0,.8,.6],color:[.91,.86,.73],energy:1.35,regions:surfaceReceivers.map((r,i)=>({...r,tile:[i%2,Math.floor(i/2)]}))};return {plan,texture:{image:{data:new Uint8Array(plan.width*plan.height).fill(value)}}};}
++function world(field=makeField()){let rays=0;return {surfaceSunlight:field,lightfield:{manifest:{scale:4},power:{value:0}},raycast(ray){rays++;return {position:new THREE.Vector3(ray.origin.x,80,ray.origin.z),triangle};},get rays(){return rays;}};}
++function actor(id,kind='zombie'){const root=new THREE.Group(),material=new THREE.MeshStandardMaterial(),mesh=new THREE.Mesh(new THREE.BoxGeometry(12,60,12),material);root.add(mesh);root.position.set(0,85,1100);return {id,kind,root,state:'chase',life:4,material,mesh};}
++test('floor probe sampling removes direct solar before adding room bounce and preserves source buffers',()=>{const scene=new THREE.Scene(),g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([0,80,1050,20,80,1050,0,80,1070],3));g.setAttribute('normal',new THREE.Float32BufferAttribute([0,1,0,0,1,0,0,1,0],3));for(const [name,value]of [['kinoBaseLight',.3],['kinoSolarLight',.2],['kinoPowerLight',.1]])g.setAttribute(name,new THREE.Float32BufferAttribute(new Float32Array(9).fill(value),3));const original=g.attributes.position.array.slice();scene.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial()));const cells=collectActorProbes(scene,4),p=new THREE.Vector3(10,85,1060),off=sampleActorBounce(cells,0,p,0),on=sampleActorBounce(cells,0,p,1);assert(cells.size>0);assert(Math.abs(off[0]-(.1*4*.45+.1*.35))<1e-6);assert(Math.abs(on[0]-off[0]-.1*4*.35)<1e-6);assert.deepEqual(g.attributes.position.array,original);});
++test('sun sampling follows actor-height projected ray and rejects coverage outside atlas',()=>{const field=makeField(0),r=field.plan.regions[0],data=field.texture.image.data;for(let y=0;y<512;y++)for(let x=0;x<512;x++)data[y*1024+x]=y>256?255:0;const p=new THREE.Vector3(0,80,1140);const low=sampleActorSun(field,0,p,0),high=sampleActorSun(field,0,p,100);assert(low>high);assert.equal(sampleActorSun(field,-1,p,34),0);assert.equal(sampleActorSun(field,0,new THREE.Vector3(900,80,1100),34),0);});
++test('actor shader replaces constant probe, retains prior hooks/native textures and directional normal response',()=>{const map=new THREE.Texture(),source=new THREE.MeshStandardMaterial({map});source.onBeforeCompile=s=>{s.fragmentShader=s.fragmentShader.replace('#include <lights_fragment_maps>','#include <lights_fragment_maps>\nirradiance += PI * vec3(.10,.115,.13);');};const u={ambient:{value:new THREE.Color(.1,.2,.3)},sun:{value:new THREE.Color(1,1,1)},direction:{value:new THREE.Vector3(0,1,0)}},shade=installActorProbeMaterial(source,u),shader={uniforms:{},fragmentShader:'#include <lights_fragment_maps>'};shade.onBeforeCompile(shader);assert.equal(shade.map,map);assert.notEqual(shade,source);assert(shader.fragmentShader.includes('dot(normal,normalize'));assert(!shader.fragmentShader.includes('vec3(.10,.115,.13)'));assert.equal(shader.uniforms.kinoActorSun,u.sun);assert(!source.userData.kinoSpatialActorProbe);});
++test('contact confirmation rejects ledges, slopes, wrong heights, and floating actors; accepts position-only collision hit',()=>{const w=world(),p=new THREE.Vector3(0,85,1100);assert.equal(verifyContactFloor(w,p,0,14),80);assert.equal(w.rays,5);assert.equal(verifyContactFloor(w,new THREE.Vector3(0,150,1100),0,14),null);assert.equal(verifyContactFloor({raycast:()=>false},p,0,14),null);assert.equal(verifyContactFloor({raycast:()=>({point:new THREE.Vector3(0,90,0),triangle})},p,0,14),null);const wall=new THREE.Triangle(new THREE.Vector3(0,80,0),new THREE.Vector3(0,90,0),new THREE.Vector3(0,80,10));assert.equal(verifyContactFloor({raycast:()=>({point:new THREE.Vector3(0,80,0),triangle:wall})},p,0,14),null);});
++test('pooled contacts obey ray/instance budget, freeze while paused, preserve actor transform and release materials',()=>{const scene=new THREE.Scene(),w=world(),system=new TheaterActors(scene,w),actors=Array.from({length:24},(_,i)=>actor(i+1,i%3===0?'dog':'zombie')),enemies={list:actors,dead:[]};actors.forEach(a=>scene.add(a.root));const original=actors.map(a=>a.root.matrix.clone());system.update(enemies,new THREE.Vector3(0,140,1250),0,{quality:'balanced'});assert(w.rays<=10);assert.equal(system.snapshot().drawCalls,1);assert(system.snapshot().shadows<=2);const snapshot=system.snapshot(),rays=w.rays;system.update(enemies,new THREE.Vector3(0,140,1250),0,{quality:'balanced'});assert.equal(w.rays,rays);assert.deepEqual(system.snapshot(),snapshot);for(let i=1;i<30;i++)system.update(enemies,new THREE.Vector3(0,140,1250),i*.04,{quality:'performance'});assert(system.snapshot().shadows<=8);assert.equal(system.snapshot().rayBudget,5);actors.forEach((a,i)=>{assert.equal(a.root.position.y,85);assert.equal(a.mesh.geometry.type,'BoxGeometry');});system.reset();assert.equal(system.snapshot().actors,0);assert.equal(system.shadows.count,0);actors.forEach(a=>assert.equal(a.mesh.material,a.material));const children=scene.children.length;system.dispose();assert.equal(scene.children.length,children-1);});
++test('nearest receiver chooses stage over overlapping lower auditorium, exposes a cheap viewmodel sample',()=>{const system=new TheaterActors(new THREE.Scene(),world());const sample=system.sampleIllumination(new THREE.Vector3(300,-16,-1300));assert.equal(surfaceReceivers[sample.region].id,'dressing-stage');assert(sample.sunVisibility>=0&&sample.sunVisibility<=1);assert.equal(sample.ambient.length,3);system.dispose();});
+--- v1.4/test/view-lighting.test.mjs
++++ v1.5/test/view-lighting.test.mjs
+@@ -0,0 +1,13 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import * as THREE from 'three';
++import {ViewLighting} from '../export/web/view-lighting.js';
++const create=()=>new ViewLighting(new THREE.AmbientLight(0xafbac9,.55),new THREE.DirectionalLight(0xe2d7c4,.8));
++const bright={ambient:[.3,.25,.16],sunVisibility:1,sunColor:[.91,.86,.73]};
++test('weapon room lighting is bounded, smoothly time-based and frozen by pause',()=>{
++  const a=create(),b=create();const before=a.snapshot();a.update(bright,0);assert.deepEqual(a.snapshot(),before);
++  for(let i=0;i<60;i++)a.update(bright,1/60);for(let i=0;i<30;i++)b.update(bright,1/30);
++  assert(Math.abs(a.key.intensity-b.key.intensity)<1e-10);assert(a.key.intensity>.8&&a.key.intensity<1.17);assert(a.ambient.intensity>=.53&&a.ambient.intensity<=.85);
++  for(let i=0;i<120;i++)a.update({ambient:[0,0,0],sunVisibility:0,sunColor:bright.sunColor},1/60);
++  assert(a.ambient.intensity>=.53);assert(a.key.intensity>=.77);a.reset();assert.deepEqual(a.snapshot(),before);
++});

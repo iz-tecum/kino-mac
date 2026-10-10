@@ -1,0 +1,1993 @@
+{
+  "version": 1,
+  "sunDirection": [
+    0.179,
+    0.7536,
+    0.6325
+  ],
+  "sunColor": [
+    0.82,
+    0.76,
+    0.62
+  ],
+  "sunColorMeaning": "Raw original worldspawn reference; runtime and baked exposure/color treatment may differ explicitly.",
+  "method": "At most ten narrow shafts. Each has center plus16 circumference probes. Every probe transmits toward the original sun, including sampled native alpha; shaft stops6units before the nearest opaque hit from any probe. No new aperture, wall cut, or physics edit.",
+  "limits": {
+    "maxShafts": 10,
+    "maxRadius": 12,
+    "minLength": 110,
+    "maxLength": 1400,
+    "ringTests": 17,
+    "clearance": 6
+  },
+  "provenance": {
+    "worldSha256": "30ace6cb6e1b2fe711708e42204ebc5daf90be041e72f59a423f58eda3053767",
+    "gltfSha256": "8e7a97c65ee28dc372553b4871505089c3aec820cee2ddfaa83bded395a010ea",
+    "apertureMetadataSha256": "af284be358f17ad6634d6a7b2be298f21d5f8f6d86af1950492a8f77ada6c619",
+    "opticalPolicy": "daylight-geometry.mjs; glazings .48/.32/.18, structural PNG alpha retained, nonstructural decals and sky excluded; static world shell only"
+  },
+  "opticalGeometry": {
+    "triangles": 313831,
+    "opaqueTriangles": 309014,
+    "cutoutTriangles": 3237,
+    "glassTriangles": 1580,
+    "skippedTriangles": 5935,
+    "alphaTextures": 9,
+    "unsupportedTextures": [],
+    "scope": "Native world_shell only; static prop shadows remain a separate collision/prop test."
+  },
+  "shafts": [
+    {
+      "id": "lobby-front-primitive-174-patch-233-1",
+      "room": "Lobby",
+      "start": [
+        98.6819,
+        349.2406,
+        1485.808
+      ],
+      "end": [
+        39.4063,
+        99.6852,
+        1276.3321
+      ],
+      "radius": 12,
+      "transmission": 0.48,
+      "length": 331.1672,
+      "provenance": {
+        "sourceRegion": "lobby-front-primitive-174-patch-233",
+        "sourcePatch": "primitive-174-patch-233",
+        "sourceMaterial": "wc/dec_glass01",
+        "nativeBounds": {
+          "min": [
+            73,
+            307,
+            1497
+          ],
+          "max": [
+            128,
+            407,
+            1497
+          ]
+        },
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "startInset": 17.6937,
+        "samplingPlane": [
+          100.5,
+          357,
+          1497
+        ],
+        "boundsAreSampleEnvelope": false,
+        "note": "New atmospheric shaft aligned to native worldspawn sun. Native geometry and alpha-tested glazing/roof boards constrain this narrow volume."
+      },
+      "probes": {
+        "inside": [
+          101,
+          359,
+          1494
+        ],
+        "sunwardDirection": [
+          0.179,
+          0.7536,
+          0.6325
+        ],
+        "count": 17,
+        "minTransmission": 0.48,
+        "clippedBy": {
+          "position": [
+            42.8504,
+            87.4065,
+            1280.5
+          ],
+          "material": "wc/mtl_zombie_teleporter_glow2",
+          "distance": 337.1672
+        },
+        "clearance": 6,
+        "ring": [
+          {
+            "position": [
+              98.6819,
+              349.2406,
+              1485.808
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 349.5421
+          },
+          {
+            "position": [
+              98.6819,
+              341.5256,
+              1494.9992
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 337.9822
+          },
+          {
+            "position": [
+              103.2,
+              341.4833,
+              1493.7711
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 337.1672
+          },
+          {
+            "position": [
+              107.0302,
+              342.622,
+              1491.3307
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 338.1881
+          },
+          {
+            "position": [
+              109.5894,
+              344.7683,
+              1488.0496
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 340.9225
+          },
+          {
+            "position": [
+              110.4881,
+              347.5955,
+              1484.4271
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 344.7544
+          },
+          {
+            "position": [
+              109.5894,
+              350.6732,
+              1481.0149
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 349.1646
+          },
+          {
+            "position": [
+              107.0302,
+              353.5327,
+              1478.3324
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 353.4985
+          },
+          {
+            "position": [
+              103.2,
+              355.7389,
+              1476.788
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 357.0387
+          },
+          {
+            "position": [
+              98.6819,
+              356.9557,
+              1476.6168
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 359.4697
+          },
+          {
+            "position": [
+              94.1639,
+              356.998,
+              1477.8449
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 361.1487
+          },
+          {
+            "position": [
+              90.3337,
+              355.8593,
+              1480.2853
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 361.4216
+          },
+          {
+            "position": [
+              87.7744,
+              353.713,
+              1483.5665
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 360.0373
+          },
+          {
+            "position": [
+              86.8757,
+              350.8858,
+              1487.189
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 357.0671
+          },
+          {
+            "position": [
+              87.7744,
+              347.8081,
+              1490.6012
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 351.9888
+          },
+          {
+            "position": [
+              90.3337,
+              344.9486,
+              1493.2836
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 346.0511
+          },
+          {
+            "position": [
+              94.1639,
+              342.7424,
+              1494.828
+            ],
+            "sunTransmission": 0.48,
+            "inwardOpaqueDistance": 340.6215
+          }
+        ]
+      }
+    },
+    {
+      "id": "lobby-ceiling-damage-1",
+      "room": "Lobby",
+      "start": [
+        423.7149,
+        524.4803,
+        949.2639
+      ],
+      "end": [
+        403.8514,
+        440.8535,
+        879.0678
+      ],
+      "radius": 8,
+      "transmission": 1,
+      "length": 110.9751,
+      "provenance": {
+        "sourceRegion": "lobby-ceiling-damage",
+        "sourcePatch": null,
+        "sourceMaterial": null,
+        "nativeBounds": null,
+        "normal": [
+          0,
+          1,
+          0
+        ],
+        "startInset": 9.9788,
+        "samplingPlane": [
+          320,
+          532,
+          920
+        ],
+        "boundsAreSampleEnvelope": true,
+        "note": "New atmospheric shaft aligned to native worldspawn sun. Native geometry and alpha-tested glazing/roof boards constrain this narrow volume."
+      },
+      "probes": {
+        "inside": [
+          416,
+          492,
+          922
+        ],
+        "sunwardDirection": [
+          0.179,
+          0.7536,
+          0.6325
+        ],
+        "count": 17,
+        "minTransmission": 1,
+        "clippedBy": {
+          "position": [
+            399.7655,
+            432,
+            881.2859
+          ],
+          "material": "*70n_106(wc/eb_art_trim_plaster_dirt:wc/decal_burntstain_02)",
+          "distance": 116.9751
+        },
+        "clearance": 6,
+        "ring": [
+          {
+            "position": [
+              423.7149,
+              524.4803,
+              949.2639
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 132.4927
+          },
+          {
+            "position": [
+              423.7149,
+              519.3369,
+              955.3913
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 132.4927
+          },
+          {
+            "position": [
+              426.7269,
+              519.3087,
+              954.5726
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 149.3206
+          },
+          {
+            "position": [
+              429.2804,
+              520.0679,
+              952.9456
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 163.5866
+          },
+          {
+            "position": [
+              430.9866,
+              521.4988,
+              950.7582
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 173.1189
+          },
+          {
+            "position": [
+              431.5857,
+              523.3836,
+              948.3432
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 176.4661
+          },
+          {
+            "position": [
+              430.9866,
+              525.4353,
+              946.0684
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 173.1189
+          },
+          {
+            "position": [
+              429.2804,
+              527.3417,
+              944.2801
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 163.5866
+          },
+          {
+            "position": [
+              426.7269,
+              528.8125,
+              943.2505
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 149.3206
+          },
+          {
+            "position": [
+              423.7149,
+              529.6237,
+              943.1364
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 132.4927
+          },
+          {
+            "position": [
+              420.7029,
+              529.6519,
+              943.9551
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 129.5868
+          },
+          {
+            "position": [
+              418.1494,
+              528.8927,
+              945.5821
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 128.5794
+          },
+          {
+            "position": [
+              416.4432,
+              527.4619,
+              947.7695
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 126.6806
+          },
+          {
+            "position": [
+              415.8441,
+              525.5771,
+              950.1845
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 124.1794
+          },
+          {
+            "position": [
+              416.4432,
+              523.5253,
+              952.4593
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 121.4567
+          },
+          {
+            "position": [
+              418.1494,
+              521.6189,
+              954.2476
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 118.9268
+          },
+          {
+            "position": [
+              420.7029,
+              520.1482,
+              955.2772
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 116.9751
+          }
+        ]
+      }
+    },
+    {
+      "id": "lobby-east-breach-1",
+      "room": "Lobby edge",
+      "start": [
+        476.5933,
+        521.8508,
+        1323.7842
+      ],
+      "end": [
+        412.8802,
+        253.6131,
+        1098.6264
+      ],
+      "radius": 12,
+      "transmission": 1,
+      "length": 355.9591,
+      "provenance": {
+        "sourceRegion": "lobby-east-breach",
+        "sourcePatch": null,
+        "sourceMaterial": null,
+        "nativeBounds": null,
+        "normal": [
+          0,
+          1,
+          0
+        ],
+        "startInset": 13.4683,
+        "samplingPlane": [
+          460,
+          532,
+          1190
+        ],
+        "boundsAreSampleEnvelope": true,
+        "note": "New atmospheric shaft aligned to native worldspawn sun. Native geometry and alpha-tested glazing/roof boards constrain this narrow volume."
+      },
+      "probes": {
+        "inside": [
+          441,
+          372,
+          1198
+        ],
+        "sunwardDirection": [
+          0.179,
+          0.7536,
+          0.6325
+        ],
+        "count": 17,
+        "minTransmission": 1,
+        "clippedBy": {
+          "position": [
+            400,
+            250.7368,
+            1096.2121
+          ],
+          "material": "*58n_136n_87(wc/eb_art_wall_plaster_wallpaper02:wc/decal_concrete_crack02:wc/decal_darkstain_02)",
+          "distance": 361.9591
+        },
+        "clearance": 6,
+        "ring": [
+          {
+            "position": [
+              476.5933,
+              521.8508,
+              1323.7842
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 454.9672
+          },
+          {
+            "position": [
+              476.5933,
+              514.1358,
+              1332.9754
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 469.4979
+          },
+          {
+            "position": [
+              481.1113,
+              514.0935,
+              1331.7473
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 467.5563
+          },
+          {
+            "position": [
+              484.9416,
+              515.2322,
+              1329.3069
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 474.5601
+          },
+          {
+            "position": [
+              487.5008,
+              517.3785,
+              1326.0257
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 488.8584
+          },
+          {
+            "position": [
+              488.3995,
+              520.2057,
+              1322.4033
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 493.8794
+          },
+          {
+            "position": [
+              487.5008,
+              523.2833,
+              1318.9911
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 488.8584
+          },
+          {
+            "position": [
+              484.9416,
+              526.1429,
+              1316.3086
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 474.5601
+          },
+          {
+            "position": [
+              481.1113,
+              528.349,
+              1314.7642
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 453.1611
+          },
+          {
+            "position": [
+              476.5933,
+              529.5659,
+              1314.593
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 427.9192
+          },
+          {
+            "position": [
+              472.0753,
+              529.6081,
+              1315.8211
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 442.3781
+          },
+          {
+            "position": [
+              468.2451,
+              528.4695,
+              1318.2615
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 433.5888
+          },
+          {
+            "position": [
+              465.6858,
+              526.3231,
+              1321.5427
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 366.98
+          },
+          {
+            "position": [
+              464.7871,
+              523.4959,
+              1325.1651
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 361.9591
+          },
+          {
+            "position": [
+              465.6858,
+              520.4183,
+              1328.5773
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 366.98
+          },
+          {
+            "position": [
+              468.2451,
+              517.5587,
+              1331.2598
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 381.2784
+          },
+          {
+            "position": [
+              472.0753,
+              515.3526,
+              1332.8042
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 402.6774
+          }
+        ]
+      }
+    },
+    {
+      "id": "theater-roof-west-1",
+      "room": "Theater",
+      "start": [
+        -263.1572,
+        925.8508,
+        -569.0037
+      ],
+      "end": [
+        -440.2999,
+        180.065,
+        -1195.0136
+      ],
+      "radius": 12,
+      "transmission": 1,
+      "length": 989.6789,
+      "provenance": {
+        "sourceRegion": "theater-roof-west",
+        "sourcePatch": null,
+        "sourceMaterial": null,
+        "nativeBounds": null,
+        "normal": [
+          0,
+          1,
+          0
+        ],
+        "startInset": 13.4683,
+        "samplingPlane": [
+          -270,
+          936,
+          -580
+        ],
+        "boundsAreSampleEnvelope": true,
+        "note": "New atmospheric shaft aligned to native worldspawn sun. Native geometry and alpha-tested glazing/roof boards constrain this narrow volume."
+      },
+      "probes": {
+        "inside": [
+          -294,
+          796,
+          -678
+        ],
+        "sunwardDirection": [
+          0.179,
+          0.7536,
+          0.6325
+        ],
+        "count": 17,
+        "minTransmission": 1,
+        "clippedBy": {
+          "position": [
+            -441.3739,
+            183.2587,
+            -1208
+          ],
+          "material": "*52n_21(wc/mtl_theater_trim_set_2:wc/decal_burntstain_01)",
+          "distance": 995.6789
+        },
+        "clearance": 6,
+        "ring": [
+          {
+            "position": [
+              -263.1572,
+              925.8508,
+              -569.0037
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1010.2096
+          },
+          {
+            "position": [
+              -263.1572,
+              918.1358,
+              -559.8125
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1024.7402
+          },
+          {
+            "position": [
+              -258.6392,
+              918.0935,
+              -561.0406
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1022.7987
+          },
+          {
+            "position": [
+              -254.8089,
+              919.2322,
+              -563.481
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1018.9406
+          },
+          {
+            "position": [
+              -252.2497,
+              921.3785,
+              -566.7622
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1013.7533
+          },
+          {
+            "position": [
+              -251.351,
+              924.2057,
+              -570.3846
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1008.0264
+          },
+          {
+            "position": [
+              -252.2497,
+              927.2833,
+              -573.7968
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1002.632
+          },
+          {
+            "position": [
+              -254.8089,
+              930.1429,
+              -576.4793
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 998.3912
+          },
+          {
+            "position": [
+              -258.6392,
+              932.349,
+              -578.0237
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 995.9496
+          },
+          {
+            "position": [
+              -263.1572,
+              933.5659,
+              -578.1949
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 995.6789
+          },
+          {
+            "position": [
+              -267.6752,
+              933.6081,
+              -576.9668
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 997.6205
+          },
+          {
+            "position": [
+              -271.5054,
+              932.4695,
+              -574.5264
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1005.7623
+          },
+          {
+            "position": [
+              -274.0647,
+              930.3231,
+              -571.2452
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1005.1433
+          },
+          {
+            "position": [
+              -274.9634,
+              927.4959,
+              -567.6228
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1007.6675
+          },
+          {
+            "position": [
+              -274.0647,
+              924.4183,
+              -564.2106
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1012.9507
+          },
+          {
+            "position": [
+              -271.5054,
+              921.5587,
+              -561.5281
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1020.1884
+          },
+          {
+            "position": [
+              -267.6752,
+              919.3526,
+              -559.9837
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1028.2789
+          }
+        ]
+      }
+    },
+    {
+      "id": "theater-roof-east-1",
+      "room": "Theater",
+      "start": [
+        147.9358,
+        930.4524,
+        -223.1411
+      ],
+      "end": [
+        -75.0286,
+        -8.2464,
+        -1011.0815
+      ],
+      "radius": 5,
+      "transmission": 1,
+      "length": 1245.68,
+      "provenance": {
+        "sourceRegion": "theater-roof-east",
+        "sourcePatch": null,
+        "sourceMaterial": null,
+        "nativeBounds": null,
+        "normal": [
+          0,
+          1,
+          0
+        ],
+        "startInset": 7.3618,
+        "samplingPlane": [
+          240,
+          936,
+          -350
+        ],
+        "boundsAreSampleEnvelope": true,
+        "note": "New atmospheric shaft aligned to native worldspawn sun. Native geometry and alpha-tested glazing/roof boards constrain this narrow volume."
+      },
+      "probes": {
+        "inside": [
+          116,
+          796,
+          -336
+        ],
+        "sunwardDirection": [
+          0.179,
+          0.7536,
+          0.6325
+        ],
+        "count": 17,
+        "minTransmission": 1,
+        "clippedBy": {
+          "position": [
+            -74.22,
+            -16,
+            -1011.5587
+          ],
+          "material": "*45n_103(wc/eb_art_floor_wood_hardwood02:wc/decal_grime_drip)",
+          "distance": 1251.68
+        },
+        "clearance": 6,
+        "ring": [
+          {
+            "position": [
+              147.9358,
+              930.4524,
+              -223.1411
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1255.9692
+          },
+          {
+            "position": [
+              147.9358,
+              927.2378,
+              -219.3115
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1251.7033
+          },
+          {
+            "position": [
+              149.8183,
+              927.2202,
+              -219.8232
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1251.68
+          },
+          {
+            "position": [
+              151.4142,
+              927.6947,
+              -220.84
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1252.3096
+          },
+          {
+            "position": [
+              152.4806,
+              928.589,
+              -222.2072
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1253.4963
+          },
+          {
+            "position": [
+              152.8551,
+              929.767,
+              -223.7165
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1255.0596
+          },
+          {
+            "position": [
+              152.4806,
+              931.0493,
+              -225.1383
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1256.7613
+          },
+          {
+            "position": [
+              151.4142,
+              932.2408,
+              -226.256
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1258.3424
+          },
+          {
+            "position": [
+              149.8183,
+              933.16,
+              -226.8995
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1259.5623
+          },
+          {
+            "position": [
+              147.9358,
+              933.667,
+              -226.9708
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1260.2351
+          },
+          {
+            "position": [
+              146.0533,
+              933.6847,
+              -226.4591
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1260.2585
+          },
+          {
+            "position": [
+              144.4574,
+              933.2102,
+              -225.4422
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1259.6289
+          },
+          {
+            "position": [
+              143.391,
+              932.3159,
+              -224.0751
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1258.4421
+          },
+          {
+            "position": [
+              143.0166,
+              931.1379,
+              -222.5657
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1256.8789
+          },
+          {
+            "position": [
+              143.391,
+              929.8556,
+              -221.144
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1255.1771
+          },
+          {
+            "position": [
+              144.4574,
+              928.6641,
+              -220.0263
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1253.596
+          },
+          {
+            "position": [
+              146.0533,
+              927.7448,
+              -219.3828
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 1252.3762
+          }
+        ]
+      }
+    },
+    {
+      "id": "vip-roof-breach-1",
+      "room": "Upper hall / VIP",
+      "start": [
+        1076.2161,
+        453.8508,
+        920.2385
+      ],
+      "end": [
+        1054.9219,
+        364.2005,
+        844.9864
+      ],
+      "radius": 12,
+      "transmission": 1,
+      "length": 118.9685,
+      "provenance": {
+        "sourceRegion": "vip-roof-breach",
+        "sourcePatch": null,
+        "sourceMaterial": null,
+        "nativeBounds": null,
+        "normal": [
+          0,
+          1,
+          0
+        ],
+        "startInset": 13.4683,
+        "samplingPlane": [
+          1060,
+          464,
+          860
+        ],
+        "boundsAreSampleEnvelope": true,
+        "note": "New atmospheric shaft aligned to native worldspawn sun. Native geometry and alpha-tested glazing/roof boards constrain this narrow volume."
+      },
+      "probes": {
+        "inside": [
+          1062,
+          394,
+          870
+        ],
+        "sunwardDirection": [
+          0.179,
+          0.7536,
+          0.6325
+        ],
+        "count": 17,
+        "minTransmission": 1,
+        "clippedBy": {
+          "position": [
+            1053.8479,
+            367.3942,
+            832
+          ],
+          "material": "*72n_136n_103(wc/eb_art_wall_plaster_chipped_orange:wc/decal_concrete_crack02:wc/decal_grime_drip)",
+          "distance": 124.9685
+        },
+        "clearance": 6,
+        "ring": [
+          {
+            "position": [
+              1076.2161,
+              453.8508,
+              920.2385
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 139.4991
+          },
+          {
+            "position": [
+              1076.2161,
+              446.1358,
+              929.4297
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 157.1916
+          },
+          {
+            "position": [
+              1080.7341,
+              446.0935,
+              928.2016
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 155.2501
+          },
+          {
+            "position": [
+              1084.5643,
+              447.2322,
+              925.7612
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 148.2301
+          },
+          {
+            "position": [
+              1087.1236,
+              449.3785,
+              922.4801
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 143.0428
+          },
+          {
+            "position": [
+              1088.0223,
+              452.2057,
+              918.8576
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 137.316
+          },
+          {
+            "position": [
+              1087.1236,
+              455.2833,
+              915.4454
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 131.9215
+          },
+          {
+            "position": [
+              1084.5643,
+              458.1429,
+              912.7629
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 127.6807
+          },
+          {
+            "position": [
+              1080.7341,
+              460.349,
+              911.2185
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 125.2391
+          },
+          {
+            "position": [
+              1076.2161,
+              461.5659,
+              911.0474
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 124.9685
+          },
+          {
+            "position": [
+              1071.698,
+              461.6081,
+              912.2754
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 126.91
+          },
+          {
+            "position": [
+              1067.8678,
+              460.4695,
+              914.7158
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 130.7681
+          },
+          {
+            "position": [
+              1065.3085,
+              458.3231,
+              917.997
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 135.9554
+          },
+          {
+            "position": [
+              1064.4098,
+              455.4959,
+              921.6195
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 141.6823
+          },
+          {
+            "position": [
+              1065.3085,
+              452.4183,
+              925.0317
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 147.0767
+          },
+          {
+            "position": [
+              1067.8678,
+              449.5587,
+              927.7142
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 151.3176
+          },
+          {
+            "position": [
+              1071.698,
+              447.3526,
+              929.2586
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 156.921
+          }
+        ]
+      }
+    },
+    {
+      "id": "vip-roof-breach-2",
+      "room": "Upper hall / VIP",
+      "start": [
+        996.2161,
+        453.8508,
+        984.2385
+      ],
+      "end": [
+        972.8802,
+        355.6047,
+        901.7711
+      ],
+      "radius": 12,
+      "transmission": 1,
+      "length": 130.3754,
+      "provenance": {
+        "sourceRegion": "vip-roof-breach",
+        "sourcePatch": null,
+        "sourceMaterial": null,
+        "nativeBounds": null,
+        "normal": [
+          0,
+          1,
+          0
+        ],
+        "startInset": 13.4683,
+        "samplingPlane": [
+          1060,
+          464,
+          860
+        ],
+        "boundsAreSampleEnvelope": true,
+        "note": "New atmospheric shaft aligned to native worldspawn sun. Native geometry and alpha-tested glazing/roof boards constrain this narrow volume."
+      },
+      "probes": {
+        "inside": [
+          982,
+          394,
+          934
+        ],
+        "sunwardDirection": [
+          0.179,
+          0.7536,
+          0.6325
+        ],
+        "count": 17,
+        "minTransmission": 1,
+        "clippedBy": {
+          "position": [
+            960,
+            352.7284,
+            899.3568
+          ],
+          "material": "*72n_136n_103(wc/eb_art_wall_plaster_chipped_orange:wc/decal_concrete_crack02:wc/decal_grime_drip)",
+          "distance": 136.3754
+        },
+        "clearance": 6,
+        "ring": [
+          {
+            "position": [
+              996.2161,
+              453.8508,
+              984.2385
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 354.5059
+          },
+          {
+            "position": [
+              996.2161,
+              446.1358,
+              993.4297
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 369.0365
+          },
+          {
+            "position": [
+              1000.7341,
+              446.0935,
+              992.2016
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 367.095
+          },
+          {
+            "position": [
+              1004.5643,
+              447.2322,
+              989.7612
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 363.2369
+          },
+          {
+            "position": [
+              1007.1236,
+              449.3785,
+              986.4801
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 358.0495
+          },
+          {
+            "position": [
+              1008.0223,
+              452.2057,
+              982.8576
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 352.3227
+          },
+          {
+            "position": [
+              1007.1236,
+              455.2833,
+              979.4454
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 346.9283
+          },
+          {
+            "position": [
+              1004.5643,
+              458.1429,
+              976.7629
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 342.6874
+          },
+          {
+            "position": [
+              1000.7341,
+              460.349,
+              975.2185
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 340.2458
+          },
+          {
+            "position": [
+              996.2161,
+              461.5659,
+              975.0474
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 339.9752
+          },
+          {
+            "position": [
+              991.698,
+              461.6081,
+              976.2754
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 187.918
+          },
+          {
+            "position": [
+              987.8678,
+              460.4695,
+              978.7158
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 155.6947
+          },
+          {
+            "position": [
+              985.3085,
+              458.3231,
+              981.997
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 141.3963
+          },
+          {
+            "position": [
+              984.4098,
+              455.4959,
+              985.6195
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 136.3754
+          },
+          {
+            "position": [
+              985.3085,
+              452.4183,
+              989.0317
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 141.3963
+          },
+          {
+            "position": [
+              987.8678,
+              449.5587,
+              991.7142
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 155.6947
+          },
+          {
+            "position": [
+              991.698,
+              447.3526,
+              993.2586
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 368.7659
+          }
+        ]
+      }
+    },
+    {
+      "id": "dining-roof-damage-1",
+      "room": "Speed Cola room",
+      "start": [
+        1181.3438,
+        609.8508,
+        -277.4279
+      ],
+      "end": [
+        1145.5462,
+        459.14,
+        -403.9339
+      ],
+      "radius": 12,
+      "transmission": 1,
+      "length": 199.9975,
+      "provenance": {
+        "sourceRegion": "dining-roof-damage",
+        "sourcePatch": null,
+        "sourceMaterial": null,
+        "nativeBounds": null,
+        "normal": [
+          0,
+          1,
+          0
+        ],
+        "startInset": 13.4683,
+        "samplingPlane": [
+          1410,
+          620,
+          -420
+        ],
+        "boundsAreSampleEnvelope": true,
+        "note": "New atmospheric shaft aligned to native worldspawn sun. Native geometry and alpha-tested glazing/roof boards constrain this narrow volume."
+      },
+      "probes": {
+        "inside": [
+          1141,
+          440,
+          -420
+        ],
+        "sunwardDirection": [
+          0.179,
+          0.7536,
+          0.6325
+        ],
+        "count": 17,
+        "minTransmission": 1,
+        "clippedBy": {
+          "position": [
+            1152.8205,
+            448,
+            -402.2065
+          ],
+          "material": "*62n_21(wc/mtl_theater_ceilingtile_2:wc/decal_burntstain_01)",
+          "distance": 205.9975
+        },
+        "clearance": 6,
+        "ring": [
+          {
+            "position": [
+              1181.3438,
+              609.8508,
+              -277.4279
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 239.6252
+          },
+          {
+            "position": [
+              1181.3438,
+              602.1358,
+              -268.2367
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 215.1587
+          },
+          {
+            "position": [
+              1185.8618,
+              602.0935,
+              -269.4648
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 217.1173
+          },
+          {
+            "position": [
+              1189.6921,
+              603.2322,
+              -271.9052
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 205.9975
+          },
+          {
+            "position": [
+              1192.2513,
+              605.3785,
+              -275.1863
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 208.8457
+          },
+          {
+            "position": [
+              1193.15,
+              608.2057,
+              -278.8088
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 212.5975
+          },
+          {
+            "position": [
+              1192.2513,
+              611.2833,
+              -282.221
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 216.6816
+          },
+          {
+            "position": [
+              1189.6921,
+              614.1429,
+              -284.9035
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 231.0926
+          },
+          {
+            "position": [
+              1185.8618,
+              616.349,
+              -286.4479
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 234.0202
+          },
+          {
+            "position": [
+              1181.3438,
+              617.5659,
+              -286.6191
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 235.6349
+          },
+          {
+            "position": [
+              1176.8258,
+              617.6081,
+              -285.391
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 235.6911
+          },
+          {
+            "position": [
+              1172.9955,
+              616.4695,
+              -282.9506
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 234.18
+          },
+          {
+            "position": [
+              1170.4363,
+              614.3231,
+              -279.6694
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 231.3317
+          },
+          {
+            "position": [
+              1169.5376,
+              611.4959,
+              -276.0469
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 216.9637
+          },
+          {
+            "position": [
+              1170.4363,
+              608.4183,
+              -272.6347
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 212.8796
+          },
+          {
+            "position": [
+              1172.9955,
+              605.5587,
+              -269.9523
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 209.0849
+          },
+          {
+            "position": [
+              1176.8258,
+              603.3526,
+              -268.4079
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 216.7735
+          }
+        ]
+      }
+    },
+    {
+      "id": "alley-sky-1",
+      "room": "Alley",
+      "start": [
+        -1468.275,
+        489.8508,
+        -181.5788
+      ],
+      "end": [
+        -1533.9677,
+        213.2787,
+        -413.7324
+      ],
+      "radius": 12,
+      "transmission": 1,
+      "length": 367.019,
+      "provenance": {
+        "sourceRegion": "alley-sky",
+        "sourcePatch": null,
+        "sourceMaterial": null,
+        "nativeBounds": null,
+        "normal": [
+          0,
+          1,
+          0
+        ],
+        "startInset": 13.4683,
+        "samplingPlane": [
+          -1570,
+          500,
+          -540
+        ],
+        "boundsAreSampleEnvelope": true,
+        "note": "New atmospheric shaft aligned to native worldspawn sun. Native geometry and alpha-tested glazing/roof boards constrain this narrow volume."
+      },
+      "probes": {
+        "inside": [
+          -1568,
+          70,
+          -534
+        ],
+        "sunwardDirection": [
+          0.179,
+          0.7536,
+          0.6325
+        ],
+        "count": 17,
+        "minTransmission": 1,
+        "clippedBy": {
+          "position": [
+            -1530.5236,
+            201,
+            -409.5645
+          ],
+          "material": "*95n_277n_106(wc/udr_wall_metal_panel_green:wc/glo_dec_blood_hand_print_blend:wc/decal_burntstain_02)",
+          "distance": 373.019
+        },
+        "clearance": 6,
+        "ring": [
+          {
+            "position": [
+              -1468.275,
+              489.8508,
+              -181.5788
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 649.6505
+          },
+          {
+            "position": [
+              -1468.275,
+              482.1358,
+              -172.3876
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 373.0751
+          },
+          {
+            "position": [
+              -1463.7569,
+              482.0935,
+              -173.6157
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 373.019
+          },
+          {
+            "position": [
+              -1459.9267,
+              483.2322,
+              -176.0561
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 374.5301
+          },
+          {
+            "position": [
+              -1457.3674,
+              485.3785,
+              -179.3373
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 377.3783
+          },
+          {
+            "position": [
+              -1456.4688,
+              488.2057,
+              -182.9597
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 647.4674
+          },
+          {
+            "position": [
+              -1457.3674,
+              491.2833,
+              -186.3719
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 651.7071
+          },
+          {
+            "position": [
+              -1459.9267,
+              494.1429,
+              -189.0544
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 655.6336
+          },
+          {
+            "position": [
+              -1463.7569,
+              496.349,
+              -190.5988
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 658.6493
+          },
+          {
+            "position": [
+              -1468.275,
+              497.5659,
+              -190.77
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 660.284
+          },
+          {
+            "position": [
+              -1472.793,
+              497.6081,
+              -189.5419
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 660.3202
+          },
+          {
+            "position": [
+              -1476.6232,
+              496.4695,
+              -187.1015
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 658.721
+          },
+          {
+            "position": [
+              -1479.1825,
+              494.3231,
+              -183.8203
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 655.8672
+          },
+          {
+            "position": [
+              -1480.0812,
+              491.4959,
+              -180.1979
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 652.123
+          },
+          {
+            "position": [
+              -1479.1825,
+              488.4183,
+              -176.7857
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 381.4122
+          },
+          {
+            "position": [
+              -1476.6232,
+              485.5587,
+              -174.1032
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 377.6175
+          },
+          {
+            "position": [
+              -1472.793,
+              483.3526,
+              -172.5588
+            ],
+            "sunTransmission": 1,
+            "inwardOpaqueDistance": 374.6899
+          }
+        ]
+      }
+    }
+  ],
+  "rejected": [
+    {
+      "id": "lobby-front-primitive-174-patch-223",
+      "reason": "No narrow cell retained enough tested sunward and inward clearance."
+    }
+  ]
+}

@@ -1,0 +1,640 @@
+--- v1.5/.tools/audit-sun-runtime.mjs
++++ v1.6/.tools/audit-sun-runtime.mjs
+@@ -0,0 +1,2 @@
++import fs from 'node:fs';import path from 'node:path';import {chromium} from 'playwright-core';import {resolveChromeExecutable} from './browser-path.mjs';
++const out=path.resolve('artifacts/v7-graphics/audit');fs.mkdirSync(out,{recursive:true});const logs=[];const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});try{const page=await browser.newPage({viewport:{width:1440,height:900}});page.on('console',m=>logs.push([m.type(),m.text()]));page.on('pageerror',e=>logs.push(['pageerror',String(e)]));await page.route('**/environment-sun-response.js',r=>{let body=fs.readFileSync('export/web/environment-sun-response.js','utf8');body=body.replace('new THREE.Color(...field.plan.color)','new THREE.Color(4,0,0)');body=body.replace('this.records.set(material,{prior,key,roughness});','console.log("SUN_MATERIAL",JSON.stringify({name:material.name,normal:material.normalMap?.image?.src,roughness,scale:material.normalScale?.toArray()}));this.records.set(material,{prior,key,roughness});');body=body.replace('composeSunResponse(shader,uniforms,expected);','composeSunResponse(shader,uniforms,expected);console.log("SUN_COMPILED",this.name);');return r.fulfill({body,contentType:'text/javascript'});});await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>kino?.debug.getState().ready,null,{timeout:180000});await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);kino.debug.teleportPlayer([-270,82,1350]);kino.debug.step(.5);kino.debug.lookAt([-100,80,1250]);kino.debug.pause();});await page.waitForTimeout(300);await page.screenshot({path:path.join(out,'red-coverage-diagnostic.png'),style:'#menu{display:none!important}'});fs.writeFileSync(path.join(out,'report.json'),JSON.stringify({method:'Test-only red irradiance substitution and shader instrumentation; not production appearance.',logs,picks:await page.evaluate(()=>[[200,750],[400,650],[500,750],[600,550],[900,550],[1200,700]].map(p=>({p,hits:kino.debug.pickSurface(...p)}))),state:await page.evaluate(()=>kino.debug.mapState())},null,2));console.log(JSON.stringify({errors:logs.filter(x=>['error','pageerror'].includes(x[0])),floor:logs.filter(x=>/concrete_cracked|floor_tile06|floor_wood/.test(x[1]))}));}finally{await browser.close();}
+--- v1.5/.tools/fixtures/view-lighting-v1.5.js
++++ v1.6/.tools/fixtures/view-lighting-v1.5.js
+@@ -0,0 +1,23 @@
++import * as THREE from 'three';
++
++// First-person hands retain a readable exposure floor, with restrained room
++// colour and sun response. This approximates bounce, not native T5 light probes.
++export class ViewLighting {
++  constructor(ambient,key){
++    this.ambient=ambient;this.key=key;this.baseAmbient=ambient.color.clone();this.baseKey=key.color.clone();
++    this.targetAmbient=new THREE.Color();this.targetKey=new THREE.Color();this.sunColor=new THREE.Color();this.reset();
++  }
++  reset(){this.ambient.color.copy(this.baseAmbient);this.key.color.copy(this.baseKey);this.ambient.intensity=.55;this.key.intensity=.8;}
++  update(sample,dt){
++    if(!sample||dt<=0)return;
++    const light=sample.ambient.map(v=>Number.isFinite(v)?Math.max(0,v):.115);
++    const luminance=.2126*light[0]+.7152*light[1]+.0722*light[2],sun=THREE.MathUtils.clamp(sample.sunVisibility||0,0,1),blend=1-Math.exp(-5*Math.min(dt,.1));
++    const ambient=THREE.MathUtils.clamp(.49+luminance*.5+sun*.08,.53,.85),key=.77+sun*.4;
++    this.targetAmbient.fromArray(light).multiplyScalar(.5/Math.max(.05,luminance));
++    this.targetAmbient.lerp(this.baseAmbient,.82);
++    this.targetKey.copy(this.baseKey).lerp(this.sunColor.fromArray(sample.sunColor),sun*.22);
++    this.ambient.intensity=THREE.MathUtils.lerp(this.ambient.intensity,ambient,blend);this.key.intensity=THREE.MathUtils.lerp(this.key.intensity,key,blend);
++    this.ambient.color.lerp(this.targetAmbient,blend);this.key.color.lerp(this.targetKey,blend);
++  }
++  snapshot(){return {ambient:this.ambient.intensity,key:this.key.intensity,ambientColor:this.ambient.color.toArray(),keyColor:this.key.color.toArray()};}
++}
+--- v1.5/.tools/test-input-refinement.mjs
++++ v1.6/.tools/test-input-refinement.mjs
+@@ -14,7 +14,7 @@
+  await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>globalThis.kino?.debug.getState().ready,null,{timeout:120000});await page.click('#start');
+  await page.evaluate(()=>{kino.debug.setInvulnerable(true);kino.debug.setAutoSpawn(false);kino.debug.step(1);kino.debug.shoot();kino.debug.reload();kino.debug.step(.2);});
+  await key('keydown','KeyQ');await key('keyup','KeyQ');let s=await state();assert(s.reloadLeft>0);assert.equal(s.weapon.id,'m1911_zm');
+- pass('one-weapon switch leaves the active reload intact',{reloadLeft:s.reloadLeft});
++ pass('Q aim toggle leaves the active reload and held weapon intact',{reloadLeft:s.reloadLeft});
+  await page.waitForTimeout(400);assert(await page.locator('#reload-progress').isVisible());await page.screenshot({path:out+'/reload-progress.png'});
+  const progress=await page.locator('#reload-progress-fill').evaluate(el=>el.style.transform);assert(!['scaleX(0)','scaleX(1)'].includes(progress));
+  await page.evaluate(()=>kino.debug.step(4));assert.equal((await state()).weapon.mag,8);assert(!(await page.locator('#reload-progress').isVisible()));pass('reload progress reflects the real pending transfer and hides on completion',{progress});
+--- v1.5/.tools/test-q-aim.mjs
++++ v1.6/.tools/test-q-aim.mjs
+@@ -0,0 +1,42 @@
++import {chromium} from 'playwright-core';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import {resolveChromeExecutable} from './browser-path.mjs';
++const out=process.env.KINO_Q_AIM_OUT??'artifacts/v7-q-aim';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const page=await browser.newPage({viewport:{width:1440,height:900}}),checks=[],errors=[];
++page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
++const state=()=>page.evaluate(()=>kino.debug.getState()),visual=()=>page.evaluate(()=>kino.debug.weaponVisual());
++const step=n=>page.evaluate(n=>kino.debug.step(n),n);
++const ready=async()=>{await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);await step(1);};
++const pass=(name,details)=>{checks.push({name,passed:true,details});console.log('PASS',name);};
++const clear=async()=>{await page.evaluate(()=>{kino.debug.reset();kino.debug.setActive(true);kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);});await ready();};
++const capture=name=>page.screenshot({path:`${out}/${name}.png`});
++try{
++ await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>window.kino?.debug.getState().ready,null,{timeout:150000});
++ assert.match(await page.locator('.menu-controls').innerText(),/Q\s+TOGGLE AIM/);assert.match(await page.locator('.settings-controls').innerText(),/Q toggle aim/);assert(!/Q \/ 1/.test(await page.locator('.settings-controls').innerText()));await capture('01-menu-controls');
++ await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);});await ready();
++ const normalFov=(await state()).cameraFov;
++ await page.keyboard.down('KeyQ');await page.keyboard.down('KeyQ');await page.keyboard.down('KeyQ');await page.keyboard.up('KeyQ');await step(.5);
++ let s=await state(),v=await visual();assert(s.input.aim.keyboardToggled&&s.input.ads);assert.equal(v.aim,1);assert(s.cameraFov<normalFov-5);assert.equal(s.weapon.id,'m1911_zm');assert.match(await page.locator('#aim-status').innerText(),/TOGGLE ON/);
++ pass('Q raises native sights once per press; holding/repeating Q keeps aim enabled without switching',{fov:s.cameraFov,normalFov,aim:v.aim,input:s.input.aim});await capture('02-q-aim-on');
++ const mag=s.weapon.mag;await page.mouse.down({button:'left'});await page.waitForFunction(n=>kino.debug.getState().weapon.mag<n,mag);await page.mouse.up({button:'left'});s=await state();assert.equal(s.weapon.mag,mag-1);assert(s.input.aim.keyboardToggled&&s.input.ads);pass('left mouse fires normally while keyboard aim stays enabled',{before:mag,after:s.weapon.mag});
++ await page.mouse.down({button:'right'});await step(.1);await page.mouse.up({button:'right'});await step(.1);assert((await state()).input.ads);assert((await state()).input.aim.keyboardToggled);
++ await page.mouse.down({button:'right'});await page.keyboard.press('KeyQ');await step(.2);s=await state();assert(!s.input.aim.keyboardToggled&&s.input.aim.mouseHeld&&s.input.ads);await page.mouse.up({button:'right'});await step(.4);assert(!(await state()).input.ads);assert.equal((await visual()).aim,0);pass('right-mouse release preserves Q aim; turning Q off preserves a held right mouse');
++ await page.evaluate(()=>{for(const modifier of ['metaKey','ctrlKey','altKey']){dispatchEvent(new KeyboardEvent('keydown',{code:'KeyQ',[modifier]:true,bubbles:true}));dispatchEvent(new KeyboardEvent('keyup',{code:'KeyQ',[modifier]:true,bubbles:true}));}});assert(!(await state()).input.aim.keyboardToggled);pass('Meta, Control and Alt Q shortcuts do not toggle game aiming');
++ await page.evaluate(()=>kino.debug.giveWeapon('m14_zm'));await ready();await page.keyboard.press('KeyQ');await step(.4);assert.equal((await state()).weapon.id,'m14_zm');assert.equal((await visual()).aim,1);
++ await page.keyboard.press('Digit1');await ready();assert.equal((await state()).weapon.id,'m1911_zm');await page.keyboard.press('Digit2');await ready();assert.equal((await state()).weapon.id,'m14_zm');
++ await page.evaluate(()=>dispatchEvent(new WheelEvent('wheel',{deltaY:120,bubbles:true,cancelable:true})));await ready();assert.equal((await state()).weapon.id,'m1911_zm');pass('Q does not cycle a two-weapon inventory; 1, 2 and wheel still select weapons');
++ await page.keyboard.press('KeyR');s=await state();assert(s.reloadLeft>0);assert(s.input.aim.keyboardToggled);await step(.2);assert.equal((await visual()).aim,0);await capture('03-q-toggle-during-native-reload');await step(4);s=await state();assert.equal(s.weapon.mag,8);assert(s.input.aim.keyboardToggled);assert.equal((await visual()).aim,1);pass('reload uses its native lowered pose and automatically returns to Q-held sights',{ammo:s.weapon.mag,aim:(await visual()).aim});
++ await page.keyboard.down('KeyW');await page.keyboard.down('ShiftLeft');await step(.4);v=await visual();assert.notEqual(v.mode,'sprint');await page.keyboard.press('KeyQ');await step(.7);v=await visual();assert.equal(v.mode,'sprint');await page.keyboard.press('KeyQ');await step(.8);v=await visual();assert.notEqual(v.mode,'sprint');assert.equal(v.aim,1);await page.keyboard.up('ShiftLeft');await page.keyboard.up('KeyW');pass('Q aim stops sprint; toggling off allows sprint and toggling back respects authored sprint recovery');
++ await page.keyboard.press('Escape');await page.waitForFunction(()=>!kino.debug.getState().active);s=await state();assert(!s.input.ads&&!s.input.aim.keyboardToggled&&!s.input.aim.mouseHeld);await page.keyboard.press('KeyQ');assert(!(await state()).input.aim.keyboardToggled);await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);await step(.4);assert(!(await state()).input.ads);pass('pause clears aim; Q in the menu and resume do not restore it');
++ await page.keyboard.press('KeyQ');assert((await state()).input.aim.keyboardToggled);await page.evaluate(()=>dispatchEvent(new Event('blur')));await page.waitForFunction(()=>!kino.debug.getState().active);assert(!(await state()).input.aim.keyboardToggled);await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);pass('window focus loss clears the keyboard toggle and pauses the game');
++ await page.keyboard.press('KeyQ');await page.evaluate(()=>{kino.debug.setInvulnerable(false);kino.debug.damagePlayer(1000);});s=await state();assert.equal(s.phase,'gameover');assert(!s.input.ads&&!s.input.aim.keyboardToggled);await page.keyboard.press('KeyQ');assert(!(await state()).input.aim.keyboardToggled);await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);await ready();s=await state();assert(s.active&&!s.input.ads&&!s.input.aim.keyboardToggled);pass('death and starting a fresh run clear Q aim');
++ await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.grantPoints(500);const q=kino.debug.getEntities().find(e=>e.targetname==='zombie_vending'&&e.script_noteworthy==='specialty_quickrevive')??kino.debug.getEntities().find(e=>e.model==='zombie_vending_revive');if(!q)throw Error('Quick Revive fixture missing');kino.debug.teleportPlayer(q.position);kino.debug.step(.15);if(!kino.debug.interact())throw Error('Quick Revive fixture purchase failed');kino.debug.step(kino.debug.getState().drinkLeft+.2);if(!kino.debug.getState().perks.includes('specialty_quickrevive'))throw Error('Quick Revive fixture must finish the native drink before downing');});
++ await page.keyboard.press('KeyQ');await step(.4);await page.evaluate(()=>{kino.debug.setInvulnerable(false);kino.debug.damagePlayer(1000);});s=await state();assert.equal(s.phase,'reviving');assert(!s.input.aim.keyboardToggled&&!s.input.ads);await page.keyboard.press('KeyQ');assert(!(await state()).input.aim.keyboardToggled);await step(7);assert(!(await state()).input.ads);pass('being downed for Quick Revive clears aim and ignores Q until recovery');
++ await clear();await page.evaluate(()=>kino.debug.giveWeapon('cz75dw_zm'));await ready();await page.keyboard.press('KeyQ');await step(.5);v=await visual();assert.equal(v.aim,0);assert.match(await page.locator('#aim-status').innerText(),/HIP FIRE ONLY/);assert.match(await page.locator('#aim-status').getAttribute('aria-label'),/uses hip fire/);await capture('04-dual-wield-intent-label');pass('dual-wield guns keep native hip fire and the HUD states that limitation');
++ await clear();s=await state();assert(!s.input.ads&&!s.input.aim.keyboardToggled&&!s.input.aim.mouseHeld);assert.equal(s.inventory.length,1);pass('resetting an active aimed run clears the toggle and restores the starting inventory');
++ await page.keyboard.press('Escape');await page.waitForFunction(()=>!kino.debug.getState().active);await page.click('#settings-open');assert(await page.locator('#settings-panel').isVisible());const help=await page.locator('.settings-controls').innerText();assert.match(help,/Hold right mouse to aim/);assert.match(help,/1 \/ 2 \/ wheel switch weapon/);await capture('05-settings-controls');await page.setViewportSize({width:800,height:600});await capture('06-compact-settings');await page.locator('.settings-controls').scrollIntoViewIfNeeded();await capture('07-compact-controls');const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);assert(!overflow);pass('menu, settings, normal HUD and compact layout expose the updated control scheme');
++ assert.equal(errors.length,0,errors.join('\n'));pass('no script, shader or asset errors');
++}catch(error){checks.push({name:'failure',passed:false,error:String(error),stack:error.stack,state:await state().catch(()=>null),visual:await visual().catch(()=>null)});console.error(error);process.exitCode=1;await capture('failure').catch(()=>{});}
++finally{fs.writeFileSync(`${out}/report.json`,JSON.stringify({method:'Actual isolated Chrome game with real Playwright keyboard and mouse input; modifier-key safety probes use synthetic keyboard events. Debug setup, time steps, weapon grants and invulnerability isolate actions. No physical Apple Magic Mouse or Magic Keyboard was used.',checks,errors},null,2));await browser.close();}
+--- v1.5/.tools/test-sun-response.mjs
++++ v1.6/.tools/test-sun-response.mjs
+@@ -0,0 +1,17 @@
++import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {chromium} from 'playwright-core';import {resolveChromeExecutable} from './browser-path.mjs';
++const output=path.resolve('artifacts/v7-graphics');fs.mkdirSync(output,{recursive:true});const report={method:'Same current source, camera, time and settings. Baseline disables only EnvironmentSunResponse through a test response. Controlled placements settle via normal player collision; pause menu hidden for stable surface comparisons. No FPS inference from concurrent browser runs.',modes:{},checks:[]};
++const check=(name,passed,details)=>{report.checks.push({name,passed:!!passed,details});assert(passed,name);};
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});
++try{for(const mode of ['before','after']){const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage(),result={errors:[],failedRequests:[],views:{}};report.modes[mode]=result;
++page.on('pageerror',e=>result.errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')result.errors.push(m.text());});page.on('requestfailed',r=>result.failedRequests.push(r.url()));page.on('response',r=>{if(r.status()>=400)result.errors.push(`${r.status()} ${r.url()}`);});
++await page.addInitScript(()=>{let seed=1940;Math.random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};});
++if(mode==='before')await page.route('**/environment-sun-response.js',r=>r.fulfill({contentType:'text/javascript',body:'export class EnvironmentSunResponse{update(){} reset(){} dispose(){} snapshot(){return {comparisonDisabled:true}}}'}));
++try{await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>window.kino?.debug.getState().ready,null,{timeout:180000});await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);kino.debug.step(5);kino.debug.pause();});
++for(const [name,feet,target]of [['lobby',[-20,96,1470],[0,210,820]],['floor',[-280,96,1390],[-120,80,1130]],['floor-close',[-270,82,1350],[-100,80,1250]],['sunward-floor',[-200,82,1100],[-130,80,1290]],['dining',[1510,0,-210],[1410,-16,-520]]]){
++result.views[name]=await page.evaluate(({feet,target})=>{kino.debug.resume();kino.debug.teleportPlayer(feet);kino.debug.step(.5);kino.debug.lookAt(target);kino.debug.pause();return {state:kino.debug.getState(),map:kino.debug.mapState()};},{feet,target});await page.waitForTimeout(180);await page.screenshot({path:path.join(output,`${mode}-${name}.png`),style:'#menu{display:none!important}'});result.views[name].pick=await page.evaluate(()=>kino.debug.pickSurface(720,450));result.views[name].state=await page.evaluate(()=>kino.debug.getState());}
++if(mode==='after'){const response=result.views.floor.map.sunResponse;check('native surfaces enhanced without added calls, textures or rays',response.materials>20&&response.authoredGlossMaterials>0&&response.additionalDrawCalls===0&&response.additionalTextures===0&&response.additionalRays===0,response);const frozen=await page.evaluate(()=>kino.debug.mapState().sunResponse);await page.waitForTimeout(350);check('paused material state stable',JSON.stringify(frozen)===JSON.stringify(await page.evaluate(()=>kino.debug.mapState().sunResponse)));
++await page.evaluate(()=>document.exitPointerLock());await page.waitForFunction(()=>!document.pointerLockElement);await page.click('#settings-open');await page.selectOption('[data-setting="quality"]','performance');await page.waitForFunction(()=>kino.debug.mapState().sunResponse.quality==='performance');result.performance=await page.evaluate(()=>kino.debug.mapState().sunResponse);check('Performance skips optional GGX highlight',result.performance.specularStrength===0,result.performance);await page.selectOption('[data-setting="quality"]','quality');await page.waitForFunction(()=>kino.debug.mapState().sunResponse.quality==='quality');result.quality=await page.evaluate(()=>kino.debug.mapState().sunResponse);check('Quality remains restrained',result.quality.specularStrength===.6,result.quality);await page.selectOption('[data-setting="quality"]','balanced');await page.click('#settings-close');await page.evaluate(()=>kino.debug.reset());await page.waitForTimeout(120);result.reset=await page.evaluate(()=>kino.debug.mapState().sunResponse);check('restart retains static treatment without material growth',result.reset.materials===response.materials&&result.reset.specularStrength===.4,result.reset);}
++check(`${mode} no script, shader or asset errors`,!result.errors.length&&!result.failedRequests.length,{errors:result.errors,failedRequests:result.failedRequests});
++}finally{await context.close();}}
++for(const name of Object.keys(report.modes.before.views)){const a=report.modes.before.views[name],b=report.modes.after.views[name];check(`${name} preserves camera without added draw calls`,b.state.performance.calls<=a.state.performance.calls&&b.state.performance.triangles<=a.state.performance.triangles&&JSON.stringify(a.state.player.position)===JSON.stringify(b.state.player.position),{before:a.state.performance,after:b.state.performance});}
++report.success=true;}catch(error){report.success=false;report.failure=String(error);process.exitCode=1;}finally{await browser.close();fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({success:report.success,failure:report.failure,checks:report.checks.map(c=>({name:c.name,passed:c.passed})),errors:Object.fromEntries(Object.entries(report.modes).map(([k,v])=>[k,[...new Set(v.errors)]]))}));}
+--- v1.5/.tools/test-texture-detail.mjs
++++ v1.6/.tools/test-texture-detail.mjs
+@@ -0,0 +1,27 @@
++import fs from 'node:fs';import assert from 'node:assert/strict';import {chromium} from 'playwright-core';import {resolveChromeExecutable} from './browser-path.mjs';
++const out='artifacts/v7-texture-detail';fs.mkdirSync(out,{recursive:true});
++const report={method:'Actual native images at normal player height; controlled view, same current source with only TextureDetail disabled for before. No source image, UV, mip generation, or geometry modifications.',modes:{},checks:[],errors:[]};
++const check=(name,value,data)=>{report.checks.push({name,passed:!!value,data});assert(value,name);};
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++try{
++ for(const mode of ['before','after']){
++  const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage(),r=report.modes[mode]={errors:[],views:{}};
++  page.on('pageerror',e=>r.errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')r.errors.push(m.text());});page.on('requestfailed',req=>r.errors.push(req.url()));
++  if(mode==='before')await page.route('**/texture-detail.js',route=>route.fulfill({contentType:'text/javascript',body:'export class TextureDetail{setQuality(){}register(){}snapshot(){return{disabled:true}}}'}));
++  await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>globalThis.kino?.debug.getState().ready,null,{timeout:120000});await page.click('#start');await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);});
++  for(const f of [{id:'lobby-floor',feet:[-110,82,1280],look:[-200,80,800]},{id:'lobby-stairs',feet:[-200,82,1150],look:[280,245,730]}]){
++   r.views[f.id]=await page.evaluate(f=>{kino.debug.resume();kino.debug.teleportPlayer(f.feet);kino.debug.step(.5);kino.debug.lookAt(f.look);kino.debug.step(1);kino.debug.pause();return{texture:kino.debug.textureDetailState(),state:kino.debug.getState()};},f);
++   await page.waitForTimeout(150);await page.screenshot({path:`${out}/${mode}-${f.id}.png`,style:'#menu{display:none!important}'});
++  }
++  if(mode==='after'){
++   const t=r.views['lobby-floor'].texture;check('balanced filter uses hardware-capped colour and normal levels',t.colourLevel===Math.min(t.hardwareMaximum,8)&&t.normalLevel===Math.min(t.hardwareMaximum,4)&&t.textures>200&&t.newTextures===0,t);
++   const count=t.textures;
++   await page.evaluate(()=>document.exitPointerLock?.());await page.locator('#settings-open').click();await page.locator('[data-setting="quality"]').selectOption('performance');
++   const performance=await page.evaluate(()=>kino.debug.textureDetailState());check('actual Performance setting lowers filters without new images',performance.colourLevel<=2&&performance.normalLevel<=2&&performance.textures===count,performance);
++   await page.locator('[data-setting="quality"]').selectOption('quality');const quality=await page.evaluate(()=>kino.debug.textureDetailState());check('actual Quality setting caps filtering to hardware',quality.colourLevel===Math.min(16,quality.hardwareMaximum)&&quality.textures===count,quality);
++   await page.locator('[data-setting="quality"]').selectOption('balanced');await page.locator('#settings-done').click();await page.evaluate(()=>kino.debug.reset());await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);const reset=await page.evaluate(()=>kino.debug.textureDetailState());check('restart reuses existing samplers',reset.textures===count&&reset.colourLevel===Math.min(8,reset.hardwareMaximum),reset);
++  }
++  check(mode+' no shader/script/asset errors',!r.errors.length,r.errors);await context.close();
++ }
++ report.success=true;
++}catch(e){report.success=false;report.failure=String(e);process.exitCode=1;}finally{await browser.close();fs.writeFileSync(out+'/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify({success:report.success,checks:report.checks,failure:report.failure}));}
+--- v1.5/.tools/test-view-sunlight.mjs
++++ v1.6/.tools/test-view-sunlight.mjs
+@@ -0,0 +1,31 @@
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import {chromium} from 'playwright-core';
++import {resolveChromeExecutable} from './browser-path.mjs';
++const out='artifacts/v7-view-lighting';fs.mkdirSync(out,{recursive:true});
++const report={method:'Controlled sunny/shaded placement in the actual game; before uses preserved1.5 view-lighting only. Both retain current geometry, shaders, graphics settings and native weapon. No human playthrough claim.',modes:{},checks:[],errors:[]};
++const check=(name,value,data)=>{report.checks.push({name,passed:!!value,data});assert(value,name);};
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++try{
++ for(const mode of ['before','after']){
++  const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage();
++  const r=report.modes[mode]={errors:[],views:{}};
++  page.on('pageerror',e=>r.errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')r.errors.push(m.text());});page.on('requestfailed',req=>r.errors.push(req.url()));
++  if(mode==='before')await page.route('**/view-lighting.js',route=>route.fulfill({contentType:'text/javascript',body:fs.readFileSync(new URL('./fixtures/view-lighting-v1.5.js',import.meta.url),'utf8')}));
++  await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>globalThis.kino?.debug.getState().ready,null,{timeout:120000});await page.click('#start');
++  await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);kino.debug.giveWeapon('commando_zm');});await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);
++  for(const f of [{id:'sun-left',feet:[-110,82,1280],look:[-500,132,1250]},{id:'sun-right',feet:[-110,82,1280],look:[300,132,1150]},{id:'shade',feet:[-200,82,1150],look:[200,132,1000]}]){
++   r.views[f.id]=await page.evaluate(f=>{kino.debug.resume();kino.debug.teleportPlayer(f.feet);kino.debug.step(.2);kino.debug.lookAt(f.look);kino.debug.step(2);kino.debug.pause();return{light:kino.debug.viewLightingState(),state:kino.debug.getState()};},f);
++   await page.waitForTimeout(150);await page.screenshot({path:`${out}/${mode}-${f.id}.png`,style:'#menu{display:none!important}'});
++  }
++  if(mode==='after'){
++   const a=r.views['sun-left'].light,b=r.views['sun-right'].light;
++   check('sunlight changes its weapon-local direction as the player turns',Math.hypot(...a.keyPosition.map((v,i)=>v-b.keyPosition[i]))>1,{left:a,right:b});
++   check('shade preserves the established readable fill',Math.hypot(...r.views.shade.light.keyPosition.map((v,i)=>v-[0,4,2][i]))<.01,r.views.shade.light);
++   const paused=await page.evaluate(()=>kino.debug.viewLightingState());await page.waitForTimeout(250);check('paused light pose is stable',JSON.stringify(paused)===JSON.stringify(await page.evaluate(()=>kino.debug.viewLightingState())));
++   await page.evaluate(()=>kino.debug.reset());const reset=await page.evaluate(()=>kino.debug.viewLightingState());check('restart restores key direction',JSON.stringify(reset.keyPosition)==='[0,4,2]',reset);
++  }
++  check(mode+' has no script/shader/asset errors',!r.errors.length,r.errors);await context.close();
++ }
++ report.success=true;
++}catch(e){report.success=false;report.failure=String(e);process.exitCode=1;}finally{await browser.close();fs.writeFileSync(out+'/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify({success:report.success,checks:report.checks,failure:report.failure}));}
+--- v1.5/export/web/aim-input.js
++++ v1.6/export/web/aim-input.js
+@@ -0,0 +1,14 @@
++// Keyboard toggle, held mouse and touch aim are independent input sources.
++// Native weapon/action rules still decide whether sights can be raised.
++export class AimInput {
++  constructor(){this.clear();}
++  clear(){this.keyboardToggled=false;this.mouseHeld=false;this.keyHeld=false;}
++  press({repeat=false,allowed=true}={}){
++    if(!allowed||repeat||this.keyHeld)return false;
++    this.keyHeld=true;this.keyboardToggled=!this.keyboardToggled;return true;
++  }
++  release(){this.keyHeld=false;}
++  setMouse(held){this.mouseHeld=!!held;}
++  read(touchAim=false){return this.keyboardToggled||this.mouseHeld||!!touchAim;}
++  snapshot(){return {keyboardToggled:this.keyboardToggled,mouseHeld:this.mouseHeld};}
++}
+--- v1.5/export/web/desktop-settings.js
++++ v1.6/export/web/desktop-settings.js
+@@ -30,7 +30,7 @@
+   ${['master','effects','music','ambience','dialogue'].map(key=>`<label>${key==='dialogue'?'Announcements':key[0].toUpperCase()+key.slice(1)}<input data-setting="${key}" type="range" min="0" max="100" step="1"><output></output></label>`).join('')}
+   </fieldset></div>
+   <label class="profile-label">Next run<select data-setting="profile"><option value="classic">Classic reconstruction</option><option value="reimagined">Reimagined recovery</option></select></label><p class="settings-note">Classic keeps the reconstruction’s rules. Reimagined recovery uses faster health recovery from your BO1 mod; it is not the complete Reimagined ruleset. Applies when starting a new game.</p>
+-  <p class="settings-controls">WASD move · Shift sprint · Space jump · C / Ctrl crouch<br>Left mouse fire · Right mouse aim · R reload · F / E use or hold to repair<br>V knife · G grenade · Q / 1 / 2 / wheel switch weapon · 4 claymore · X monkey<br>5 alternate attachment · M mute · Esc pause · ⌃⌘F fullscreen</p>
++  <p class="settings-controls">WASD move · Shift sprint · Space jump · C / Ctrl crouch<br>Left mouse fire · Q toggle aim · Hold right mouse to aim · R reload · F / E use or hold to repair<br>V knife · G grenade · 1 / 2 / wheel switch weapon · 4 claymore · X monkey<br>5 alternate attachment · M mute · Esc pause · ⌃⌘F fullscreen</p>
+   <div class="settings-actions"><button type="button" id="settings-defaults">Restore defaults</button><button type="button" id="settings-done">DONE</button></div></section>`;
+   document.querySelector('#menu .menu-content').append(host);
+   const panel=host.querySelector('#settings-panel'),open=host.querySelector('#settings-open');
+--- v1.5/export/web/environment-sun-response.js
++++ v1.6/export/web/environment-sun-response.js
+@@ -0,0 +1,65 @@
++import * as THREE from 'three';
++
++// The atlas is the existing reconstructed static visibility field, not a new
++// light or a new shadow pass. Its geometric receiver test stays untouched.
++const atlasContribution=/irradiance\+=PI\*visibility\*[^;]+;/g;
++export const sunSpecularStrength=quality=>quality==='performance'?0:quality==='quality'?.6:.4;
++// The exact native names explicitly identify glazed/varnished surfaces. These
++// restrained coefficients are reconstructed, not extracted T5 specular values.
++export const authoredGlossRoughness=Object.freeze({'wc/pent_art_floor_tile06_glossy':.58,'wc/pent_art_wall_wood01_glossy':.64});
++const authoredStoneRoughness=Object.freeze({'wc/mtl_theater_gold_tile_base':.68,'wc/mtl_theater_gold_tile_trim':.68});
++function authoredRoughness(material){const name=material?.name||'',base=name.startsWith('*')?name.match(/\(([^:)]+)/)?.[1]:name;return authoredGlossRoughness[name]??authoredStoneRoughness[base];}
++
++export function composeSunResponse(shader,uniforms,expectedReceivers){
++  let replaced=0;
++  shader.fragmentShader=shader.fragmentShader.replace(atlasContribution,()=>{
++    replaced++;
++    return `
++      vec3 kinoSunLightDir=normalize(mat3(viewMatrix)*kinoSunWorldDirection);
++      float kinoSunFacing=max(0.,dot(normal,kinoSunLightDir));
++      vec3 kinoSunIrradiance=PI*visibility*kinoSunEnergy*kinoSunColor*kinoSunFacing;
++      irradiance+=kinoSunIrradiance;
++      if(kinoSunSpecular>0. && visibility>.0001 && kinoSunFacing>.0001){
++        reflectedLight.directSpecular+=kinoSunIrradiance*kinoSunSpecular*
++          BRDF_GGX(kinoSunLightDir,geometryViewDir,normal,material);
++      }
++    `;
++  });
++  if(replaced!==expectedReceivers)throw Error(`Surface sunlight response composition mismatch: ${replaced}/${expectedReceivers}`);
++  shader.fragmentShader='uniform vec3 kinoSunWorldDirection;uniform vec3 kinoSunColor;uniform float kinoSunEnergy;uniform float kinoSunSpecular;\n'+shader.fragmentShader;
++  Object.assign(shader.uniforms,uniforms);
++  return replaced;
++}
++
++function visible(mesh){for(let p=mesh;p;p=p.parent)if(!p.visible||p.userData?.collisionOnly)return false;return true;}
++
++/** Restore the missing fine normal / roughness response of atlas-lit opaque
++ * native map surfaces. No material, texture, UV, vertex, or batching changes.
++ * Call after the original irradiance + surface-atlas hooks are installed.
++ */
++export class EnvironmentSunResponse {
++  constructor(root,field){
++    if(!field?.plan?.regions?.length)throw Error('Surface sunlight response requires the existing atlas');
++    this.uniforms={kinoSunWorldDirection:{value:new THREE.Vector3(...field.plan.sunDirection).normalize()},kinoSunColor:{value:new THREE.Color(...field.plan.color)},kinoSunEnergy:{value:field.plan.energy},kinoSunSpecular:{value:sunSpecularStrength('balanced')}};
++    this.records=new Map();this.quality='balanced';this.disposed=false;this.authoredGlossMaterials=0;this.authoredStoneMaterials=0;
++    const expected=field.plan.regions.length;
++    root.traverse(mesh=>{
++      if(!mesh.isMesh||mesh.isSkinnedMesh||!mesh.geometry?.attributes.kinoSolarLight||!visible(mesh))return;
++      for(const material of [mesh.material].flat()){
++        const gloss=authoredRoughness(material);
++        if(!material?.isMeshStandardMaterial||material.transparent||(!material.normalMap&&gloss===undefined)||!material.userData.kinoIrradiance||this.records.has(material))continue;
++        const prior=material.onBeforeCompile,key=material.customProgramCacheKey,roughness=material.roughness;
++        this.records.set(material,{prior,key,roughness});
++        if(gloss!==undefined){material.roughness=gloss;if(authoredGlossRoughness[material.name]!==undefined)this.authoredGlossMaterials++;else this.authoredStoneMaterials++;}
++        const uniforms=this.uniforms;
++        material.onBeforeCompile=function(shader,renderer){prior.call(this,shader,renderer);composeSunResponse(shader,uniforms,expected);};
++        material.customProgramCacheKey=function(){return key.call(this)+'-native-sun-response-v1';};
++        material.needsUpdate=true;
++      }
++    });
++  }
++  update({quality='balanced'}={}){if(this.disposed)return;this.quality=quality;this.uniforms.kinoSunSpecular.value=sunSpecularStrength(quality);}
++  reset(){/* Static optical data has no simulation clock or session state. */}
++  snapshot(){return {materials:this.records.size,authoredGlossMaterials:this.authoredGlossMaterials,authoredStoneMaterials:this.authoredStoneMaterials,quality:this.quality,specularStrength:this.uniforms.kinoSunSpecular.value,additionalDrawCalls:0,additionalTextures:0,additionalRays:0,disposed:this.disposed};}
++  dispose(){if(this.disposed)return;for(const [material,{prior,key,roughness}]of this.records){material.onBeforeCompile=prior;material.customProgramCacheKey=key;material.roughness=roughness;material.needsUpdate=true;}this.records.clear();this.authoredGlossMaterials=this.authoredStoneMaterials=0;this.disposed=true;}
++}
+--- v1.5/export/web/game.js
++++ v1.6/export/web/game.js
+@@ -21,6 +21,8 @@
+ import { FramePacer, WheelIntent, reloadPresentation } from './input-timing.js';
+ import { TheaterActors } from './theater-actors.js';
+ import { ViewLighting } from './view-lighting.js';
++import { TextureDetail } from './texture-detail.js';
++import { AimInput } from './aim-input.js';
+ 
+ const $=id=>document.getElementById(id), keys=new Set(),audio=new GameAudio();
+ const settings=loadSettings();
+@@ -29,7 +31,8 @@
+ audio.maxBufferBytes=(profile.mobile?16:64)*1024*1024;audio.preload=!profile.mobile;
+ const renderer=new THREE.WebGLRenderer({antialias:!profile.mobile,powerPreference:profile.mobile?'default':'high-performance'});
+ renderer.setPixelRatio(Math.min(devicePixelRatio,profile.mobile?1:qualitySettings(settings.quality).ratio));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
+-const framePacer=new FramePacer(),wheelIntent=new WheelIntent();
++const framePacer=new FramePacer(),wheelIntent=new WheelIntent(),aimInput=new AimInput();
++const textureDetail=new TextureDetail(renderer.capabilities.getMaxAnisotropy(),profile.mobile);
+ let renderedFrames=0,contextLost=false,resizeTimer;
+ renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=settings.brightness;renderer.autoClear=false;
+ document.body.prepend(renderer.domElement);
+@@ -52,8 +55,9 @@
+ const errors=[];
+ let lastShot=null;
+ let pendingMelee=null,lastReloadSerial=0,reloadShot=false;
+-let mousePrimary=false,mouseAim=false,stepDistance=0,airborneTime=0,airbornePeak=0,damageHeading=0,damageHeadingUntil=0;
++let mousePrimary=false,stepDistance=0,airborneTime=0,airbornePeak=0,damageHeading=0,damageHeadingUntil=0;
+ function applySettings(){
++  textureDetail.setQuality(settings.quality);
+   renderer.setPixelRatio(Math.min(devicePixelRatio,profile.mobile?1:qualitySettings(settings.quality).ratio));
+   renderer.setSize(innerWidth,innerHeight);renderer.toneMappingExposure=settings.brightness;
+   audio.setMix?.(settings);if(view)view.bobAmount=settings.weaponBob?1:0;
+@@ -80,7 +84,7 @@
+ function announce(title,small='KINO DER TOTEN',duration=4){$('announcement-title').textContent=title;$('announcement-small').textContent=small;$('announcement').style.opacity=1;announcementUntil=session.time+duration;}
+ function setActive(value){
+   active=!!value&&ready&&session.phase!=='gameover';$('menu').hidden=active;document.body.classList.toggle('menu-open',!active);keys.clear();primary=false;primaryPressed=false;ads=false;reloadShot=false;
+-  mousePrimary=mouseAim=false;touchRepairHeld=false;wheelIntent.reset();framePacer.reset();touchControls.reset();touchControls.setEnabled(active&&session.phase!=='reviving',active);
++  mousePrimary=false;aimInput.clear();touchRepairHeld=false;wheelIntent.reset();framePacer.reset();touchControls.reset();touchControls.setEnabled(active&&session.phase!=='reviving',active);
+   if(!active)player?.clearInput({stopHorizontal:true});
+   if(active&&audio.ctx)audio.start();else if(!active)audio.pause();
+   if(active){if(!started){started=true;announce('Round 1','SURVIVE');audio.play('round');}else if(session.phase==='preparing')announce('Round '+session.round,'PREPARE YOURSELF');}
+@@ -97,10 +101,10 @@
+ addEventListener('pageshow',resumeRendering);
+ renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();contextLost=true;suspendRendering();$('start').disabled=true;$('menu-status').textContent='Graphics paused. Waiting for the renderer to recover…';});
+ renderer.domElement.addEventListener('webglcontextrestored',()=>{contextLost=false;$('start').disabled=!ready;$('menu-status').textContent='Graphics restored · tap to resume';resumeRendering();});
+-addEventListener('blur',()=>{keys.clear();primary=false;ads=false;if(started&&active){setActive(false);document.exitPointerLock?.();}});
++addEventListener('blur',()=>{keys.clear();primary=false;ads=false;aimInput.clear();if(started&&active){setActive(false);document.exitPointerLock?.();}});
+ addEventListener('mousemove',e=>{if(!active||document.pointerLockElement!==renderer.domElement)return;const sensitivity=(ads?.0012*settings.aimSensitivity:.002)*settings.sensitivity;camera.rotation.y-=e.movementX*sensitivity;camera.rotation.x=THREE.MathUtils.clamp(camera.rotation.x-e.movementY*sensitivity*(settings.invertLook?-1:1),-1.5,1.5);});
+-addEventListener('mousedown',e=>{if(!active||e.sourceCapabilities?.firesTouchEvents||e.target.closest('#touch-controls'))return;if(e.button===0){mousePrimary=primary=true;primaryPressed=true;}if(e.button===2)mouseAim=ads=true;});
+-addEventListener('mouseup',e=>{if(e.sourceCapabilities?.firesTouchEvents)return;if(e.button===0)mousePrimary=primary=false;if(e.button===2)mouseAim=ads=false;});
++addEventListener('mousedown',e=>{if(!active||session.phase==='reviving'||e.sourceCapabilities?.firesTouchEvents||e.target.closest('#touch-controls'))return;if(e.button===0){mousePrimary=primary=true;primaryPressed=true;}if(e.button===2){aimInput.setMouse(true);ads=aimInput.read();}});
++addEventListener('mouseup',e=>{if(e.sourceCapabilities?.firesTouchEvents)return;if(e.button===0)mousePrimary=primary=false;if(e.button===2){aimInput.setMouse(false);ads=aimInput.read();}});
+ addEventListener('contextmenu',e=>e.preventDefault());
+ addEventListener('keydown',e=>{
+   if(['Space','Tab','F3'].includes(e.code))e.preventDefault();
+@@ -109,12 +113,12 @@
+   if(e.code==='Digit4')features.placeClaymore();if(e.code==='KeyX')features.throwMonkey();
+   if(e.code==='Digit5'&&session.toggleAttachment())equipView();
+   if(e.code==='Digit1'||e.code==='Digit2')switchWeapon(e.code==='Digit1'?0:1);
+-  if(e.code==='KeyQ')switchWeapon();
++  if(e.code==='KeyQ'&&aimInput.press({repeat:e.repeat,allowed:session.phase!=='reviving'&&!e.metaKey&&!e.ctrlKey&&!e.altKey})){e.preventDefault();ads=aimInput.read();}
+   if(e.code==='KeyM'){audio.enabled=!audio.enabled;toast(audio.enabled?'Sound on':'Sound off');}
+   if(e.code==='F3'){debugVisible=!debugVisible;$('debug').hidden=!debugVisible;}
+   if(e.code==='Escape'){setActive(false);document.exitPointerLock?.();}
+ });
+-addEventListener('keyup',e=>keys.delete(e.code));
++addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='KeyQ')aimInput.release();});
+ addEventListener('wheel',e=>{if(!active)return;e.preventDefault();if(wheelIntent.consume(e,performance.now()))switchWeapon();},{passive:false});
+ addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{const width=innerWidth,height=innerHeight,current=renderer.getSize(new THREE.Vector2());if(current.x===width&&current.y===height)return;camera.aspect=viewCamera.aspect=width/height;camera.updateProjectionMatrix();viewCamera.updateProjectionMatrix();renderer.setSize(width,height);},profile.mobile?150:0);});
+ 
+@@ -127,7 +131,7 @@
+     primary=false;ads=false;setActive(false);document.exitPointerLock?.();$('start').innerHTML='TRY AGAIN <span>→</span>';$('restart').hidden=true;
+     $('menu-status').textContent='You survived '+session.round+' rounds';$('results').hidden=false;$('results').textContent=session.kills+' kills · '+session.headshots+' headshots · '+Math.floor(session.time/60)+'m '+Math.floor(session.time%60)+'s';
+     try{const best=Math.max(session.round,+(localStorage.getItem('kino.best')||0));localStorage.setItem('kino.best',String(best));}catch{}
+-  }else if(session.phase==='reviving')announce('A second chance','QUICK REVIVE',4);
++  }else if(session.phase==='reviving'){aimInput.clear();ads=false;announce('A second chance','QUICK REVIVE',4);}
+ }
+ function effect(position,color=0x9e3023,count=7,options){combatParticles.emit(position,color,count,options);}
+ function hit(z,head){hitUntil=session.time+.12;$('hitmarker').style.color=head?'#db5140':'#eee';const point=head?enemies.headPosition(z):z.root.position.clone().add(new THREE.Vector3(0,z.kind==='zombie'?42:25,0));effect(point,0x9e3023,7,{kind:'blood',direction:point.clone().sub(camera.position).normalize()});}
+@@ -182,7 +186,7 @@
+ }
+ function warmViewAudio(){if(view?.ready)audio.warmWeapon(session.def,Object.values(view.rig.data).flatMap(d=>(d.notifies??[]).map(n=>n.name)));}
+ function switchWeapon(slot){if(!active||!session.switchWeapon(slot))return false;burstLeft=0;reloadShot=false;primaryPressed=false;equipView();return true;}
+-async function equipView(){reloadShot=false;await view.equip(session.def);warmViewAudio();}
++async function equipView(){reloadShot=false;await view.equip(session.def);textureDetail.register(viewScene);warmViewAudio();}
+ function reload(){if(!view.ready)return;const empty=session.weapon.mag===0;if(session.reload()){burstLeft=0;ads=false;lastReloadSerial=session.reloadSerial;view.reload(empty,session.reloadDuration,session.reloadStage);}}
+ function melee(){
+   if(!active||session.busy||session.weaponUnavailable||features.events.room||!view.ready)return false;
+@@ -291,7 +295,7 @@
+ function repair(b){if(b.count>=(b.boards.length||6)||repairLeft>0)return false;repairLeft=.75;world.setBoards(b,b.count+1);if(b.rewardRound!==session.round){b.rewardRound=session.round;b.reward=0;}if(b.reward<50*session.round){session.addPoints(10);b.reward+=10;}audio.play('board');return true;}
+ function reset(){
+   pendingMelee=null;lastReloadSerial=0;reloadShot=false;
+-  touchControls.reset();stepDistance=0;airborneTime=0;airbornePeak=0;damageHeadingUntil=0;mousePrimary=mouseAim=false;toastUntil=0;announcementUntil=0;hitUntil=0;flashUntil=0;primary=false;primaryPressed=false;ads=false;keys.clear();
++  touchControls.reset();aimInput.clear();stepDistance=0;airborneTime=0;airbornePeak=0;damageHeadingUntil=0;mousePrimary=false;toastUntil=0;announcementUntil=0;hitUntil=0;flashUntil=0;primary=false;primaryPressed=false;ads=false;keys.clear();
+   actorRendering?.reset();viewLighting.reset();
+   session.setProfile(settings.profile);session.reset();enemies.reset();world.reset(session);player.setSpawn(vector(spawn.position));player.respawn();camera.rotation.set(0,spawn.yaw-Math.PI/2,0);
+   powerups.reset();perkDrink.stop();mysteryBox.reset();
+@@ -308,7 +312,7 @@
+   if(!ready)return;
+   touchControls.setEnabled(active&&session.phase!=='reviving'&&session.phase!=='gameover',active&&session.phase!=='gameover');
+   const touch=touchControls.input.read();
+-  primary=mousePrimary||touch.fire;primaryPressed ||= touch.firePressed;ads=mouseAim||touch.aim;
++  primary=mousePrimary||touch.fire;primaryPressed ||= touch.firePressed;ads=active&&session.phase!=='reviving'&&aimInput.read(touch.aim);
+   if(active){
+     session.update(dt);
+     if(session.phase!=='gameover'){
+@@ -346,7 +350,7 @@
+         const pad=data.entities.find(e=>e.targetname==='trigger_teleport_pad_0'),feet=player.getFeetPosition();
+         const onPad=pad.bounds&&new THREE.Box3(vector(pad.bounds[0]),vector(pad.bounds[1])).containsPoint(feet);
+         if(!onPad||session.phase==='reviving'){teleportPending=0;toast('Teleport cancelled · stay on the pad');}
+-        else if(session.time>=teleportPending){teleportPending=0;const dest=data.entities.find(e=>e.targetname==='projroom_teleport_player0');session.cancelReload();keys.clear();mousePrimary=mouseAim=primary=primaryPressed=ads=false;touchControls.reset();player.setPosition(vector(dest.position));camera.rotation.set(0,dest.yaw-Math.PI/2,0);returnAt=session.time+30;session.teleporter='cooldown';flashUntil=session.time+.8;toast('Projection room · 30 seconds',4);}
++        else if(session.time>=teleportPending){teleportPending=0;const dest=data.entities.find(e=>e.targetname==='projroom_teleport_player0');session.cancelReload();keys.clear();mousePrimary=primary=primaryPressed=ads=false;aimInput.clear();touchControls.reset();player.setPosition(vector(dest.position));camera.rotation.set(0,dest.yaw-Math.PI/2,0);returnAt=session.time+30;session.teleporter='cooldown';flashUntil=session.time+.8;toast('Projection room · 30 seconds',4);}
+       }
+       if(returnAt&&session.time>=returnAt){
+         returnAt=0;const room=features.events.chooseRoom();
+@@ -370,11 +374,18 @@
+     }
+   }
+   muzzle.intensity=Math.max(0,muzzle.intensity-dt*2200);camera.fov=THREE.MathUtils.damp(camera.fov,ads&&!session.def.dualWield&&!session.drinking&&!session.meleeLeft&&!session.reloadLeft?Math.min(settings.fov,session.def.adsFov||56):settings.fov,12,dt);camera.updateProjectionMatrix();
+-  if(player){theaterLighting?.update(camera.position,session.power,session.time,{pixelHeight:innerHeight*renderer.getPixelRatio()});actorRendering?.update(enemies,player.getFeetPosition(),session.time,settings);viewLighting.update(actorRendering?.sampleIllumination(player.getFeetPosition(),{height:48}),active?dt:0);audio.setListener(camera.position,camera.getWorldDirection(audioForward),audioUp.set(0,1,0).applyQuaternion(camera.quaternion));theaterAtmosphere?.update(session.time,session.power,{...settings,pixelHeight:innerHeight*renderer.getPixelRatio()});world?.daylight?.update(session.time,{...settings,pixelHeight:innerHeight*renderer.getPixelRatio()});}
++  if(player){world?.environmentSunResponse?.update(settings);theaterLighting?.update(camera.position,session.power,session.time,{pixelHeight:innerHeight*renderer.getPixelRatio()});actorRendering?.update(enemies,player.getFeetPosition(),session.time,settings);viewLighting.update(actorRendering?.sampleIllumination(player.getFeetPosition(),{height:48}),active?dt:0,{cameraQuaternion:camera.quaternion,sunDirection:actorRendering?.direction});audio.setListener(camera.position,camera.getWorldDirection(audioForward),audioUp.set(0,1,0).applyQuaternion(camera.quaternion));theaterAtmosphere?.update(session.time,session.power,{...settings,pixelHeight:innerHeight*renderer.getPixelRatio()});world?.daylight?.update(session.time,{...settings,pixelHeight:innerHeight*renderer.getPixelRatio()});}
+   hud();
+ }
+ function hud(){
+   const s=session,w=s.weapon;
++  const aimStatus=$('aim-status'),toggle=aimInput.keyboardToggled;
++  const aimHidden=!active||touchControls.mode;if(aimStatus.hidden!==aimHidden)aimStatus.hidden=aimHidden;
++  if(aimStatus.dataset.enabled!==String(toggle))aimStatus.dataset.enabled=String(toggle);
++  const aimText=toggle?(s.def.dualWield?'Q · ON · HIP FIRE ONLY':'Q · AIM TOGGLE ON'):'Q · TOGGLE AIM';
++  const aimLabel=toggle?(s.def.dualWield?'Keyboard aim toggle on; this weapon uses hip fire. Press Q to turn the toggle off.':'Keyboard aim toggle on. Sights return after reloading or other weapon actions. Press Q to release aim.'):'Press Q to toggle aiming, or hold the right mouse button.';
++  if(aimStatus.textContent!==aimText)aimStatus.textContent=aimText;
++  if(aimStatus.getAttribute('aria-label')!==aimLabel)aimStatus.setAttribute('aria-label',aimLabel);
+   $('damage-direction').style.opacity=active&&damageHeadingUntil>s.time?String(Math.min(1,damageHeadingUntil-s.time)):0;$('damage-direction').style.transform='translate(-50%,-50%) rotate('+damageHeading+'rad)';
+   $('round').textContent=s.round<=5?'I'.repeat(s.round):String(s.round);$('remaining').textContent=s.phase==='preparing'?'STARTS IN '+Math.max(0,Math.ceil(s.countdown)):(s.total-s.killed)+' REMAINING';
+   $('points').textContent=s.points.toLocaleString();$('mag').textContent=s.weaponUnavailable?'—':w.mag;$('reserve').textContent=s.weaponUnavailable?'—':w.reserve;$('weapon-name').textContent=s.weaponUnavailable?(s.pack?'Weapon in Pack-a-Punch':'No weapon'):s.def.name;$('grenades').textContent='G · '+s.grenades+' GRENADES'+(s.claymoresOwned?'  |  4 · '+s.claymores+' CLAYMORES':'')+(s.monkeysOwned?'  |  X · '+s.monkeys+' MONKEYS':'');$('reload-label').textContent=s.weaponUnavailable?'':s.reloadLeft>0?'RELOADING':w.mag===0?'R TO RELOAD':s.weapon.upgraded&&data.weapons[w.id].upgrade?.attachment?'5 · SWITCH ATTACHMENT':'';
+@@ -391,7 +402,7 @@
+   if(debugVisible)$('debug').textContent=`${fps} FPS · ${renderer.info.render.calls} calls\n${camera.position.toArray().map(v=>v.toFixed(1)).join(', ')}\n${enemies.list.length} enemies · ${world.navDisabled.size} blocked polygons`;
+ }
+ 
+-function getState(){return {ready,active,started,settings:{...settings},damageHeading:damageHeadingUntil>session?.time?damageHeading:null,renderScale:renderer.getPixelRatio(),cameraFov:camera.fov,input:{touch:touchControls.getState(),primary,ads},...(session?session.snapshot():{}),player:player?{...player.state,rotation:camera.rotation.toArray().slice(0,3),position:camera.position.toArray(),feet:player.getFeetPosition().toArray()}:null,enemies:enemies?.snapshot()??[],prompt:promptText,barriers:world?.barriers.map(b=>({id:b.id,count:b.count,position:b.position.toArray(),inside:b.inside.toArray(),group:b.group}))??[],doors:world?[...world.doors.values()].map(d=>({name:d.name,cost:d.cost,flag:d.flag,open:session.openDoors.has(d.name),triggers:d.triggers.map(e=>e.position),parts:d.parts.length})):[],performance:{fps,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},viewmodelReady:view?.ready??false,errors:[...errors]};}
++function getState(){return {ready,active,started,settings:{...settings},damageHeading:damageHeadingUntil>session?.time?damageHeading:null,renderScale:renderer.getPixelRatio(),cameraFov:camera.fov,input:{touch:touchControls.getState(),primary,ads,aim:aimInput.snapshot()},...(session?session.snapshot():{}),player:player?{...player.state,rotation:camera.rotation.toArray().slice(0,3),position:camera.position.toArray(),feet:player.getFeetPosition().toArray()}:null,enemies:enemies?.snapshot()??[],prompt:promptText,barriers:world?.barriers.map(b=>({id:b.id,count:b.count,position:b.position.toArray(),inside:b.inside.toArray(),group:b.group}))??[],doors:world?[...world.doors.values()].map(d=>({name:d.name,cost:d.cost,flag:d.flag,open:session.openDoors.has(d.name),triggers:d.triggers.map(e=>e.position),parts:d.parts.length})):[],performance:{fps,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},viewmodelReady:view?.ready??false,errors:[...errors]};}
+ globalThis.kino={debug:{getState,setActive,pause:()=>setActive(false),resume:()=>setActive(true),reset,teleportPlayer:p=>player.setPosition(vector(p)),lookAt:p=>camera.lookAt(vector(p)),damagePlayer:damage,grantPoints:n=>session.points+=n,interact,shoot,reload,melee,giveWeapon:id=>{session.giveWeapon(id);equipView();},spawnEnemy:(p,kind)=>enemies.spawn(vector(p),null,kind).id,spawnBarrierEnemy:id=>{const barrier=world.barriers.find(b=>b.id===id);if(!barrier)throw new Error("Unknown barrier");return enemies.spawn(null,barrier,"zombie").id;},lightingState:()=>({...theaterLighting.snapshot(),daylight:world.daylight?.snapshot()}),interactionState:()=>interactionUI.snapshot(),clearEnemies:()=>{for(const z of [...enemies.list])enemies.hurt(z,999999);},collectPowerup:collect,step:(seconds)=>{for(let t=0;t<seconds;t+=1/60)update(Math.min(1/60,seconds-t));},navigationPath:(a,b)=>world.path(vector(a),vector(b)).map(v=>v.toArray()),getEntities:()=>data.entities.filter(e=>e.classname==='trigger_use'||e.targetname==='initial_spawn_points'),showCollision:value=>{world.collision.setDebugVisible(value);scene.add(world.collision.mesh);}}};
+ Object.assign(kino.debug,{
+   memoryState:()=>{
+@@ -413,10 +424,11 @@
+   trapState:()=>trapSystem.snapshot(),
+   interactionProbe:id=>{const e=data.entities.find(e=>e.id===id);return e?{distance:camera.position.distanceTo(vector(e.position)),clear:world.interactionClear(camera.position,e),promptId:prompt?.id??null}:null;},
+   setRoomRandomSequence:values=>{const sequence=Array.isArray(values)?values.filter(n=>Number.isFinite(n)&&n>=0&&n<1):[];features.events.random=()=>sequence.length?sequence.shift():session.random();},
+-  mapState:()=>({environment:world.environment,surface:world.surfaceAt(player.getFeetPosition()),quickReviveVisible:world.entities.get(data.entities.find(e=>e.model==='zombie_vending_revive')?.id)?.visible,reviveCollision:world.reviveClip?.enabled,teleportPending,returnAt,cooldownUntil,particles:combatParticles.snapshot()}),
++  mapState:()=>({environment:world.environment,sunResponse:world.environmentSunResponse?.snapshot(),surface:world.surfaceAt(player.getFeetPosition()),quickReviveVisible:world.entities.get(data.entities.find(e=>e.model==='zombie_vending_revive')?.id)?.visible,reviveCollision:world.reviveClip?.enabled,teleportPending,returnAt,cooldownUntil,particles:combatParticles.snapshot()}),
+   weaponVisual:()=>view.snapshot(),
+   actorRenderingState:()=>actorRendering?.snapshot(),
+   viewLightingState:()=>viewLighting.snapshot(),
++  textureDetailState:()=>textureDetail.snapshot(),
+   lastShot:()=>lastShot,
+   setInvulnerable:value=>{session.effects.invulnerable=value?Infinity:0;},
+   aimAtEnemy:(id,head=true)=>{const z=enemies.list.find(z=>z.id===id);if(z)camera.lookAt(head?enemies.headPosition(z):z.root.position.clone().add(new THREE.Vector3(0,z.kind==='zombie'?40:25,0)));},
+@@ -438,7 +450,7 @@
+   trapSystem=new KinoTraps({scene,data,session,world,enemies,player,audio,damage});
+   powerups=new Powerups(scene,data,audio,collect);perkDrink=new PerkDrink(viewScene,data,audio);mysteryBox=new MysteryBox(scene,world,data,session,audio,toast);
+   features=new KinoFeatures({scene,world,data,session,enemies,player,camera,audio,effect,damage,toast});
+-  await Promise.all([enemies.load(),equipView(),audio.load(),powerups.load(),perkDrink.load(),mysteryBox.load(),features.load()]);theaterLighting.prepareActors(enemies);actorRendering=new TheaterActors(scene,world);player.update(.05,{});ready=true;
++  await Promise.all([enemies.load(),equipView(),audio.load(),powerups.load(),perkDrink.load(),mysteryBox.load(),features.load()]);theaterLighting.prepareActors(enemies);actorRendering=new TheaterActors(scene,world);textureDetail.register(scene);for(const root of [...enemies.templates,...enemies.heads,enemies.dog,enemies.quad,enemies.quadHead])textureDetail.register(root);player.update(.05,{});ready=true;
+   progress('Ready',100);$('loading').hidden=true;$('start').disabled=contextLost;$('menu-status').textContent=contextLost?'Graphics paused. Waiting for the renderer to recover…':touchControls.mode?'Tap to enter the theater':'Click to capture the mouse · Esc to pause';
+ }catch(error){console.error(error);errors.push(String(error));$('load-label').textContent='Unable to start: '+error.message;$('menu-status').textContent='A required file could not load. Reopen the app, or retry below.';$('start').disabled=false;$('start').textContent='RETRY LOADING';$('start').addEventListener('click',()=>location.reload(),{once:true});}
+ renderer.info.autoReset=false;
+--- v1.5/export/web/index.html
++++ v1.6/export/web/index.html
+@@ -38,6 +38,7 @@
+ .kino-ui #ammo{gap:10px;margin-top:3px;font-variant-numeric:tabular-nums}.kino-ui #mag{font-size:48px;line-height:1.2;font-weight:600;letter-spacing:-1.7px}.kino-ui #ammo>span{font-size:17px}.kino-ui #ammo>span:first-of-type{font-size:24px}
+ .kino-ui #reload-progress{height:2px;width:112px;margin:7px 0 5px auto;background:#ffffff1c;overflow:hidden}.kino-ui #reload-progress i{display:block;width:100%;height:100%;background:var(--ui-brass);transform-origin:left}
+ .kino-ui #grenades{font-size:9px;letter-spacing:.75px;color:#cabfa6}.kino-ui #reload-label{font-size:9px;letter-spacing:1px;color:#ead092}
++.kino-ui #aim-status{font-size:9px;letter-spacing:.7px;line-height:1.5;color:#b6ad99;margin-top:4px}.kino-ui #aim-status[data-enabled="true"]{color:#ddc48f}
+ .kino-ui #controls-hint{left:32px;bottom:18px;font-size:9px;color:#d0c5aa94;letter-spacing:.1px}.kino-ui #effects{bottom:35px;gap:13px}.kino-ui .powerup-timer img{height:36px;width:36px}
+ .kino-ui #toast{font-size:12px;letter-spacing:.4px;top:23%;padding:9px 16px;background:linear-gradient(90deg,transparent,#101513e6 18%,#101513e6 82%,transparent);max-width:80vw;text-align:center}.kino-ui #toast:empty{display:none}
+ .kino-ui #announcement-title{font-size:36px;letter-spacing:2px}.kino-ui #announcement-small{font-size:9px;letter-spacing:3px}
+@@ -76,8 +77,8 @@
+ <div id="announcement"><span id="announcement-small"></span><strong id="announcement-title"></strong></div><div id="prompt"></div><div id="toast"></div>
+ <div id="round-panel"><span class="eyebrow">ROUND</span><strong id="round">I</strong><span id="remaining"></span></div>
+ <div id="player-panel"><div id="perks"></div><span class="hud-label">POINTS</span><div class="points"><span>✦</span> <strong id="points">500</strong></div><div class="health-track"><i id="health-fill"></i></div><span id="health-label">100 / 100</span></div>
+-<div id="weapon-panel"><span class="hud-label">EQUIPPED</span><div id="weapon-name">M1911</div><div id="ammo"><strong id="mag">8</strong><span>/</span><span id="reserve">32</span></div><div id="reload-label"></div><div id="reload-progress" hidden aria-hidden="true"><i id="reload-progress-fill"></i></div><div id="grenades">G · 4 GRENADES</div></div>
+-<div id="effects"></div><div id="objective"></div><div id="controls-hint">WASD move · Shift sprint · R reload · F use · V knife · Esc pause</div><div id="debug" hidden></div>
++<div id="weapon-panel"><span class="hud-label">EQUIPPED</span><div id="weapon-name">M1911</div><div id="ammo"><strong id="mag">8</strong><span>/</span><span id="reserve">32</span></div><div id="aim-status" role="status" aria-live="polite" hidden>Q · TOGGLE AIM</div><div id="reload-label"></div><div id="reload-progress" hidden aria-hidden="true"><i id="reload-progress-fill"></i></div><div id="grenades">G · 4 GRENADES</div></div>
++<div id="effects"></div><div id="objective"></div><div id="controls-hint">WASD move · Shift sprint · Q toggle aim · Left mouse fire · R reload · F use · Esc pause</div><div id="debug" hidden></div>
+ <section id="menu" aria-label="Kino der Toten menu">
+   <div class="menu-grain"></div><div class="menu-frame" aria-hidden="true"></div>
+   <div class="menu-content">
+@@ -90,7 +91,8 @@
+     <button id="restart" class="secondary" hidden>NEW GAME</button>
+     <p id="menu-status">Loading map and equipment</p><div id="results" hidden></div>
+     <div class="menu-controls" aria-label="Quick controls">
+-      <span><kbd>W A S D</kbd> MOVE</span><span><kbd>MOUSE</kbd> AIM / SHOOT</span>
++      <span><kbd>W A S D</kbd> MOVE</span><span><kbd>LEFT MOUSE</kbd> FIRE</span>
++      <span><kbd>Q</kbd> TOGGLE AIM</span><span><kbd>RIGHT MOUSE</kbd> HOLD TO AIM</span>
+       <span><kbd>F / E</kbd> USE / HOLD TO REPAIR</span><span><kbd>R</kbd> RELOAD</span>
+       <span><kbd>SPACE</kbd> JUMP</span><span><kbd>1 / 2</kbd> WEAPON</span>
+       <span><kbd>V</kbd> KNIFE</span><span><kbd>5</kbd> ATTACHMENT</span>
+--- v1.5/export/web/texture-detail.js
++++ v1.6/export/web/texture-detail.js
+@@ -0,0 +1,32 @@
++// Preserve native images, colour spaces, UVs and mip filters. Anisotropic
++// sampling only makes those existing mip chains clearer at oblique angles.
++export function textureDetailLevel(quality,maximum=1,mobile=false,normal=false){
++  const supported=Number.isFinite(maximum)?Math.max(1,Math.floor(maximum)):1;
++  const wanted=mobile?1:quality==='performance'?2:quality==='quality'?(normal?8:16):(normal?4:8);
++  return Math.min(supported,wanted);
++}
++export class TextureDetail {
++  constructor(maximum,mobile=false){this.maximum=maximum;this.mobile=mobile;this.quality='balanced';this.records=new Map();this.changes=0;}
++  register(root){
++    root?.traverse(object=>{
++      if(!object.isMesh)return;
++      for(const material of [object.material].flat()){
++        if(!material?.isMeshStandardMaterial)continue;
++        for(const slot of ['map','normalMap']){
++          const texture=material[slot];
++          if(!texture?.isTexture||texture.isDataTexture||texture.isRenderTargetTexture||texture.isVideoTexture)continue;
++          if(!this.records.has(texture))this.records.set(texture,{original:texture.anisotropy,normal:slot==='normalMap'});
++          this.apply(texture,this.records.get(texture));
++        }
++      }
++    });
++  }
++  apply(texture,record){
++    const value=textureDetailLevel(this.quality,this.maximum,this.mobile,record.normal);
++    if(texture.anisotropy===value)return;
++    texture.anisotropy=value;texture.needsUpdate=true;this.changes++;
++  }
++  setQuality(quality){this.quality=quality;for(const [texture,record]of this.records)this.apply(texture,record);}
++  snapshot(){return{quality:this.quality,hardwareMaximum:this.maximum,colourLevel:textureDetailLevel(this.quality,this.maximum,this.mobile),normalLevel:textureDetailLevel(this.quality,this.maximum,this.mobile,true),textures:this.records.size,samplerChanges:this.changes,newTextures:0};}
++  dispose(){for(const [texture,record]of this.records){if(texture.anisotropy!==record.original){texture.anisotropy=record.original;texture.needsUpdate=true;}}this.records.clear();}
++}
+--- v1.5/export/web/view-lighting.js
++++ v1.6/export/web/view-lighting.js
+@@ -5,10 +5,11 @@
+ export class ViewLighting {
+   constructor(ambient,key){
+     this.ambient=ambient;this.key=key;this.baseAmbient=ambient.color.clone();this.baseKey=key.color.clone();
++    this.basePosition=key.position.clone();this.targetPosition=new THREE.Vector3();this.localSun=new THREE.Vector3();this.inverseView=new THREE.Quaternion();
+     this.targetAmbient=new THREE.Color();this.targetKey=new THREE.Color();this.sunColor=new THREE.Color();this.reset();
+   }
+-  reset(){this.ambient.color.copy(this.baseAmbient);this.key.color.copy(this.baseKey);this.ambient.intensity=.55;this.key.intensity=.8;}
+-  update(sample,dt){
++  reset(){this.ambient.color.copy(this.baseAmbient);this.key.color.copy(this.baseKey);this.ambient.intensity=.55;this.key.intensity=.8;this.key.position.copy(this.basePosition);}
++  update(sample,dt,{cameraQuaternion,sunDirection}={}){
+     if(!sample||dt<=0)return;
+     const light=sample.ambient.map(v=>Number.isFinite(v)?Math.max(0,v):.115);
+     const luminance=.2126*light[0]+.7152*light[1]+.0722*light[2],sun=THREE.MathUtils.clamp(sample.sunVisibility||0,0,1),blend=1-Math.exp(-5*Math.min(dt,.1));
+@@ -18,6 +19,16 @@
+     this.targetKey.copy(this.baseKey).lerp(this.sunColor.fromArray(sample.sunColor),sun*.22);
+     this.ambient.intensity=THREE.MathUtils.lerp(this.ambient.intensity,ambient,blend);this.key.intensity=THREE.MathUtils.lerp(this.key.intensity,key,blend);
+     this.ambient.color.lerp(this.targetAmbient,blend);this.key.color.lerp(this.targetKey,blend);
++    // The viewmodel scene is camera-local. Transform the existing world sun
++    // into that space, so turning no longer turns the sunlight with the gun.
++    // Keep a modest camera-side fill for readable sights in every direction.
++    this.targetPosition.copy(this.basePosition);
++    if(cameraQuaternion&&sunDirection&&sunDirection.lengthSq()>.001){
++      this.inverseView.copy(cameraQuaternion).invert();
++      this.localSun.copy(sunDirection).normalize().applyQuaternion(this.inverseView).multiplyScalar(Math.max(1,this.basePosition.length()));
++      this.targetPosition.lerp(this.localSun,sun*.6);
++    }
++    this.key.position.lerp(this.targetPosition,blend);
+   }
+-  snapshot(){return {ambient:this.ambient.intensity,key:this.key.intensity,ambientColor:this.ambient.color.toArray(),keyColor:this.key.color.toArray()};}
++  snapshot(){return {ambient:this.ambient.intensity,key:this.key.intensity,ambientColor:this.ambient.color.toArray(),keyColor:this.key.color.toArray(),keyPosition:this.key.position.toArray()};}
+ }
+--- v1.5/export/web/world.js
++++ v1.6/export/web/world.js
+@@ -13,6 +13,7 @@
+ import { restoreTheaterDressing } from './theater-dressing.js';
+ import { restoreTheaterFixtures } from './theater-fixtures.js';
+ import { loadSurfaceSunlight } from './theater-surface-light.js';
++import { EnvironmentSunResponse } from './environment-sun-response.js';
+ import { loadTheaterDaylight, createBoxBeacon } from './theater-daylight.js';
+ 
+ export const vector=a=>new THREE.Vector3().fromArray(a);
+@@ -43,6 +44,7 @@
+     this.environment={materials,occlusion,fixtures,dressing,surfaceSunlight:this.surfaceSunlight.plan,irradiance:this.lightfield.stats};this.surfaces=await loadSurfaceIndex();
+     this.optimization=optimizeStaticScene(gltf.scene,{cellSize:768});
+     this.lightfield.install(gltf.scene);
++    this.environmentSunResponse=new EnvironmentSunResponse(gltf.scene,this.surfaceSunlight);
+     this.daylight=await loadTheaterDaylight(this.scene,gltf.scene);
+     const nav=importNavMesh(new Uint8Array(bytes));this.nav=nav.navMesh;this.query=new NavMeshQuery(this.nav,{maxNodes:8192});this.query.defaultQueryHalfExtents={x:70,y:100,z:70};
+     progress('Placing machines and barricades',65);
+--- v1.5/test/aim-input.test.mjs
++++ v1.6/test/aim-input.test.mjs
+@@ -0,0 +1,27 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {AimInput} from '../export/web/aim-input.js';
++
++test('Q toggles once per press; releases, held repeats and duplicate down events cannot flip it',()=>{
++  const aim=new AimInput();assert(aim.press());assert(aim.read());
++  for(let i=0;i<20;i++)assert(!aim.press({repeat:true}));assert(!aim.press());assert(aim.read());
++  aim.release();assert(aim.read());assert(aim.press());assert(!aim.read());aim.release();
++});
++test('mouse hold and keyboard toggle remain independent in both release orders',()=>{
++  const aim=new AimInput();aim.press();aim.release();aim.setMouse(true);aim.setMouse(false);assert(aim.read());
++  aim.setMouse(true);aim.press();aim.release();assert(!aim.keyboardToggled);assert(aim.read());
++  aim.setMouse(false);assert(!aim.read());
++});
++test('touch aim remains a separate source and cannot erase the keyboard toggle',()=>{
++  const aim=new AimInput();assert(aim.read(true));assert(!aim.read(false));
++  aim.press();aim.release();assert(aim.read(false));aim.press();aim.release();assert(aim.read(true));
++});
++test('clear removes held and toggled state; an auto-repeat after resume cannot re-enable it',()=>{
++  const aim=new AimInput();aim.press();aim.setMouse(true);aim.clear();
++  assert.deepEqual(aim.snapshot(),{keyboardToggled:false,mouseHeld:false});assert(!aim.read());
++  assert(!aim.press({repeat:true}));assert(!aim.read());aim.release();assert(aim.press());assert(aim.read());
++});
++test('inactive or modified shortcut presses cannot toggle or consume the next permitted press',()=>{
++  const aim=new AimInput();assert(!aim.press({allowed:false}));assert(!aim.read());
++  assert(aim.press());aim.release();assert(!aim.press({allowed:false}));assert(aim.read());
++});
+--- v1.5/test/environment-sun-response.test.mjs
++++ v1.6/test/environment-sun-response.test.mjs
+@@ -0,0 +1,14 @@
++import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import * as THREE from 'three';
++import {EnvironmentSunResponse,composeSunResponse,sunSpecularStrength} from '../export/web/environment-sun-response.js';
++import {installIrradianceMaterial} from '../export/web/theater-light-field.js';
++import {installSurfaceSunlight} from '../export/web/theater-surface-light.js';
++const plan=JSON.parse(fs.readFileSync(new URL('../export/web/theater-surface-light.json',import.meta.url)));
++function fixture(){const scene=new THREE.Group(),source=new THREE.MeshStandardMaterial({map:new THREE.Texture(),normalMap:new THREE.Texture(),roughness:.73}),power={value:.4},field={plan,texture:new THREE.Texture()},material=installIrradianceMaterial(source,power,4);installSurfaceSunlight(material,field,4);const geometry=new THREE.PlaneGeometry(2,2);geometry.setAttribute('kinoSolarLight',new THREE.BufferAttribute(new Float32Array(geometry.attributes.position.count*3),3));const mesh=new THREE.Mesh(geometry,material);scene.add(mesh);return {scene,material,mesh,field,power};}
++function shader(){return {uniforms:{},vertexShader:THREE.ShaderLib.standard.vertexShader,fragmentShader:THREE.ShaderLib.standard.fragmentShader};}
++test('composes with actual irradiance and atlas hooks without double counting solar, changing receivers or vertex source',()=>{const f=fixture(),before=shader();f.material.onBeforeCompile(before);const system=new EnvironmentSunResponse(f.scene,f.field),after=shader();f.material.onBeforeCompile(after);assert.equal(after.vertexShader,before.vertexShader);assert.equal(after.uniforms.kinoPower,f.power);assert.equal(after.uniforms.kinoSurfaceSun.value,f.field.texture);assert.equal((after.fragmentShader.match(/irradiance-=PI\*4.000\*kinoSolar/g)||[]).length,6);assert.equal((after.fragmentShader.match(/irradiance\+=kinoSunIrradiance/g)||[]).length,6);assert(!after.fragmentShader.includes('dot(normalize(kinoSurfaceNormal),vec3('));assert.match(after.fragmentShader,/kinoSurfaceNormal.y>\.82/);assert.match(after.fragmentShader,/y-\(-64.00\)/);assert.match(after.fragmentShader,/BRDF_GGX\(kinoSunLightDir,geometryViewDir,normal,material\)/);assert.equal(system.snapshot().additionalDrawCalls,0);});
++test('normal, view and world sunlight use the same coordinate frame under camera rotations',()=>{const normal=new THREE.Vector3(.3,.9,.2).normalize(),sun=new THREE.Vector3(...plan.sunDirection).normalize(),view=new THREE.Vector3(.1,.3,.8).normalize();for(const yaw of [0,.7,1.4,Math.PI]){const viewMatrix=new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(.23,yaw,0)),rotation=new THREE.Matrix3().setFromMatrix4(viewMatrix),n=normal.clone().applyMatrix3(rotation),l=sun.clone().applyMatrix3(rotation),v=view.clone().applyMatrix3(rotation);assert(Math.abs(n.dot(l)-normal.dot(sun))<1e-12);assert(Math.abs(n.dot(l.clone().add(v).normalize())-normal.dot(sun.clone().add(view).normalize()))<1e-12);}const back=sun.clone().negate();assert.equal(Math.max(0,back.dot(sun)),0);});
++test('native material maps, roughness, buffers and shared batching identity remain intact; transparent overlays excluded',()=>{const f=fixture(),map=f.material.map,normal=f.material.normalMap,position=f.mesh.geometry.attributes.position,index=f.mesh.geometry.index,shared=new THREE.Mesh(f.mesh.geometry,f.material),decal=new THREE.Mesh(f.mesh.geometry,f.material.clone());decal.material.transparent=true;const hook=decal.material.onBeforeCompile;f.scene.add(shared,decal);const system=new EnvironmentSunResponse(f.scene,f.field);assert.equal(system.snapshot().materials,1);assert.equal(f.mesh.material,shared.material);assert.equal(f.material.map,map);assert.equal(f.material.normalMap,normal);assert.equal(f.material.roughness,.73);assert.equal(f.mesh.geometry.attributes.position,position);assert.equal(f.mesh.geometry.index,index);assert.equal(decal.material.onBeforeCompile,hook);});
++test('performance eliminates optional specular through a shared uniform, pause/reset has no animated state, disposal restores original hooks',()=>{const f=fixture(),hook=f.material.onBeforeCompile,key=f.material.customProgramCacheKey,system=new EnvironmentSunResponse(f.scene,f.field),s=shader();f.material.onBeforeCompile(s);const version=f.material.version;system.update({quality:'performance'});assert.equal(s.uniforms.kinoSunSpecular.value,0);assert.equal(f.material.version,version);system.update({quality:'balanced'});assert.equal(s.uniforms.kinoSunSpecular.value,.4);const frozen=system.snapshot();system.reset();assert.deepEqual(system.snapshot(),frozen);system.update({quality:'quality'});assert.equal(s.uniforms.kinoSunSpecular.value,.6);system.dispose();assert.equal(f.material.onBeforeCompile,hook);assert.equal(f.material.customProgramCacheKey,key);assert.equal(system.snapshot().materials,0);system.dispose();assert(system.snapshot().disposed);});
++test('zero visibility gates both diffuse and specular, unexpected hook changes fail explicitly',()=>{assert.equal(sunSpecularStrength('performance'),0);assert(sunSpecularStrength('balanced')<1);const s=shader();assert.throws(()=>composeSunResponse(s,{},6),/composition mismatch/);const f=fixture(),system=new EnvironmentSunResponse(f.scene,f.field),valid=shader();f.material.onBeforeCompile(valid);assert.match(valid.fragmentShader,/PI\*visibility\*kinoSunEnergy\*kinoSunColor\*kinoSunFacing/);assert.match(valid.fragmentShader,/visibility>\.0001/);system.dispose();});
++test('only exact native glossy names receive a modest response override, restored on disposal',()=>{const f=fixture();f.material.name='wc/pent_art_floor_tile06_glossy';f.material.normalMap=null;f.material.roughness=.9;const unrelated=f.material.clone();unrelated.name='wc/pent_art_floor_tile06_glossy+decal';f.scene.add(new THREE.Mesh(f.mesh.geometry,unrelated));const system=new EnvironmentSunResponse(f.scene,f.field);assert.equal(system.snapshot().authoredGlossMaterials,1);assert.equal(f.material.roughness,.58);assert.equal(unrelated.roughness,.9);system.update({quality:'performance'});system.reset();assert.equal(f.material.roughness,.58);system.dispose();assert.equal(f.material.roughness,.9);});
++test('authored lobby stone retains its compound opaque base without inventing a normal texture',()=>{const f=fixture();f.material.name='*638n_15n(wc/mtl_theater_gold_tile_base:wc/eb_ter_trashpile_';f.material.normalMap=null;f.material.roughness=.9;const system=new EnvironmentSunResponse(f.scene,f.field);assert.equal(system.snapshot().authoredStoneMaterials,1);assert.equal(f.material.roughness,.68);assert.equal(f.material.normalMap,null);assert.equal(f.material.transparent,false);system.dispose();assert.equal(f.material.roughness,.9);});
+--- v1.5/test/texture-detail.test.mjs
++++ v1.6/test/texture-detail.test.mjs
+@@ -0,0 +1,16 @@
++import test from 'node:test';import assert from 'node:assert/strict';import * as THREE from 'three';
++import {TextureDetail,textureDetailLevel} from '../export/web/texture-detail.js';
++test('native texture filtering respects quality, normal-map cost, hardware and mobile limits',()=>{
++ assert.equal(textureDetailLevel('balanced',16),8);assert.equal(textureDetailLevel('balanced',16,false,true),4);
++ assert.equal(textureDetailLevel('quality',16),16);assert.equal(textureDetailLevel('quality',16,false,true),8);
++ assert.equal(textureDetailLevel('quality',4),4);assert.equal(textureDetailLevel('performance',16),2);
++ assert.equal(textureDetailLevel('quality',16,true),1);assert.equal(textureDetailLevel('quality',NaN),1);
++});
++test('shared texture samplers change once without changing source, mip filters or allocating replacements',()=>{
++ const texture=new THREE.Texture(),normal=new THREE.Texture(),data=new THREE.DataTexture();normal.anisotropy=2;
++ const material=new THREE.MeshStandardMaterial({map:texture,normalMap:normal}),root=new THREE.Group();root.add(new THREE.Mesh(new THREE.BoxGeometry(),material),new THREE.Mesh(new THREE.BoxGeometry(),material),new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshStandardMaterial({map:data})));
++ const source=texture.source,filter=texture.minFilter,t=new TextureDetail(16);t.register(root);assert.equal(t.snapshot().textures,2);assert.equal(t.snapshot().samplerChanges,2);assert.equal(data.anisotropy,1);
++ const version=texture.version;t.register(root);t.setQuality('balanced');assert.equal(texture.version,version);assert.equal(texture.source,source);assert.equal(texture.minFilter,filter);
++ t.setQuality('performance');assert.equal(texture.anisotropy,2);assert.equal(normal.anisotropy,2);
++ t.setQuality('quality');assert.equal(texture.anisotropy,16);assert.equal(normal.anisotropy,8);t.dispose();assert.equal(texture.anisotropy,1);assert.equal(normal.anisotropy,2);assert.equal(t.snapshot().textures,0);
++});
+--- v1.5/test/view-lighting.test.mjs
++++ v1.6/test/view-lighting.test.mjs
+@@ -11,3 +11,20 @@
+   for(let i=0;i<120;i++)a.update({ambient:[0,0,0],sunVisibility:0,sunColor:bright.sunColor},1/60);
+   assert(a.ambient.intensity>=.53);assert(a.key.intensity>=.77);a.reset();assert.deepEqual(a.snapshot(),before);
+ });
++
++test('sunlit weapon highlights follow world direction through camera turns and freeze during pause',()=>{
++  const make=()=>{const key=new THREE.DirectionalLight(0xe2d7c4,.8);key.position.set(0,4,2);return new ViewLighting(new THREE.AmbientLight(0xafbac9,.55),key);};
++  const a=make(),b=make(),baseline=a.snapshot(),sunDirection=new THREE.Vector3(1,1,0).normalize();
++  const context={sunDirection,cameraQuaternion:new THREE.Quaternion()};
++  for(let i=0;i<60;i++)a.update(bright,1/60,context);
++  for(let i=0;i<30;i++)b.update(bright,1/30,context);
++  assert(a.key.position.distanceTo(b.key.position)<1e-10);
++  assert(a.key.position.x>1.8,'light comes from the world sun on the right');
++  context.cameraQuaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI);
++  for(let i=0;i<120;i++)a.update(bright,1/60,context);
++  assert(a.key.position.x < -1.8,'a half turn moves the same world sun to the left');
++  const frozen=a.snapshot();context.cameraQuaternion.identity();a.update(bright,0,context);assert.deepEqual(a.snapshot(),frozen);
++  for(let i=0;i<120;i++)a.update({...bright,sunVisibility:0},1/60,context);
++  assert(a.key.position.distanceTo(new THREE.Vector3(0,4,2))<.001,'shade restores the established readable fill');
++  a.reset();assert.deepEqual(a.snapshot(),baseline);
++});

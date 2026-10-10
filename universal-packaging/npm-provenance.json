@@ -1,0 +1,43 @@
+{
+  "name": "npm",
+  "version": "12.2.0",
+  "scripts": {
+    "lint": "node . run eslint",
+    "snap": "tap",
+    "test": "tap",
+    "eslint": "eslint \"**/*.{js,cjs,ts,mjs,jsx,tsx}\"",
+    "lintfix": "node . run eslint -- --fix",
+    "prepack": "node . run build -w docs",
+    "dumpconf": "env | grep npm | sort | uniq",
+    "licenses": "npx licensee --production --errors-only",
+    "lint-all": "node . run lint --workspaces --include-workspace-root --if-present",
+    "postlint": "template-oss-check",
+    "posttest": "node . run lint",
+    "test-all": "node . run test --workspaces --include-workspace-root --if-present",
+    "resetdeps": "node scripts/resetdeps.js",
+    "dependencies": "node scripts/bundle-and-gitignore-deps.js && node scripts/dependency-graph.js",
+    "test:nocolor": "CI=true tap -Rclassic",
+    "rp-pull-request": "node scripts/update-authors.js",
+    "template-oss-apply": "template-oss-apply --force"
+  },
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+  },
+  "dist": {
+    "shasum": "9b58e3add8a0ad8c87c927f1a988f41435f4ffad",
+    "tarball": "https://registry.npmjs.org/npm/-/npm-12.2.0.tgz",
+    "fileCount": 1942,
+    "integrity": "sha512-ZsJjKpTnlmSXOLLXiU1xDCzC4Wlok4IwZmh/aw2KUuXytU7q6qMv/cUT7MoeSf95Slwuw/lRXYefGzGCspHPNQ==",
+    "signatures": [
+      {
+        "sig": "MEYCIQCXvXZm01EiQIfCOjMbCna9ATH8xNjCbTX7B6rGjB8USgIhAPKM2KBQSm3OwLzM4Ayj4PxP5emDpys9665mIf2vokPO",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      },
+      {
+        "sig": "MEYCIQDE/ZBPO+IrWRblLzFc4tZqXE3CvPyOJc4t1t6GiN9raAIhAKPeEeEUqZfTFxCFVEYgSAvFiFwEjtSkImzKqv9bw1GF",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      }
+    ],
+    "unpackedSize": 12397700
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "kino-universal-packaging",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@electron/universal": "3.0.6"
+  }
+}

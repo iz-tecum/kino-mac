@@ -1,0 +1,1163 @@
+--- /dev/null
++++ v1.8/project/.tools/test-graphics-unavailable.mjs
+@@ -0,0 +1,5 @@
++import {chromium} from 'playwright-core';import fs from 'node:fs';import assert from 'node:assert/strict';import {resolveChromeExecutable} from './browser-path.mjs';
++const out=process.env.KINO_GRAPHICS_FAILURE_OUT??'artifacts/v9-graphics-unavailable';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true,args:['--disable-webgl','--disable-software-rasterizer']});const page=await browser.newPage({viewport:{width:1280,height:800}}),expectedErrors=[];
++page.on('pageerror',e=>expectedErrors.push(String(e)));
++try{await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>document.getElementById('load-label').textContent==='Graphics could not start');assert.match(await page.locator('#menu-status').innerText(),/WebGL 2/);assert(await page.locator('#start').isEnabled());assert.equal(await page.locator('#start').innerText(),'Retry');await page.screenshot({path:out+'/graphics-unavailable.png'});await Promise.all([page.waitForEvent('load'),page.locator('#start').click()]);await page.waitForFunction(()=>document.getElementById('load-label').textContent==='Graphics could not start');assert(expectedErrors.length>=1);fs.writeFileSync(out+'/report.json',JSON.stringify({passed:true,method:'Real Chrome launched with WebGL and software rasterizer deliberately disabled. Clear failure and retry verified; this is an injected failure, not a tested unsupported physical GPU.',expectedErrors},null,2));}finally{await browser.close();}
+--- v1.7/project/.tools/test-input-refinement.mjs
++++ v1.8/project/.tools/test-input-refinement.mjs
+@@ -15,8 +15,12 @@
+  await page.evaluate(()=>{kino.debug.setInvulnerable(true);kino.debug.setAutoSpawn(false);kino.debug.step(1);kino.debug.shoot();kino.debug.reload();kino.debug.step(.2);});
+  await key('keydown','KeyQ');await key('keyup','KeyQ');let s=await state();assert(s.reloadLeft>0);assert.equal(s.weapon.id,'m1911_zm');
+  pass('Q aim toggle leaves the active reload and held weapon intact',{reloadLeft:s.reloadLeft});
+- await page.waitForTimeout(400);assert(await page.locator('#reload-progress').isVisible());await page.screenshot({path:out+'/reload-progress.png'});
+- const progress=await page.locator('#reload-progress-fill').evaluate(el=>el.style.transform);assert(!['scaleX(0)','scaleX(1)'].includes(progress));
++ await page.waitForFunction(()=>{const p=Number(document.getElementById('reload-progress-fill').style.transform.match(/scaleX\(([^)]+)\)/)?.[1]);return kino.debug.getState().reloadLeft>0&&!document.getElementById('reload-progress').hidden&&p>0&&p<1;});
++ // Read the cue and authoritative timer together. Encoding a screenshot can
++ // outlast a short reload under build/test load and must not time this check.
++ const reloadCue=await page.evaluate(()=>({left:kino.debug.getState().reloadLeft,visible:!document.getElementById('reload-progress').hidden,progress:document.getElementById('reload-progress-fill').style.transform}));
++ const progress=reloadCue.progress;assert(reloadCue.left>0&&reloadCue.visible);assert(!['scaleX(0)','scaleX(1)'].includes(progress));assert(Number(progress.match(/scaleX\(([^)]+)\)/)?.[1])>0&&Number(progress.match(/scaleX\(([^)]+)\)/)?.[1])<1);
++ await page.screenshot({path:out+'/reload-progress.png'});
+  await page.evaluate(()=>kino.debug.step(4));assert.equal((await state()).weapon.mag,8);assert(!(await page.locator('#reload-progress').isVisible()));pass('reload progress reflects the real pending transfer and hides on completion',{progress});
+  await page.evaluate(()=>kino.debug.giveWeapon('m14_zm'));await ready();await page.evaluate(()=>kino.debug.step(1));
+  await page.evaluate(()=>{for(let i=0;i<50;i++)dispatchEvent(new WheelEvent('wheel',{deltaY:12,bubbles:true,cancelable:true}));});
+--- /dev/null
++++ v1.8/project/.tools/test-laptop-input-v9.mjs
+@@ -0,0 +1,24 @@
++import {chromium} from 'playwright-core';import fs from 'node:fs';import assert from 'node:assert/strict';import {resolveChromeExecutable} from './browser-path.mjs';
++const out=process.env.KINO_LAPTOP_INPUT_OUT??'artifacts/v9-laptop-input';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true}),page=await browser.newPage({viewport:{width:1280,height:800},deviceScaleFactor:2}),checks=[],errors=[];
++page.on('pageerror',e=>errors.push(String(e)));page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
++const state=()=>page.evaluate(()=>kino.debug.getState()),step=n=>page.evaluate(n=>kino.debug.step(n),n),pass=(name,detail)=>{checks.push({name,passed:true,detail});console.log('PASS',name);};
++const ready=async()=>{await page.waitForFunction(()=>kino.debug.getState().viewmodelReady);await step(1);},active=async()=>{await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active&&document.pointerLockElement);},pause=async()=>{await page.keyboard.press('Escape');await page.waitForFunction(()=>!kino.debug.getState().active&&!document.pointerLockElement);};
++try{
++ await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>globalThis.kino?.debug.getState().ready,null,{timeout:150000});
++ await page.locator('#start').focus();await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement.id),'settings-open');await page.keyboard.press('Space');assert(await page.locator('#settings-panel').isVisible());await page.keyboard.press('Escape');assert(!(await page.locator('#settings-panel').isVisible()));assert.equal(await page.evaluate(()=>document.activeElement.id),'settings-open');pass('Tab Space Escape work in menus without gameplay');
++ await active();await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);});await ready();await page.keyboard.press('KeyQ');await step(.5);let s=await state(),mag=s.weapon.mag;assert(s.input.ads);
++ await page.keyboard.down('KeyZ');await page.waitForFunction(m=>kino.debug.getState().weapon.mag===m-1,mag);await page.waitForTimeout(600);assert.equal((await state()).weapon.mag,mag-1);assert((await state()).input.ads);await page.keyboard.up('KeyZ');await page.keyboard.press('KeyZ');await page.waitForFunction(m=>kino.debug.getState().weapon.mag===m-2,mag);pass('Q aims and Z semi-auto fires once per press',{before:mag,after:(await state()).weapon.mag});
++ await page.evaluate(()=>kino.debug.giveWeapon('mp5k_zm'));await ready();mag=(await state()).weapon.mag;await page.keyboard.down('KeyZ');await page.waitForTimeout(550);await page.keyboard.up('KeyZ');s=await state();assert(s.weapon.mag<mag-1);const stopped=s.weapon.mag;await page.waitForTimeout(300);assert.equal((await state()).weapon.mag,stopped);pass('Z supports automatic guns and stops on release');
++ await page.keyboard.down('KeyZ');await page.mouse.down();await page.mouse.up();await page.waitForTimeout(200);assert((await state()).input.primary);await page.keyboard.up('KeyZ');await page.waitForTimeout(100);assert(!(await state()).input.primary);pass('releasing mouse does not cancel held Z');
++ await pause();await page.click('#settings-open');await page.locator('[data-setting="crouchMode"]').selectOption('toggle');await page.locator('[data-setting="sprintMode"]').selectOption('toggle');await page.locator('[data-setting="wheelSwitch"]').uncheck();await page.click('#settings-done');await active();await ready();
++ await page.keyboard.press('KeyC');await step(.5);assert((await state()).input.laptop.crouchToggled);await page.keyboard.down('KeyC');await page.keyboard.down('KeyC');await page.keyboard.up('KeyC');assert(!(await state()).input.laptop.crouchToggled);
++ await page.keyboard.down('KeyW');await page.keyboard.press('ShiftLeft');await step(.5);assert((await state()).input.laptop.sprintToggled);await page.keyboard.up('KeyW');await step(.1);assert(!(await state()).input.laptop.sprintToggled);pass('toggle crouch ignores repeats and sprint ends on stopping');
++ const weapon=(await state()).weapon.id;await page.mouse.wheel(0,150);await step(.3);assert.equal((await state()).weapon.id,weapon);await page.keyboard.press('Digit1');await ready();assert.notEqual((await state()).weapon.id,weapon);pass('wheel can be disabled without losing number-key switching');
++ await page.keyboard.down('KeyW');await page.keyboard.down('KeyZ');await page.keyboard.press('KeyQ');await page.evaluate(()=>dispatchEvent(new Event('kino-system-pause')));await page.waitForFunction(()=>!kino.debug.getState().active);s=await state();const frozen={time:s.time,mag:s.weapon.mag};assert(!s.input.primary&&!s.input.ads&&!s.input.laptop.fire&&!s.input.laptop.sprintToggled);await page.waitForTimeout(400);assert.equal((await state()).time,frozen.time);await page.keyboard.up('KeyW');await page.keyboard.up('KeyZ');
++ await page.evaluate(()=>dispatchEvent(new Event('kino-system-resume')));await page.waitForTimeout(300);assert(!(await state()).active);assert.equal((await state()).time,frozen.time);await active();await page.waitForTimeout(150);s=await state();assert.equal(s.weapon.mag,frozen.mag);assert(!s.input.primary&&!s.input.ads);pass('simulated sleep and wake freeze state until explicit resume');
++ mag=(await state()).weapon.mag;await page.evaluate(()=>{for(const code of ['KeyZ','KeyR','KeyG','KeyF','Digit2'])for(const mod of ['metaKey','altKey']){dispatchEvent(new KeyboardEvent('keydown',{code,[mod]:true,bubbles:true}));dispatchEvent(new KeyboardEvent('keyup',{code,[mod]:true,bubbles:true}));}});await step(.2);s=await state();assert.equal(s.weapon.mag,mag);assert(!s.reloadLeft&&!s.input.primary);pass('Command and Option shortcuts cannot fire reload buy or switch');
++ await page.keyboard.down('KeyZ');await page.evaluate(()=>dispatchEvent(new Event('blur')));await page.waitForFunction(()=>!kino.debug.getState().active);assert(!(await state()).input.laptop.fire);await page.keyboard.up('KeyZ');await active();await page.evaluate(()=>{kino.debug.setInvulnerable(false);kino.debug.damagePlayer(1000);});assert.equal((await state()).phase,'gameover');assert(!(await state()).input.laptop.fire);await active();await ready();s=await state();assert.equal(s.weapon.mag,8);assert(!s.input.primary&&!s.input.laptop.crouchToggled&&!s.input.laptop.sprintToggled);pass('focus loss death and restart clear all new input');
++ await pause();await page.click('#settings-open');await page.screenshot({path:out+'/laptop-controls.png'});await page.reload();await page.waitForFunction(()=>kino.debug.getState().ready,null,{timeout:150000});s=await state();assert.equal(s.settings.sprintMode,'toggle');assert.equal(s.settings.crouchMode,'toggle');assert.equal(s.settings.wheelSwitch,false);assert(!s.started);pass('new controls persist while runs remain fresh');assert.equal(errors.length,0,errors.join('\n'));pass('no script or asset errors');
++}catch(e){checks.push({name:'failure',passed:false,error:String(e),stack:e.stack,state:await state().catch(()=>null)});console.error(e);process.exitCode=1;await page.screenshot({path:out+'/failure.png'}).catch(()=>{});}
++finally{fs.writeFileSync(out+'/report.json',JSON.stringify({method:'Chrome 1280x800 DPR2 with actual key/mouse input; debug grants and invulnerability isolate actions. System events simulated; native wrapper tested separately. No physical MacBook or trackpad claim.',checks,errors},null,2));await browser.close();}
+--- /dev/null
++++ v1.8/project/.tools/test-laptop-menu-v9.mjs
+@@ -0,0 +1,72 @@
++import {chromium} from 'playwright-core';
++import fs from 'node:fs';
++import path from 'node:path';
++import assert from 'node:assert/strict';
++import {resolveChromeExecutable} from './browser-path.mjs';
++
++const out=process.env.KINO_MENU_OUT??'artifacts/v9-menu';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const page=await browser.newPage({viewport:{width:1280,height:800}}),checks=[],errors=[];
++page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
++page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+' '+r.url());});
++page.on('requestfailed',r=>errors.push(r.url()+': '+r.failure()?.errorText));
++const pass=(name,detail)=>{checks.push({name,passed:true,detail});console.log('PASS',name);};
++const snap=async name=>{await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));return page.screenshot({path:path.join(out,name+'.png')});};
++const active=()=>page.evaluate(()=>document.activeElement?.id);
++async function ready(){
++  const until=Date.now()+120000;
++  while(Date.now()<until){assert.equal(errors.length,0,errors.join('\n'));if(await page.evaluate(()=>globalThis.kino?.debug.getState().ready))return;await page.waitForTimeout(100);}
++  throw new Error('Game did not become ready');
++}
++async function fitMenu(){
++  return page.evaluate(()=>{
++    const menu=document.getElementById('menu'),selectors=['#menu-title','#start','#settings-open','.menu-controls','.local-note'];
++    if(!document.getElementById('restart').hidden)selectors.push('#restart');
++    return {viewport:[innerWidth,innerHeight],scrollWidth:menu.scrollWidth,clientWidth:menu.clientWidth,scrollHeight:menu.scrollHeight,clientHeight:menu.clientHeight,
++      items:selectors.map(selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {selector,x:r.x,y:r.y,width:r.width,height:r.height,inside:r.x>=0&&r.y>=0&&r.right<=innerWidth&&r.bottom<=innerHeight};})};
++  });
++}
++try{
++  await page.goto(process.env.KINO_URL??'http://127.0.0.1:5173/');await ready();
++  assert.equal(await page.locator('#menu-title').innerText(),'Kino der Toten');assert.equal(await page.locator('#start').innerText(),'Play');
++  assert.equal(await page.getByRole('button',{name:'Settings',exact:true}).count(),1);assert.equal(await page.locator('.menu-side,.tagline,.chapter').count(),0);
++  let fit=await fitMenu();assert(fit.items.every(i=>i.inside));assert(fit.scrollWidth<=fit.clientWidth&&fit.scrollHeight<=fit.clientHeight);
++  await page.focus('#start');let outline=await page.locator('#start').evaluate(e=>({width:parseFloat(getComputedStyle(e).outlineWidth),style:getComputedStyle(e).outlineStyle}));assert(outline.width>=2&&outline.style!=='none');
++  await snap('01-title-1280x800');pass('1280×800 title menu is readable without scrolling, with plain actions and visible keyboard focus',fit);
++
++  await page.keyboard.press('Enter');await page.waitForFunction(()=>kino.debug.getState().active);
++  await page.keyboard.press('Escape');await page.waitForFunction(()=>!kino.debug.getState().active);
++  assert.equal(await page.locator('#start').innerText(),'Resume');assert(await page.locator('#restart').isVisible());
++  await page.focus('#start');await page.keyboard.press('Tab');assert.equal(await active(),'restart');await page.keyboard.press('Tab');assert.equal(await active(),'settings-open');
++  fit=await fitMenu();assert(fit.items.every(i=>i.inside));await snap('02-pause-1280x800');pass('Keyboard starts and pauses the game; Resume, New game and Settings remain reachable in visual order',fit);
++
++  await page.keyboard.press('Enter');await page.waitForFunction(()=>!document.getElementById('settings-panel').hidden);
++  assert.equal(await active(),'settings-close');assert.equal(await page.locator('#settings-panel').getAttribute('role'),'dialog');assert.equal(await page.locator('#settings-panel').getAttribute('aria-modal'),'true');
++  await page.keyboard.press('Shift+Tab');assert.equal(await active(),'settings-done');await page.keyboard.press('Tab');assert.equal(await active(),'settings-close');
++  const before=await page.evaluate(()=>kino.debug.getState());await page.keyboard.press('Escape');assert(await page.locator('#settings-panel').isHidden());assert.equal(await active(),'settings-open');
++  const after=await page.evaluate(()=>kino.debug.getState());assert.equal(after.time,before.time);assert(!after.active);pass('Settings traps keyboard focus, Escape closes only the dialog, and gameplay remains paused');
++
++  await page.setViewportSize({width:1440,height:900});fit=await fitMenu();assert(fit.items.every(i=>i.inside));assert(fit.scrollHeight<=fit.clientHeight);await snap('03-pause-1440x900');pass('1440×900 pause menu retains all essential controls without scrolling',fit);
++  await page.click('#settings-open');await snap('04-settings-1440x900');
++  const keys=await page.locator('[data-setting]').evaluateAll(items=>items.map(e=>e.dataset.setting));
++  for(const key of ['sensitivity','aimSensitivity','fov','invertLook','weaponBob','reducedFlashes','quality','brightness','master','effects','music','ambience','dialogue','profile'])assert(keys.includes(key),key+' retained');
++  pass('All pre-existing settings remain available',keys);
++
++  await page.locator('[data-setting="textSize"]').selectOption('140');await page.click('#settings-done');
++  await page.setViewportSize({width:1280,height:800});fit=await fitMenu();assert(fit.items.every(i=>i.inside));assert(fit.scrollWidth<=fit.clientWidth&&fit.scrollHeight<=fit.clientHeight);
++  const large=await page.locator('.menu-controls').evaluate(e=>parseFloat(getComputedStyle(e).fontSize));assert(Math.abs(large-16.8)<.01);
++  await snap('05-large-text-menu-1280x800');pass('Larger text increases essential menu copy while all laptop actions and controls remain in view',{fontSize:large,fit});
++  await page.click('#settings-open');
++
++  await page.setViewportSize({width:560,height:660});await page.locator('#settings-close').focus();await snap('06-settings-narrow-top');
++  const geometry=await page.locator('#settings-panel').evaluate(e=>({scrollWidth:e.scrollWidth,clientWidth:e.clientWidth,scrollHeight:e.scrollHeight,clientHeight:e.clientHeight}));
++  assert(geometry.scrollHeight>geometry.clientHeight);assert(geometry.scrollWidth<=geometry.clientWidth+1);
++  await page.locator('#settings-done').focus();await page.keyboard.press('Tab');assert.equal(await active(),'settings-close');
++  await page.locator('#settings-done').focus();await snap('07-settings-narrow-bottom');
++  const doneRect=await page.locator('#settings-done').boundingBox();assert(doneRect.y>=0&&doneRect.y+doneRect.height<=660);
++  await page.keyboard.press('Enter');assert(await page.locator('#settings-panel').isHidden());assert.equal(await active(),'settings-open');pass('Narrow 560×660 settings at Larger text scroll vertically without horizontal overflow; keyboard reaches and activates Done',geometry);
++
++  await page.setViewportSize({width:1280,height:800});await page.focus('#start');await page.keyboard.press('Enter');await page.waitForFunction(()=>kino.debug.getState().active);
++  await page.keyboard.press('Escape');await page.waitForFunction(()=>!kino.debug.getState().active);assert.equal(errors.length,0,errors.join('\n'));pass('Resume remains functional after resizing/settings, with zero script, shader or asset errors');
++}catch(error){checks.push({name:'Failure',passed:false,error:String(error),stack:error.stack});console.error(error);await snap('failure').catch(()=>{});process.exitCode=1;}
++finally{fs.writeFileSync(path.join(out,'report.json'),JSON.stringify({checks,errors,scope:'Real Chrome keyboard interactions and rendered layout at laptop/narrow CSS viewports; not physical MacBook or screen-reader certification.'},null,2));await browser.close();}
+--- /dev/null
++++ v1.8/project/.tools/test-laptop-settings.mjs
+@@ -0,0 +1,49 @@
++import {chromium} from 'playwright-core';
++import fs from 'node:fs';
++import assert from 'node:assert/strict';
++import {resolveChromeExecutable} from './browser-path.mjs';
++
++const out=process.env.KINO_LAPTOP_SETTINGS_OUT??'artifacts/laptop-settings';fs.mkdirSync(out,{recursive:true});
++const browser=await chromium.launch({executablePath:resolveChromeExecutable(),headless:true});
++const context=await browser.newContext({viewport:{width:1728,height:1117},deviceScaleFactor:2});
++await context.addInitScript(()=>{if(!localStorage.getItem('kino.desktop.settings.v1'))localStorage.setItem('kino.desktop.settings.v1',JSON.stringify({version:1,quality:'balanced',fov:89,sensitivity:1.35,master:43,music:22}));});
++const page=await context.newPage(),checks=[],errors=[];
++page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
++const pass=(name,detail)=>{checks.push({name,passed:true,detail});console.log('PASS',name);};
++const state=()=>page.evaluate(()=>kino.debug.getState());
++const picture=()=>page.evaluate(()=>{const c=document.querySelector('body>canvas');return{width:c.width,height:c.height,pixels:c.width*c.height,viewport:[innerWidth,innerHeight],dpr:devicePixelRatio,scale:kino.debug.getState().renderScale};});
++const ready=()=>page.waitForFunction(()=>window.kino?.debug.getState().ready,null,{timeout:180000});
++const select=async(key,value)=>{await page.selectOption(`[data-setting="${key}"]`,String(value));await page.waitForTimeout(120);};
++const snap=name=>page.screenshot({path:`${out}/${name}.png`});
++try{
++  await page.goto(process.env.KINO_URL??'http://127.0.0.1:5173/');await ready();
++  let s=await state(),p=await picture();assert.equal(s.settings.quality,'balanced');assert.equal(s.settings.fov,89);assert.equal(s.settings.master,43);assert.equal(s.settings.sensitivity,1.35);assert.equal(s.settings.textSize,100);assert.equal(p.dpr,2);assert(p.pixels<=2100000&&p.pixels>2000000);
++  pass('Existing choices survive migration; a Retina-sized Balanced canvas obeys its automatic pixel limit',{settings:s.settings,picture:p});
++  await page.click('#settings-open');await select('quality','quality');p=await picture();assert(p.pixels>2900000&&p.pixels<=3750000);assert.equal((await state()).settings.quality,'quality');
++  pass('An explicit sharper-picture choice is respected instead of silently changing the selected preset',p);
++  await select('quality','laptop');p=await picture();assert(p.pixels<=1250000&&p.pixels>1200000);
++  const effects=await page.evaluate(()=>({textures:kino.debug.textureDetailState(),actors:kino.debug.actorRenderingState(),daylight:kino.debug.lightingState().daylight}));
++  assert.equal(effects.textures.quality,'performance');assert.equal(effects.actors.quality,'performance');assert.equal(effects.daylight.visible,false);
++  pass('Laptop lowers actual canvas work and selects the existing lower-cost scene effects',{picture:p,effects});
++  await page.setViewportSize({width:2560,height:1440});await page.waitForTimeout(300);p=await picture();assert(p.pixels<=1250000&&p.pixels>1200000);assert(p.scale<.6);assert.equal((await state()).settings.quality,'laptop');
++  await page.setViewportSize({width:1280,height:800});await page.waitForTimeout(300);p=await picture();assert.equal(p.scale,1);assert.equal(p.pixels,1024000);
++  pass('Resizing recomputes resolution in both directions while retaining Laptop',p);
++  await page.click('#settings-comfort');s=await state();assert.equal(s.settings.reducedFlashes,true);assert.equal(s.settings.weaponBob,false);assert.equal(s.settings.textSize,120);assert.equal(s.settings.fov,89);assert.equal(s.settings.master,43);assert.equal(s.settings.quality,'laptop');
++  const text=await page.evaluate(()=>({scale:getComputedStyle(document.documentElement).getPropertyValue('--ui-scale'),label:parseFloat(getComputedStyle(document.querySelector('.settings-columns label')).fontSize),objective:parseFloat(getComputedStyle(document.getElementById('objective')).fontSize)}));
++  assert.equal(text.scale,'1.2');assert(text.label>=16.8-1e-4);assert(text.objective>=14.4-1e-4);await snap('01-comfort-1280');
++  pass('Comfort changes only flashes, walking bob and readable native-resolution text',{settings:s.settings,text});
++  await select('textSize',140);await select('crouchMode','toggle');await select('sprintMode','toggle');await page.uncheck('[data-setting="wheelSwitch"]');
++  await page.setViewportSize({width:390,height:640});await page.waitForTimeout(250);await page.locator('#settings-close').focus();
++  const layout=await page.locator('#settings-panel').evaluate(e=>({scrollWidth:e.scrollWidth,clientWidth:e.clientWidth,scrollHeight:e.scrollHeight,clientHeight:e.clientHeight}));
++  assert(layout.scrollWidth<=layout.clientWidth+1);assert(layout.scrollHeight>layout.clientHeight);await snap('02-larger-text-narrow');
++  await page.locator('#settings-done').focus();const r=await page.locator('#settings-done').boundingBox();assert(r.y>=0&&r.y+r.height<=640);await snap('03-larger-text-narrow-bottom');
++  await page.keyboard.press('Enter');assert(await page.locator('#settings-panel').isHidden());assert.equal(await page.evaluate(()=>document.activeElement.id),'settings-open');
++  pass('Larger text at 390×640 scrolls vertically without horizontal clipping and Done remains keyboard reachable',layout);
++  await page.setViewportSize({width:1280,height:800});await page.reload();await ready();s=await state();for(const [key,value]of Object.entries({quality:'laptop',textSize:140,crouchMode:'toggle',sprintMode:'toggle',wheelSwitch:false,reducedFlashes:true,weaponBob:false,fov:89,master:43}))assert.equal(s.settings[key],value,key);
++  await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);});await page.waitForTimeout(250);await snap('04-larger-hud');await page.keyboard.press('Escape');await page.waitForFunction(()=>!kino.debug.getState().active);
++  pass('Laptop, comfort and input choices persist on reload and play/pause still works',{settings:(await state()).settings,picture:await picture()});
++  await page.click('#settings-open');await page.click('#settings-defaults');s=await state();assert.equal(s.settings.quality,'balanced');assert.equal(s.settings.textSize,100);assert.equal(s.settings.reducedFlashes,false);assert.equal(s.settings.weaponBob,true);assert.equal(s.settings.crouchMode,'hold');assert.equal(s.settings.sprintMode,'hold');assert.equal(s.settings.wheelSwitch,true);
++  await page.keyboard.press('Escape');assert(!(await state()).active);assert.equal(errors.length,0,errors.join('\n'));
++  pass('Restore defaults resets new controls together and settings Escape leaves gameplay paused; zero browser errors');
++}catch(error){checks.push({name:'Failure',passed:false,error:String(error),stack:error.stack});console.error(error);process.exitCode=1;await snap('failure').catch(()=>{});}
++finally{fs.writeFileSync(`${out}/report.json`,JSON.stringify({scope:'Actual Chrome WebGL and native DOM interaction with deviceScaleFactor=2 and varied CSS viewports on the current Mac. No physical MacBook, energy-use, screen-reader or FPS claim.',checks,errors,state:await state().catch(()=>null)},null,2));await browser.close();}
+--- v1.7/project/.tools/test-q-aim.mjs
++++ v1.8/project/.tools/test-q-aim.mjs
+@@ -14,7 +14,7 @@
+ const capture=name=>page.screenshot({path:`${out}/${name}.png`});
+ try{
+  await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>window.kino?.debug.getState().ready,null,{timeout:150000});
+- assert.match(await page.locator('.menu-controls').innerText(),/Q\s+TOGGLE AIM/);assert.match(await page.locator('.settings-controls').innerText(),/Q toggle aim/);assert(!/Q \/ 1/.test(await page.locator('.settings-controls').innerText()));await capture('01-menu-controls');
++ assert.match(await page.locator('.menu-controls').innerText(),/Q\s+TOGGLE AIM/i);assert.match(await page.locator('.settings-controls').innerText(),/Q toggle aim/i);assert(!/Q \/ 1/.test(await page.locator('.settings-controls').innerText()));await capture('01-menu-controls');
+  await page.click('#start');await page.waitForFunction(()=>kino.debug.getState().active);await page.evaluate(()=>{kino.debug.setAutoSpawn(false);kino.debug.setInvulnerable(true);});await ready();
+  const normalFov=(await state()).cameraFov;
+  await page.keyboard.down('KeyQ');await page.keyboard.down('KeyQ');await page.keyboard.down('KeyQ');await page.keyboard.up('KeyQ');await step(.5);
+@@ -36,7 +36,7 @@
+  await page.keyboard.press('KeyQ');await step(.4);await page.evaluate(()=>{kino.debug.setInvulnerable(false);kino.debug.damagePlayer(1000);});s=await state();assert.equal(s.phase,'reviving');assert(!s.input.aim.keyboardToggled&&!s.input.ads);await page.keyboard.press('KeyQ');assert(!(await state()).input.aim.keyboardToggled);await step(7);assert(!(await state()).input.ads);pass('being downed for Quick Revive clears aim and ignores Q until recovery');
+  await clear();await page.evaluate(()=>kino.debug.giveWeapon('cz75dw_zm'));await ready();await page.keyboard.press('KeyQ');await step(.5);v=await visual();assert.equal(v.aim,0);assert.match(await page.locator('#aim-status').innerText(),/HIP FIRE ONLY/);assert.match(await page.locator('#aim-status').getAttribute('aria-label'),/uses hip fire/);await capture('04-dual-wield-intent-label');pass('dual-wield guns keep native hip fire and the HUD states that limitation');
+  await clear();s=await state();assert(!s.input.ads&&!s.input.aim.keyboardToggled&&!s.input.aim.mouseHeld);assert.equal(s.inventory.length,1);pass('resetting an active aimed run clears the toggle and restores the starting inventory');
+- await page.keyboard.press('Escape');await page.waitForFunction(()=>!kino.debug.getState().active);await page.click('#settings-open');assert(await page.locator('#settings-panel').isVisible());const help=await page.locator('.settings-controls').innerText();assert.match(help,/Hold right mouse to aim/);assert.match(help,/1 \/ 2 \/ wheel switch weapon/);await capture('05-settings-controls');await page.setViewportSize({width:800,height:600});await capture('06-compact-settings');await page.locator('.settings-controls').scrollIntoViewIfNeeded();await capture('07-compact-controls');const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);assert(!overflow);pass('menu, settings, normal HUD and compact layout expose the updated control scheme');
++ await page.keyboard.press('Escape');await page.waitForFunction(()=>!kino.debug.getState().active);await page.click('#settings-open');assert(await page.locator('#settings-panel').isVisible());const help=await page.locator('.settings-controls').innerText();assert.match(help,/Hold right mouse to aim/);assert.match(help,/1 \/ 2 switch weapon/);assert(await page.locator('[data-setting="wheelSwitch"]').isChecked());await capture('05-settings-controls');await page.setViewportSize({width:800,height:600});await capture('06-compact-settings');await page.locator('.settings-controls').scrollIntoViewIfNeeded();await capture('07-compact-controls');const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);assert(!overflow);pass('menu, settings, normal HUD and compact layout expose the updated control scheme');
+  assert.equal(errors.length,0,errors.join('\n'));pass('no script, shader or asset errors');
+ }catch(error){checks.push({name:'failure',passed:false,error:String(error),stack:error.stack,state:await state().catch(()=>null),visual:await visual().catch(()=>null)});console.error(error);process.exitCode=1;await capture('failure').catch(()=>{});}
+ finally{fs.writeFileSync(`${out}/report.json`,JSON.stringify({method:'Actual isolated Chrome game with real Playwright keyboard and mouse input; modifier-key safety probes use synthetic keyboard events. Debug setup, time steps, weapon grants and invulnerability isolate actions. No physical Apple Magic Mouse or Magic Keyboard was used.',checks,errors},null,2));await browser.close();}
+--- v1.7/project/.tools/test-surface-light-runtime.mjs
++++ v1.8/project/.tools/test-surface-light-runtime.mjs
+@@ -35,7 +35,7 @@
+  await page.route('**/theater-surface-light.json',route=>route.fulfill({status:404,contentType:'application/json',body:'{"error":"intentional missing daylight fixture"}'}));
+  await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>document.querySelector('#load-label')?.textContent.includes('Unable to start'),null,{timeout:120000});
+  const failure=await page.evaluate(()=>({ready:kino.debug.getState().ready,label:document.querySelector('#load-label').textContent,status:document.querySelector('#menu-status').textContent,button:document.querySelector('#start').textContent,disabled:document.querySelector('#start').disabled}));
+- assert(!failure.ready);assert.match(failure.label,/Surface daylight data: 404/);assert.equal(failure.button,'RETRY LOADING');assert(!failure.disabled);assert(expectedFailureEvents.some(e=>e.kind==='http'&&e.status===404&&e.url.endsWith('theater-surface-light.json')));assert(expectedFailureEvents.every(e=>e.kind==='http'?e.status===404&&e.url.endsWith('theater-surface-light.json'):/404/.test(e.message)),JSON.stringify(expectedFailureEvents));await page.screenshot({path:out+'/03-missing-plan-recovery.png'});pass('Missing surface-sunlight plan produces an explicit retryable loading error',failure);
++ assert(!failure.ready);assert.match(failure.label,/Surface daylight data: 404/);assert.equal(failure.button,'Retry loading');assert(!failure.disabled);assert(expectedFailureEvents.some(e=>e.kind==='http'&&e.status===404&&e.url.endsWith('theater-surface-light.json')));assert(expectedFailureEvents.every(e=>e.kind==='http'?e.status===404&&e.url.endsWith('theater-surface-light.json'):/404/.test(e.message)),JSON.stringify(expectedFailureEvents));await page.screenshot({path:out+'/03-missing-plan-recovery.png'});pass('Missing surface-sunlight plan produces an explicit retryable loading error',failure);
+  await page.unroute('**/theater-surface-light.json');probingMissing=false;await page.click('#start');await loaded();s=await read();assert.equal(s.light.daylight.shafts,9);assert.equal(s.light.daylight.dust,198);assert(s.light.daylight.skyMeshes>0);pass('Retry succeeds after the required surface-sunlight file is restored',s.light.daylight);
+  assert.equal(errors.length,0,JSON.stringify(errors));
+ }catch(error){checks.push({passed:false,error:String(error),stack:error.stack,state:await read().catch(()=>null)});console.error(error);process.exitCode=1;await page.screenshot({path:out+'/failure.png'}).catch(()=>{});}
+--- v1.7/project/export/web/desktop-settings.css
++++ v1.8/project/export/web/desktop-settings.css
+@@ -3,3 +3,30 @@
+ #damage-direction{position:fixed;left:50%;top:50%;width:230px;height:230px;border-radius:50%;border:3px solid transparent;border-top-color:#d8432c;z-index:4;pointer-events:none;opacity:0;filter:drop-shadow(0 0 6px #a91313);transition:opacity .1s}.menu-open #damage-direction{display:none}
+ 
+ @media(min-width:651px) and (max-height:950px){#settings-panel{padding:22px 30px}.settings-heading{margin-bottom:16px}.settings-columns legend{margin-bottom:14px}.settings-columns label{margin-bottom:12px}.settings-controls{padding:10px 0;margin:10px 0}.settings-note{margin-bottom:12px}}
++
++/* Text remains native-resolution DOM even when the 3D picture is scaled down. */
++:root{--ui-scale:1}
++.desktop-options>.secondary{font-size:calc(14px * var(--ui-scale));letter-spacing:.3px;text-transform:none}
++#settings-panel{overscroll-behavior:contain;scrollbar-gutter:stable;max-width:940px;backdrop-filter:none;background:#101312}
++.settings-heading h2{font-size:calc(28px * var(--ui-scale))}
++.settings-heading button{width:44px;height:44px;flex:none}
++.settings-columns legend{font-size:calc(11px * var(--ui-scale));letter-spacing:1.4px}
++.settings-columns label,.profile-label{font-size:calc(14px * var(--ui-scale));line-height:1.4}
++.settings-columns label.check{font-size:calc(13px * var(--ui-scale));min-height:28px}
++.settings-columns input[type=checkbox]{width:19px;height:19px;flex:none}
++.settings-columns label input[type=range]{height:24px;margin:0}
++.settings-columns select,.profile-label select{font-size:calc(13px * var(--ui-scale));min-height:42px;max-width:100%;border-radius:4px}
++.settings-note,.settings-controls{font-size:calc(12px * var(--ui-scale));color:#bbb5a7;letter-spacing:0}
++.settings-actions button,.comfort-row button{font-size:calc(12px * var(--ui-scale));min-height:44px;letter-spacing:.3px;border-radius:4px}
++.comfort-row{display:flex;gap:18px;align-items:center;justify-content:space-between;border:1px solid #5d5a49;border-radius:6px;padding:15px;margin-bottom:24px;background:#cfb78308}
++.comfort-row strong{font-size:calc(14px * var(--ui-scale));font-weight:500;color:#e3d9c4}
++.comfort-row p{font-size:calc(12px * var(--ui-scale));line-height:1.5;color:#bdb5a5;margin:6px 0 0}
++.comfort-row button{background:#282d29;border:1px solid #96866a;color:#eee2cc;padding:10px 14px;flex:none}
++html:not([data-ui-text="100"]) #location{font-size:calc(16px * var(--ui-scale))}
++html:not([data-ui-text="100"]) #health-label,html:not([data-ui-text="100"]) #remaining,html:not([data-ui-text="100"]) #grenades{font-size:calc(10px * var(--ui-scale))}
++html:not([data-ui-text="100"]) #weapon-name,html:not([data-ui-text="100"]) #objective,html:not([data-ui-text="100"]) #controls-hint{font-size:calc(12px * var(--ui-scale))}
++html:not([data-ui-text="100"]) #toast{font-size:calc(13px * var(--ui-scale))}
++html:not([data-ui-text="100"]) #reload-label{font-size:calc(11px * var(--ui-scale));height:auto;min-height:18px}
++html:not([data-ui-text="100"]) #prompt.interaction-card .interaction-copy>strong{font-size:calc(18px * var(--ui-scale))}
++html:not([data-ui-text="100"]) #prompt.interaction-card .interaction-detail,html:not([data-ui-text="100"]) #prompt.interaction-card .interaction-footer,html:not([data-ui-text="100"]) #prompt.interaction-card .interaction-input{font-size:calc(11px * var(--ui-scale))}
++@media(max-width:650px){.comfort-row{align-items:stretch;flex-direction:column;gap:12px}.settings-actions{gap:10px;flex-wrap:wrap}.settings-actions button{flex:1;padding:12px}.settings-heading h2{font-size:calc(24px * var(--ui-scale))}#settings-panel{inset:12px;padding:18px}.profile-label select{width:100%}}
+--- v1.7/project/export/web/desktop-settings.js
++++ v1.8/project/export/web/desktop-settings.js
+@@ -1,22 +1,27 @@
++import {displaySettings,GRAPHICS_PRESETS} from './display-performance.js';
+ const KEY='kino.desktop.settings.v1';
+-export const DEFAULT_SETTINGS=Object.freeze({version:1,sensitivity:1,aimSensitivity:1,invertLook:false,fov:78,quality:'balanced',brightness:2.05,reducedFlashes:false,weaponBob:true,master:80,effects:100,music:65,ambience:70,dialogue:100,profile:'classic'});
++export const DEFAULT_SETTINGS=Object.freeze({version:1,sensitivity:1,aimSensitivity:1,invertLook:false,fov:78,quality:'balanced',brightness:2.05,reducedFlashes:false,weaponBob:true,textSize:100,crouchMode:'hold',sprintMode:'hold',wheelSwitch:true,master:80,effects:100,music:65,ambience:70,dialogue:100,profile:'classic'});
+ const ranges={sensitivity:[.25,2.5],aimSensitivity:[.25,2],fov:[65,105],brightness:[1.3,2.7],master:[0,100],effects:[0,100],music:[0,100],ambience:[0,100],dialogue:[0,100]};
+ export function validateSettings(raw){
+   const result={...DEFAULT_SETTINGS};
+   if(!raw||typeof raw!=='object'||raw.version!==1)return result;
+   for(const [key,[min,max]]of Object.entries(ranges))if(typeof raw[key]==='number'&&Number.isFinite(raw[key]))result[key]=Math.max(min,Math.min(max,raw[key]));
+-  for(const key of ['invertLook','reducedFlashes','weaponBob'])if(typeof raw[key]==='boolean')result[key]=raw[key];
+-  if(['performance','balanced','quality'].includes(raw.quality))result.quality=raw.quality;
++  for(const key of ['invertLook','reducedFlashes','weaponBob','wheelSwitch'])if(typeof raw[key]==='boolean')result[key]=raw[key];
++  for(const key of ['crouchMode','sprintMode'])if(['hold','toggle'].includes(raw[key]))result[key]=raw[key];
++  if([100,120,140].includes(raw.textSize))result.textSize=raw.textSize;
++  if(Object.hasOwn(GRAPHICS_PRESETS,raw.quality))result.quality=raw.quality;
+   if(['classic','reimagined'].includes(raw.profile))result.profile=raw.profile;
+   return result;
+ }
+ export function loadSettings(storage){try{return validateSettings(JSON.parse((storage??globalThis.localStorage).getItem(KEY)));}catch{return {...DEFAULT_SETTINGS};}}
+ export function saveSettings(value,storage){try{(storage??globalThis.localStorage).setItem(KEY,JSON.stringify(validateSettings(value)));}catch{}}
+-export function qualitySettings(name){return {performance:{ratio:1,fps:60},balanced:{ratio:1.25,fps:60},quality:{ratio:1.5,fps:120}}[name]??{ratio:1.25,fps:60};}
++export function qualitySettings(name,display){return displaySettings(name,display);}
++export function comfortSettings(settings){return validateSettings({...settings,reducedFlashes:true,weaponBob:false,textSize:Math.max(settings.textSize??100,120)});}
+ export function mountSettings(settings,onChange){
+   const host=document.createElement('div');host.className='desktop-options';
+-  host.innerHTML=`<button class="secondary" id="settings-open" type="button" aria-expanded="false" aria-controls="settings-panel">SETTINGS & CONTROLS <span>＋</span></button>
+-  <section id="settings-panel" hidden aria-label="Settings"><div class="settings-heading"><h2>Make yourself comfortable.</h2><button type="button" id="settings-close" aria-label="Close settings">×</button></div>
++  host.innerHTML=`<button class="secondary" id="settings-open" type="button" aria-expanded="false" aria-controls="settings-panel">Settings <span aria-hidden="true">＋</span></button>
++  <section id="settings-panel" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title"><div class="settings-heading"><h2 id="settings-title">Settings</h2><button type="button" id="settings-close" aria-label="Close settings">×</button></div>
++  <div class="comfort-row"><div><strong>Less motion, easier reading</strong><p>Reduce flashes, steady the weapon and enlarge text.</p></div><button type="button" id="settings-comfort">Use comfort settings</button></div>
+   <div class="settings-columns"><fieldset><legend>LOOK & MOVEMENT</legend>
+   <label>Mouse sensitivity<input data-setting="sensitivity" type="range" min=".25" max="2.5" step=".05"><output></output></label>
+   <label>Aim sensitivity<input data-setting="aimSensitivity" type="range" min=".25" max="2" step=".05"><output></output></label>
+@@ -24,20 +29,51 @@
+   <label class="check"><input data-setting="invertLook" type="checkbox">Invert vertical look</label>
+   <label class="check"><input data-setting="weaponBob" type="checkbox">Weapon movement while walking</label>
+   <label class="check"><input data-setting="reducedFlashes" type="checkbox">Reduce flashes</label>
++  <label>Crouch<select data-setting="crouchMode"><option value="hold">Hold key</option><option value="toggle">Press to toggle</option></select></label>
++  <label>Sprint<select data-setting="sprintMode"><option value="hold">Hold key</option><option value="toggle">Press to toggle</option></select></label>
++  <label class="check"><input data-setting="wheelSwitch" type="checkbox">Scroll to switch weapons</label>
+   </fieldset><fieldset><legend>PICTURE & SOUND</legend>
+-  <label>Graphics<select data-setting="quality"><option value="performance">Performance · 60 FPS cap</option><option value="balanced">Balanced · 60 FPS cap</option><option value="quality">Quality · 120 FPS cap</option></select></label>
++  <label>Graphics<select data-setting="quality" aria-describedby="graphics-note"><option value="laptop">Laptop · lighter graphics</option><option value="performance">Performance</option><option value="balanced">Balanced</option><option value="quality">Quality · sharper picture</option></select></label>
++  <p id="graphics-note" class="settings-note">Laptop uses fewer effects and a softer picture. Picture detail adjusts automatically to keep larger screens manageable.</p>
++  <label>Text size<select data-setting="textSize"><option value="100">Standard</option><option value="120">Large</option><option value="140">Larger</option></select></label>
+   <label>Brightness<input data-setting="brightness" type="range" min="1.3" max="2.7" step=".05"><output></output></label>
+   ${['master','effects','music','ambience','dialogue'].map(key=>`<label>${key==='dialogue'?'Announcements':key[0].toUpperCase()+key.slice(1)}<input data-setting="${key}" type="range" min="0" max="100" step="1"><output></output></label>`).join('')}
+   </fieldset></div>
+   <label class="profile-label">Next run<select data-setting="profile"><option value="classic">Classic reconstruction</option><option value="reimagined">Reimagined recovery</option></select></label><p class="settings-note">Classic keeps the reconstruction’s rules. Reimagined recovery uses faster health recovery from your BO1 mod; it is not the complete Reimagined ruleset. Applies when starting a new game.</p>
+-  <p class="settings-controls">WASD move · Shift sprint · Space jump · C / Ctrl crouch<br>Left mouse fire · Q toggle aim · Hold right mouse to aim · R reload · F / E use or hold to repair<br>V knife · G grenade · 1 / 2 / wheel switch weapon · 4 claymore · X monkey<br>5 alternate attachment · M mute · Esc pause · ⌃⌘F fullscreen</p>
++  <p class="settings-controls">WASD move · Shift sprint · Space jump · C / Ctrl crouch<br>Left mouse / Z fire · Q toggle aim · Hold right mouse to aim · R reload · F / E use or hold to repair<br>V knife · G grenade · 1 / 2 switch weapon · 4 claymore · X monkey<br>5 alternate attachment · M mute · Esc pause · ⌃⌘F fullscreen</p>
+   <div class="settings-actions"><button type="button" id="settings-defaults">Restore defaults</button><button type="button" id="settings-done">DONE</button></div></section>`;
+   document.querySelector('#menu .menu-content').append(host);
+   const panel=host.querySelector('#settings-panel'),open=host.querySelector('#settings-open');
+-  const show=value=>{panel.hidden=!value;open.setAttribute('aria-expanded',String(value));document.getElementById('menu').classList.toggle('settings-visible',value);if(value)host.querySelector('#settings-close').focus();else open.focus();};
++  let previousFocus=null,inert=[];
++  const show=value=>{
++    if(value===!panel.hidden)return;
++    panel.hidden=!value;open.setAttribute('aria-expanded',String(value));document.getElementById('menu').classList.toggle('settings-visible',value);
++    if(value){
++      previousFocus=document.activeElement;
++      inert=[...host.parentElement.children].filter(el=>el!==host).concat(open).map(el=>({el,was:el.inert}));
++      for(const {el}of inert)el.inert=true;
++      host.querySelector('#settings-close').focus();
++    }else{
++      for(const {el,was}of inert)el.inert=was;inert=[];
++      (previousFocus?.isConnected?previousFocus:open).focus();
++    }
++  };
+   open.onclick=()=>show(panel.hidden);host.querySelector('#settings-close').onclick=host.querySelector('#settings-done').onclick=()=>show(false);
+-  function refresh(){for(const input of host.querySelectorAll('[data-setting]')){const key=input.dataset.setting;if(input.type==='checkbox')input.checked=settings[key];else input.value=settings[key];const output=input.parentElement.querySelector('output');if(output)output.textContent=key==='fov'?Math.round(settings[key])+'°':ranges[key]?.[1]===100?Math.round(settings[key])+'%':settings[key].toFixed(2)+'×';}}
+-  for(const input of host.querySelectorAll('[data-setting]'))input.addEventListener('input',()=>{const key=input.dataset.setting;settings[key]=input.type==='checkbox'?input.checked:input.type==='range'?Number(input.value):input.value;saveSettings(settings);refresh();onChange(settings);});
++  document.addEventListener('keydown',event=>{
++    if(panel.hidden)return;
++    if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();show(false);return;}
++    if(event.key!=='Tab')return;
++    const items=[...panel.querySelectorAll('button,input,select,[tabindex="0"]')].filter(el=>!el.disabled&&el.getClientRects().length);
++    const first=items[0],last=items.at(-1);
++    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
++    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
++  },true);
++  function refresh(){
++    document.documentElement.style.setProperty('--ui-scale',settings.textSize/100);document.documentElement.dataset.uiText=String(settings.textSize);
++    for(const input of host.querySelectorAll('[data-setting]')){const key=input.dataset.setting;if(input.type==='checkbox')input.checked=settings[key];else input.value=settings[key];const output=input.parentElement.querySelector('output');if(output)output.textContent=key==='fov'?Math.round(settings[key])+'°':ranges[key]?.[1]===100?Math.round(settings[key])+'%':settings[key].toFixed(2)+'×';}
++  }
++  for(const input of host.querySelectorAll('[data-setting]'))input.addEventListener('input',()=>{const key=input.dataset.setting;settings[key]=input.type==='checkbox'?input.checked:input.type==='range'||key==='textSize'?Number(input.value):input.value;saveSettings(settings);refresh();onChange(settings);});
++  host.querySelector('#settings-comfort').onclick=()=>{Object.assign(settings,comfortSettings(settings));saveSettings(settings);refresh();onChange(settings);};
+   host.querySelector('#settings-defaults').onclick=()=>{Object.assign(settings,DEFAULT_SETTINGS);saveSettings(settings);refresh();onChange(settings);};
+   refresh();return {close:()=>show(false),isOpen:()=>!panel.hidden};
+ }
+--- /dev/null
++++ v1.8/project/export/web/display-performance.js
+@@ -0,0 +1,21 @@
++// Limit real render pixels, independently of the OS's Retina scaling or GPU
++// label. CSS text stays at display resolution. No fluctuating quality heuristic.
++export const GRAPHICS_PRESETS=Object.freeze({
++  laptop:Object.freeze({ratio:1,fps:60,sceneQuality:'performance',maxPixels:1250000}),
++  performance:Object.freeze({ratio:1,fps:60,sceneQuality:'performance',maxPixels:1500000}),
++  balanced:Object.freeze({ratio:1.25,fps:60,sceneQuality:'balanced',maxPixels:2100000}),
++  quality:Object.freeze({ratio:1.5,fps:120,sceneQuality:'quality',maxPixels:3750000}),
++});
++
++export function displaySettings(name,display){
++  const preset=Object.hasOwn(GRAPHICS_PRESETS,name)?GRAPHICS_PRESETS[name]:GRAPHICS_PRESETS.balanced;
++  if(!display)return {...preset};
++  const positive=(value,fallback)=>Number.isFinite(value)&&value>0?value:fallback;
++  const width=Math.min(32768,positive(display.width,1440)),height=Math.min(32768,positive(display.height,900));
++  const dpr=positive(display.devicePixelRatio,1);
++  const maxPixels=display.mobile?Math.min(preset.maxPixels,1000000):preset.maxPixels;
++  // A floor of 1 would defeat the budget on large/scaled displays. The canvas
++  // may render below CSS resolution; the menu and HUD are still native text.
++  const ratio=Math.min(dpr,display.mobile?1:preset.ratio,Math.sqrt(maxPixels/(width*height)));
++  return {...preset,maxPixels,ratio,fps:display.mobile?30:preset.fps};
++}
+--- v1.7/project/export/web/game.js
++++ v1.8/project/export/web/game.js
+@@ -23,6 +23,7 @@
+ import { ViewLighting } from './view-lighting.js';
+ import { TextureDetail } from './texture-detail.js';
+ import { AimInput } from './aim-input.js';
++import { LaptopInput, acceptsGameKey } from './laptop-input.js';
+ import { TheaterMachines } from './theater-machines.js';
+ import { BoxLocator } from './box-locator.js';
+ 
+@@ -31,9 +32,16 @@
+ const interactionUI=new InteractionUI($('prompt'));
+ const profile=configureKinoAssets();
+ audio.maxBufferBytes=(profile.mobile?16:64)*1024*1024;audio.preload=!profile.mobile;
+-const renderer=new THREE.WebGLRenderer({antialias:!profile.mobile,powerPreference:profile.mobile?'default':'high-performance'});
+-renderer.setPixelRatio(Math.min(devicePixelRatio,profile.mobile?1:qualitySettings(settings.quality).ratio));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
+-const framePacer=new FramePacer(),wheelIntent=new WheelIntent(),aimInput=new AimInput();
++let renderer;
++try{renderer=new THREE.WebGLRenderer({antialias:!profile.mobile,powerPreference:profile.mobile?'default':'high-performance'});}
++catch(error){
++  $('load-label').textContent='Graphics could not start';
++  $('menu-status').textContent='Close other graphics-heavy apps and try again. This game needs WebGL 2 graphics support.';
++  $('start').disabled=false;$('start').textContent='Retry';$('start').addEventListener('click',()=>location.reload(),{once:true});
++  throw error;
++}
++renderer.setPixelRatio(qualitySettings(settings.quality,{width:innerWidth,height:innerHeight,devicePixelRatio,mobile:profile.mobile}).ratio);renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
++const framePacer=new FramePacer(),wheelIntent=new WheelIntent(),aimInput=new AimInput(),laptopInput=new LaptopInput();
+ const textureDetail=new TextureDetail(renderer.capabilities.getMaxAnisotropy(),profile.mobile);
+ let renderedFrames=0,contextLost=false,resizeTimer;
+ renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=settings.brightness;renderer.autoClear=false;
+@@ -58,9 +66,11 @@
+ let lastShot=null;
+ let pendingMelee=null,lastReloadSerial=0,reloadShot=false;
+ let mousePrimary=false,stepDistance=0,airborneTime=0,airbornePeak=0,damageHeading=0,damageHeadingUntil=0;
++let renderingSettings={...settings,quality:qualitySettings(settings.quality).sceneQuality};
+ function applySettings(){
+-  textureDetail.setQuality(settings.quality);
+-  renderer.setPixelRatio(Math.min(devicePixelRatio,profile.mobile?1:qualitySettings(settings.quality).ratio));
++  renderingSettings={...settings,quality:qualitySettings(settings.quality).sceneQuality};
++  textureDetail.setQuality(renderingSettings.quality);
++  renderer.setPixelRatio(qualitySettings(settings.quality,{width:innerWidth,height:innerHeight,devicePixelRatio,mobile:profile.mobile}).ratio);
+   renderer.setSize(innerWidth,innerHeight);renderer.toneMappingExposure=settings.brightness;
+   audio.setMix?.(settings);if(view)view.bobAmount=settings.weaponBob?1:0;
+ }
+@@ -86,13 +96,13 @@
+ function announce(title,small='KINO DER TOTEN',duration=4){$('announcement-title').textContent=title;$('announcement-small').textContent=small;$('announcement').style.opacity=1;announcementUntil=session.time+duration;}
+ function setActive(value){
+   active=!!value&&ready&&session.phase!=='gameover';$('menu').hidden=active;document.body.classList.toggle('menu-open',!active);keys.clear();primary=false;primaryPressed=false;ads=false;reloadShot=false;
+-  mousePrimary=false;aimInput.clear();touchRepairHeld=false;wheelIntent.reset();framePacer.reset();touchControls.reset();touchControls.setEnabled(active&&session.phase!=='reviving',active);
++  mousePrimary=false;aimInput.clear();laptopInput.clear();touchRepairHeld=false;wheelIntent.reset();framePacer.reset();touchControls.reset();touchControls.setEnabled(active&&session.phase!=='reviving',active);
+   if(!active)player?.clearInput({stopHorizontal:true});
+   if(active&&audio.ctx)audio.start();else if(!active)audio.pause();
+   if(active){if(!started){started=true;announce('Round 1','SURVIVE');audio.play('round');}else if(session.phase==='preparing')announce('Round '+session.round,'PREPARE YOURSELF');}
+-  else if(started&&session.phase!=='gameover'){$('start').innerHTML='RESUME GAME <span>→</span>';$('restart').hidden=false;$('menu-status').textContent='Paused · Round '+session.round;}
++  else if(started&&session.phase!=='gameover'){$('start').textContent='Resume';$('restart').hidden=false;$('menu-status').textContent='Paused · Round '+session.round;}
+ }
+-function start(){if(!ready||contextLost)return;settingsUI.close();if(session.phase==='gameover')reset();if(!started){session.setProfile(settings.profile);session.reset();}audio.start();warmViewAudio();if(touchControls.mode){setActive(true);return;}renderer.domElement.requestPointerLock?.()?.catch(e=>toast('Click the game to capture the mouse'));}
++function start(){if(!ready||contextLost)return;settingsUI.close();document.activeElement?.blur?.();if(session.phase==='gameover')reset();if(!started){session.setProfile(settings.profile);session.reset();}audio.start();warmViewAudio();if(touchControls.mode){setActive(true);return;}renderer.domElement.requestPointerLock?.()?.catch(e=>toast('Click the game to capture the mouse'));}
+ $('start').addEventListener('click',start);$('restart').addEventListener('click',()=>{reset();start();});
+ renderer.domElement.addEventListener('click',()=>{if(!active)start();});
+ document.addEventListener('pointerlockchange',()=>{if(touchControls.mode&&!document.pointerLockElement)return;setActive(document.pointerLockElement===renderer.domElement);});
+@@ -100,17 +110,21 @@
+ function resumeRendering(){framePacer.reset();if(!document.hidden&&!contextLost)renderer.setAnimationLoop(renderFrame);}
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)suspendRendering();else resumeRendering();});
+ addEventListener('pagehide',suspendRendering);
++addEventListener('kino-system-pause',suspendRendering);
++addEventListener('kino-system-resume',()=>{if(ready)setActive(false);resumeRendering();});
+ addEventListener('pageshow',resumeRendering);
+ renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();contextLost=true;suspendRendering();$('start').disabled=true;$('menu-status').textContent='Graphics paused. Waiting for the renderer to recover…';});
+-renderer.domElement.addEventListener('webglcontextrestored',()=>{contextLost=false;$('start').disabled=!ready;$('menu-status').textContent='Graphics restored · tap to resume';resumeRendering();});
+-addEventListener('blur',()=>{keys.clear();primary=false;ads=false;aimInput.clear();if(started&&active){setActive(false);document.exitPointerLock?.();}});
++renderer.domElement.addEventListener('webglcontextrestored',()=>{contextLost=false;resizeDisplay();$('start').disabled=!ready;$('menu-status').textContent='Graphics restored · tap to resume';resumeRendering();});
++addEventListener('blur',()=>{keys.clear();mousePrimary=primary=primaryPressed=false;ads=false;aimInput.clear();laptopInput.clear();if(started&&active){setActive(false);document.exitPointerLock?.();}});
+ addEventListener('mousemove',e=>{if(!active||document.pointerLockElement!==renderer.domElement)return;const sensitivity=(ads?.0012*settings.aimSensitivity:.002)*settings.sensitivity;camera.rotation.y-=e.movementX*sensitivity;camera.rotation.x=THREE.MathUtils.clamp(camera.rotation.x-e.movementY*sensitivity*(settings.invertLook?-1:1),-1.5,1.5);});
+ addEventListener('mousedown',e=>{if(!active||session.phase==='reviving'||e.sourceCapabilities?.firesTouchEvents||e.target.closest('#touch-controls'))return;if(e.button===0){mousePrimary=primary=true;primaryPressed=true;}if(e.button===2){aimInput.setMouse(true);ads=aimInput.read();}});
+-addEventListener('mouseup',e=>{if(e.sourceCapabilities?.firesTouchEvents)return;if(e.button===0)mousePrimary=primary=false;if(e.button===2){aimInput.setMouse(false);ads=aimInput.read();}});
+-addEventListener('contextmenu',e=>e.preventDefault());
++addEventListener('mouseup',e=>{if(e.sourceCapabilities?.firesTouchEvents)return;if(e.button===0){mousePrimary=false;primary=laptopInput.fire;}if(e.button===2){aimInput.setMouse(false);ads=aimInput.read();}});
++addEventListener('contextmenu',e=>{if(active)e.preventDefault();});
+ addEventListener('keydown',e=>{
++  if(!acceptsGameKey(e,active))return;
+   if(['Space','Tab','F3'].includes(e.code))e.preventDefault();
+-  keys.add(e.code);if(e.repeat||!active)return;
++  keys.add(e.code);if(e.repeat)return;
++  if(session.phase!=='reviving'&&!(e.code==='KeyZ'&&e.ctrlKey)&&laptopInput.press(e.code,{settings})){primaryPressed=true;primary=true;}
+   if(e.code==='KeyR')reload();if(e.code==='KeyV')melee();if(e.code==='KeyG')throwGrenade();if(e.code==='KeyF'||e.code==='KeyE')interact();
+   if(e.code==='Digit4')features.placeClaymore();if(e.code==='KeyX')features.throwMonkey();
+   if(e.code==='Digit5'&&session.toggleAttachment())equipView();
+@@ -120,9 +134,20 @@
+   if(e.code==='F3'){debugVisible=!debugVisible;$('debug').hidden=!debugVisible;}
+   if(e.code==='Escape'){setActive(false);document.exitPointerLock?.();}
+ });
+-addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='KeyQ')aimInput.release();});
+-addEventListener('wheel',e=>{if(!active)return;e.preventDefault();if(wheelIntent.consume(e,performance.now()))switchWeapon();},{passive:false});
+-addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{const width=innerWidth,height=innerHeight,current=renderer.getSize(new THREE.Vector2());if(current.x===width&&current.y===height)return;camera.aspect=viewCamera.aspect=width/height;camera.updateProjectionMatrix();viewCamera.updateProjectionMatrix();renderer.setSize(width,height);},profile.mobile?150:0);});
++addEventListener('keyup',e=>{keys.delete(e.code);laptopInput.release(e.code);if(e.code==='KeyQ')aimInput.release();});
++addEventListener('wheel',e=>{if(!active)return;e.preventDefault();if(settings.wheelSwitch&&wheelIntent.consume(e,performance.now()))switchWeapon();},{passive:false});
++function resizeDisplay(){
++  const width=innerWidth,height=innerHeight;
++  camera.aspect=viewCamera.aspect=width/height;camera.updateProjectionMatrix();viewCamera.updateProjectionMatrix();
++  const ratio=qualitySettings(settings.quality,{width,height,devicePixelRatio,mobile:profile.mobile}).ratio;
++  if(renderer.getPixelRatio()!==ratio)renderer.setPixelRatio(ratio);
++  renderer.setSize(width,height);
++}
++addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(resizeDisplay,profile.mobile?150:60);});
++// Moving between Retina/non-Retina displays may change DPR without CSS size.
++let densityQuery;function watchDisplayDensity(){densityQuery?.removeEventListener('change',onDisplayDensity);densityQuery=matchMedia(`(resolution: ${devicePixelRatio}dppx)`);densityQuery.addEventListener('change',onDisplayDensity,{once:true});}
++function onDisplayDensity(){resizeDisplay();watchDisplayDensity();}
++watchDisplayDensity();
+ 
+ function damage(n,source){
+   if(!session.damage(n))return;
+@@ -130,10 +155,10 @@
+   if(!session.drinking)perkDrink?.stop();
+   if(session.phase==='gameover'){
+     teleportPending=0;features?.syncPack();trapSystem?.reset();
+-    primary=false;ads=false;setActive(false);document.exitPointerLock?.();$('start').innerHTML='TRY AGAIN <span>→</span>';$('restart').hidden=true;
++    primary=false;ads=false;setActive(false);document.exitPointerLock?.();$('start').textContent='Play again';$('restart').hidden=true;
+     $('menu-status').textContent='You survived '+session.round+' rounds';$('results').hidden=false;$('results').textContent=session.kills+' kills · '+session.headshots+' headshots · '+Math.floor(session.time/60)+'m '+Math.floor(session.time%60)+'s';
+     try{const best=Math.max(session.round,+(localStorage.getItem('kino.best')||0));localStorage.setItem('kino.best',String(best));}catch{}
+-  }else if(session.phase==='reviving'){aimInput.clear();ads=false;announce('A second chance','QUICK REVIVE',4);}
++  }else if(session.phase==='reviving'){aimInput.clear();laptopInput.clear();keys.clear();mousePrimary=primary=primaryPressed=false;ads=false;announce('A second chance','QUICK REVIVE',4);}
+ }
+ function effect(position,color=0x9e3023,count=7,options){combatParticles.emit(position,color,count,options);}
+ function hit(z,head){hitUntil=session.time+.12;$('hitmarker').style.color=head?'#db5140':'#eee';const point=head?enemies.headPosition(z):z.root.position.clone().add(new THREE.Vector3(0,z.kind==='zombie'?42:25,0));effect(point,0x9e3023,7,{kind:'blood',direction:point.clone().sub(camera.position).normalize()});if(head&&z.health<=0&&z.kind==='zombie')audio.impact('zombie-head',point,.35);}
+@@ -298,7 +323,7 @@
+ function repair(b){if(b.count>=(b.boards.length||6)||repairLeft>0)return false;repairLeft=.75;world.setBoards(b,b.count+1);if(b.rewardRound!==session.round){b.rewardRound=session.round;b.reward=0;}if(b.reward<50*session.round){session.addPoints(10);b.reward+=10;}audio.play('board');return true;}
+ function reset(){
+   pendingMelee=null;lastReloadSerial=0;reloadShot=false;
+-  touchControls.reset();aimInput.clear();stepDistance=0;airborneTime=0;airbornePeak=0;damageHeadingUntil=0;mousePrimary=false;toastUntil=0;announcementUntil=0;hitUntil=0;flashUntil=0;primary=false;primaryPressed=false;ads=false;keys.clear();
++  touchControls.reset();aimInput.clear();laptopInput.clear();stepDistance=0;airborneTime=0;airbornePeak=0;damageHeadingUntil=0;mousePrimary=false;toastUntil=0;announcementUntil=0;hitUntil=0;flashUntil=0;primary=false;primaryPressed=false;ads=false;keys.clear();
+   actorRendering?.reset();viewLighting.reset();theaterMachines?.reset();
+   session.setProfile(settings.profile);session.reset();enemies.reset();world.reset(session);player.setSpawn(vector(spawn.position));player.respawn();camera.rotation.set(0,spawn.yaw-Math.PI/2,0);
+   powerups.reset();perkDrink.stop();mysteryBox.reset();boxLocator?.reset();
+@@ -306,10 +331,10 @@
+   combatParticles.reset();
+   for(const group of [grenades,gasClouds]){for(const item of group){item.mesh.removeFromParent();item.mesh.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});}group.length=0;}
+   meteors.clear();renderer.domElement.style.filter='';audio.reset?.();
+-  started=false;teleportPending=0;returnAt=0;linkUntil=0;cooldownUntil=0;repairLeft=0;burstLeft=0;lastPhase='';lastRound=0;theaterLighting?.reset();view.currentId=null;equipView();$('results').hidden=true;$('menu-status').textContent=touchControls.mode?'Tap to start':'Click to capture the mouse';
++  started=false;teleportPending=0;returnAt=0;linkUntil=0;cooldownUntil=0;repairLeft=0;burstLeft=0;lastPhase='';lastRound=0;theaterLighting?.reset();view.currentId=null;equipView();$('results').hidden=true;$('menu-status').textContent=touchControls.mode?'Tap to start':'Esc pauses the game';
+ }
+ function clearTransportInput(){
+-  session.cancelReload();pendingMelee=null;burstLeft=0;reloadShot=false;keys.clear();mousePrimary=primary=primaryPressed=ads=false;aimInput.clear();touchControls.reset();player.clearInput({stopHorizontal:true});
++  session.cancelReload();pendingMelee=null;burstLeft=0;reloadShot=false;keys.clear();mousePrimary=primary=primaryPressed=ads=false;aimInput.clear();laptopInput.clear();touchControls.reset();player.clearInput({stopHorizontal:true});
+ }
+ function returnToLobby(){
+   clearTransportInput();
+@@ -319,16 +344,17 @@
+   if(!ready)return;
+   touchControls.setEnabled(active&&session.phase!=='reviving'&&session.phase!=='gameover',active&&session.phase!=='gameover');
+   const touch=touchControls.input.read();
+-  primary=mousePrimary||touch.fire;primaryPressed ||= touch.firePressed;ads=active&&session.phase!=='reviving'&&aimInput.read(touch.aim);
++  const laptop=laptopInput.read(keys,settings);
++  primary=active&&session.phase!=='reviving'&&(mousePrimary||laptop.fire||touch.fire);primaryPressed ||= touch.firePressed;ads=active&&session.phase!=='reviving'&&aimInput.read(touch.aim);
+   if(active){
+     session.update(dt);
+     if(session.phase!=='gameover'){
+       resolveMelee();
+       if(session.reloadLeft>0&&session.reloadSerial!==lastReloadSerial){lastReloadSerial=session.reloadSerial;view.reload(false,session.reloadDuration,session.reloadStage);}
+       const forward=Number(keys.has('KeyW'))-Number(keys.has('KeyS'))+touch.forward,strafe=Number(keys.has('KeyD'))-Number(keys.has('KeyA'))+touch.strafe;
+-      const moving=Math.hypot(forward,strafe)>.01,sprint=((keys.has('ShiftLeft')||keys.has('ShiftRight'))&&keys.has('KeyW')||touch.sprint)&&!ads&&!session.reloadLeft&&!session.meleeLeft&&!session.drinking;
++      const moving=Math.hypot(forward,strafe)>.01,sprint=(laptop.sprint||touch.sprint)&&!ads&&!session.reloadLeft&&!session.meleeLeft&&!session.drinking;
+       const oldFeet=player.getFeetPosition(),wasGrounded=player.isGrounded;
+-      player.update(dt,session.phase==='reviving'?{}:{forward,strafe,sprint,crouch:keys.has('ControlLeft')||keys.has('ControlRight')||keys.has('KeyC')||touch.crouch,jump:keys.has('Space'),jumpPressed:touch.jump});
++      player.update(dt,session.phase==='reviving'?{}:{forward,strafe,sprint,crouch:laptop.crouch||touch.crouch,jump:keys.has('Space'),jumpPressed:touch.jump});
+       const newFeet=player.getFeetPosition();
+       if(!player.isGrounded){airborneTime+=dt;airbornePeak=Math.max(airbornePeak,oldFeet.y,newFeet.y);}
+       else {
+@@ -382,7 +408,7 @@
+   }
+   muzzle.intensity=Math.max(0,muzzle.intensity-dt*2200);camera.fov=THREE.MathUtils.damp(camera.fov,ads&&!session.def.dualWield&&!session.drinking&&!session.meleeLeft&&!session.reloadLeft?Math.min(settings.fov,session.def.adsFov||56):settings.fov,12,dt);camera.updateProjectionMatrix();
+   theaterMachines?.update({time:session.time,power:session.power,teleporter:session.teleporter,teleportPending,returnAt,inReturnRoom:!!features.events.room,gameover:session.phase==='gameover',pixelHeight:innerHeight*renderer.getPixelRatio()});
+-  if(player){world?.environmentSunResponse?.update(settings);theaterLighting?.update(camera.position,session.power,session.time,{pixelHeight:innerHeight*renderer.getPixelRatio()});actorRendering?.update(enemies,player.getFeetPosition(),session.time,settings);viewLighting.update(actorRendering?.sampleIllumination(player.getFeetPosition(),{height:48}),active?dt:0,{cameraQuaternion:camera.quaternion,sunDirection:actorRendering?.direction});audio.setListener(camera.position,camera.getWorldDirection(audioForward),audioUp.set(0,1,0).applyQuaternion(camera.quaternion));theaterAtmosphere?.update(session.time,session.power,{...settings,pixelHeight:innerHeight*renderer.getPixelRatio()});world?.daylight?.update(session.time,{...settings,pixelHeight:innerHeight*renderer.getPixelRatio()});}
++  if(player){world?.environmentSunResponse?.update(renderingSettings);theaterLighting?.update(camera.position,session.power,session.time,{pixelHeight:innerHeight*renderer.getPixelRatio()});actorRendering?.update(enemies,player.getFeetPosition(),session.time,renderingSettings);viewLighting.update(actorRendering?.sampleIllumination(player.getFeetPosition(),{height:48}),active?dt:0,{cameraQuaternion:camera.quaternion,sunDirection:actorRendering?.direction});audio.setListener(camera.position,camera.getWorldDirection(audioForward),audioUp.set(0,1,0).applyQuaternion(camera.quaternion));theaterAtmosphere?.update(session.time,session.power,{...renderingSettings,pixelHeight:innerHeight*renderer.getPixelRatio()});world?.daylight?.update(session.time,{...renderingSettings,pixelHeight:innerHeight*renderer.getPixelRatio()});}
+   hud();
+ }
+ function hud(){
+@@ -410,7 +436,7 @@
+   if(debugVisible)$('debug').textContent=`${fps} FPS · ${renderer.info.render.calls} calls\n${camera.position.toArray().map(v=>v.toFixed(1)).join(', ')}\n${enemies.list.length} enemies · ${world.navDisabled.size} blocked polygons`;
+ }
+ 
+-function getState(){return {ready,active,started,settings:{...settings},damageHeading:damageHeadingUntil>session?.time?damageHeading:null,renderScale:renderer.getPixelRatio(),cameraFov:camera.fov,input:{touch:touchControls.getState(),primary,ads,aim:aimInput.snapshot()},...(session?session.snapshot():{}),player:player?{...player.state,rotation:camera.rotation.toArray().slice(0,3),position:camera.position.toArray(),feet:player.getFeetPosition().toArray()}:null,enemies:enemies?.snapshot()??[],prompt:promptText,barriers:world?.barriers.map(b=>({id:b.id,count:b.count,position:b.position.toArray(),inside:b.inside.toArray(),group:b.group}))??[],doors:world?[...world.doors.values()].map(d=>({name:d.name,cost:d.cost,flag:d.flag,open:session.openDoors.has(d.name),triggers:d.triggers.map(e=>e.position),parts:d.parts.length})):[],performance:{fps,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},viewmodelReady:view?.ready??false,errors:[...errors]};}
++function getState(){return {ready,active,started,settings:{...settings},damageHeading:damageHeadingUntil>session?.time?damageHeading:null,renderScale:renderer.getPixelRatio(),cameraFov:camera.fov,input:{touch:touchControls.getState(),primary,ads,aim:aimInput.snapshot(),laptop:laptopInput.snapshot()},...(session?session.snapshot():{}),player:player?{...player.state,rotation:camera.rotation.toArray().slice(0,3),position:camera.position.toArray(),feet:player.getFeetPosition().toArray()}:null,enemies:enemies?.snapshot()??[],prompt:promptText,barriers:world?.barriers.map(b=>({id:b.id,count:b.count,position:b.position.toArray(),inside:b.inside.toArray(),group:b.group}))??[],doors:world?[...world.doors.values()].map(d=>({name:d.name,cost:d.cost,flag:d.flag,open:session.openDoors.has(d.name),triggers:d.triggers.map(e=>e.position),parts:d.parts.length})):[],performance:{fps,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},viewmodelReady:view?.ready??false,errors:[...errors]};}
+ globalThis.kino={debug:{getState,setActive,pause:()=>setActive(false),resume:()=>setActive(true),reset,teleportPlayer:p=>player.setPosition(vector(p)),lookAt:p=>camera.lookAt(vector(p)),damagePlayer:damage,grantPoints:n=>session.points+=n,interact,shoot,reload,melee,giveWeapon:id=>{session.giveWeapon(id);equipView();},spawnEnemy:(p,kind)=>enemies.spawn(vector(p),null,kind).id,spawnBarrierEnemy:id=>{const barrier=world.barriers.find(b=>b.id===id);if(!barrier)throw new Error("Unknown barrier");return enemies.spawn(null,barrier,"zombie").id;},lightingState:()=>({...theaterLighting.snapshot(),daylight:world.daylight?.snapshot()}),interactionState:()=>interactionUI.snapshot(),clearEnemies:()=>{for(const z of [...enemies.list])enemies.hurt(z,999999);},collectPowerup:collect,step:(seconds)=>{for(let t=0;t<seconds;t+=1/60)update(Math.min(1/60,seconds-t));},navigationPath:(a,b)=>world.path(vector(a),vector(b)).map(v=>v.toArray()),getEntities:()=>data.entities.filter(e=>e.classname==='trigger_use'||e.targetname==='initial_spawn_points'),showCollision:value=>{world.collision.setDebugVisible(value);scene.add(world.collision.mesh);}}};
+ Object.assign(kino.debug,{
+   memoryState:()=>{
+@@ -462,12 +488,12 @@
+   boxLocator=new BoxLocator(scene,data,world,session,mysteryBox);
+   features=new KinoFeatures({scene,world,data,session,enemies,player,camera,audio,effect,damage,toast});
+   await Promise.all([enemies.load(),equipView(),audio.load(),powerups.load(),perkDrink.load(),mysteryBox.load(),features.load(),boxLocator.load()]);theaterLighting.prepareActors(enemies);actorRendering=new TheaterActors(scene,world);textureDetail.register(scene);for(const root of [...enemies.templates,...enemies.heads,enemies.dog,enemies.quad,enemies.quadHead])textureDetail.register(root);player.update(.05,{});ready=true;
+-  progress('Ready',100);$('loading').hidden=true;$('start').disabled=contextLost;$('menu-status').textContent=contextLost?'Graphics paused. Waiting for the renderer to recover…':touchControls.mode?'Tap to enter the theater':'Click to capture the mouse · Esc to pause';
+-}catch(error){console.error(error);errors.push(String(error));$('load-label').textContent='Unable to start: '+error.message;$('menu-status').textContent='A required file could not load. Reopen the app, or retry below.';$('start').disabled=false;$('start').textContent='RETRY LOADING';$('start').addEventListener('click',()=>location.reload(),{once:true});}
++  progress('Ready',100);$('loading').hidden=true;$('start').disabled=contextLost;$('menu-status').textContent=contextLost?'Graphics paused. Waiting for the renderer to recover…':touchControls.mode?'Tap Play to start':'Esc pauses the game';
++}catch(error){console.error(error);errors.push(String(error));$('load-label').textContent='Unable to start: '+error.message;$('menu-status').textContent='A required file could not load. Reopen the app, or retry below.';$('start').disabled=false;$('start').textContent='Retry loading';$('start').addEventListener('click',()=>location.reload(),{once:true});}
+ renderer.info.autoReset=false;
+ function renderFrame(now){
+   if(document.hidden||contextLost)return;
+-  const timing=framePacer.sample(now,active?(profile.mobile?30:qualitySettings(settings.quality).fps):20);
++  const timing=framePacer.sample(now,active?(profile.mobile?30:qualitySettings(settings.quality).fps):12);
+   if(!timing)return;
+   const {dt,elapsed}=timing;frameTime+=elapsed;frameCount++;renderedFrames++;
+   if(frameTime>.75){fps=Math.round(frameCount/frameTime);frameTime=0;frameCount=0;}
+--- v1.7/project/export/web/index.html
++++ v1.8/project/export/web/index.html
+@@ -3,12 +3,12 @@
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <title>Kino der Toten — Zombies</title>
+-<meta name="description" content="The lights are out. The show goes on. Play Kino der Toten solo zombie survival in your browser.">
++<meta name="description" content="Kino der Toten. Solo Zombies.">
+ <link rel="canonical" href="https://kino-der-toten.pages.dev/">
+ <meta property="og:type" content="website">
+ <meta property="og:site_name" content="Kino der Toten">
+ <meta property="og:title" content="Kino der Toten — Zombies">
+-<meta property="og:description" content="The lights are out. The show goes on. Play Kino der Toten solo zombie survival in your browser.">
++<meta property="og:description" content="Kino der Toten. Solo Zombies.">
+ <meta property="og:url" content="https://kino-der-toten.pages.dev/">
+ <meta property="og:image" content="https://kino-der-toten.pages.dev/social/kino-preview-v1.png">
+ <meta property="og:image:type" content="image/png">
+@@ -17,7 +17,7 @@
+ <meta property="og:image:alt" content="Kino der Toten: Solo Survival. Zombies emerge from the shadows of a ruined theater with red curtains and twin staircases.">
+ <meta name="twitter:card" content="summary_large_image">
+ <meta name="twitter:title" content="Kino der Toten — Zombies">
+-<meta name="twitter:description" content="The lights are out. The show goes on. Play Kino der Toten solo zombie survival in your browser.">
++<meta name="twitter:description" content="Kino der Toten. Solo Zombies.">
+ <meta name="twitter:image" content="https://kino-der-toten.pages.dev/social/kino-preview-v1.png">
+ <meta name="twitter:image:alt" content="Kino der Toten: Solo Survival. Zombies emerge from the shadows of a ruined theater with red curtains and twin staircases.">
+ <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="desktop-settings.css"><link rel="icon" href="data:,"><link rel="stylesheet" href="touch-controls.css">
+@@ -51,22 +51,29 @@
+ .interaction-boards{display:flex;gap:5px;margin-top:9px}.interaction-boards>span{height:4px;flex:1;background:#ffffff19;overflow:hidden;border-radius:1px}.interaction-boards i{display:block;width:100%;height:100%;background:#d1bc8a;transform-origin:left}.interaction-boards>[data-active=true] i{background:#f1dfad}.interaction-boards>[data-complete=false][data-active=false]{background:#ffffff12}
+ .interaction-card[data-available=false]{border-left-color:#98866b!important}.interaction-card[data-available=false] .interaction-price{color:#c3a187}.interaction-card[data-available=false] .interaction-footer{color:#e0b8a0}.interaction-card[data-holding=true] .interaction-input kbd{background:#cdb47930;border-color:#e6ce94}
+ .kino-ui.menu-open #prompt,.kino-ui.menu-open #toast,.kino-ui.menu-open #hitmarker,.kino-ui.menu-open #announcement{visibility:hidden}
+-.kino-ui #menu{background:linear-gradient(90deg,#090d0def 0%,#101312dd 35%,#0c101070 69%,#090d0db3),linear-gradient(0deg,#090c0bed,transparent 55%);align-items:center}
+-.menu-frame{position:fixed;inset:23px;border:1px solid #c8b07e30;pointer-events:none}.menu-frame:before,.menu-frame:after{content:'';position:absolute;top:-1px;width:45px;height:45px;border-top:2px solid #c8b07e8c}.menu-frame:before{left:-1px;border-left:2px solid #c8b07e8c}.menu-frame:after{right:-1px;border-right:2px solid #c8b07e8c}
+-.kino-ui .menu-content{margin:48px 7vw;width:440px;max-width:86vw}.kino-ui .kicker{font-size:12px;letter-spacing:1px;color:#c5bcaa}.kino-ui .kicker span{font-size:9px;color:#a49b89;letter-spacing:2px;margin-left:10px}
+-.kino-ui .chapter{display:flex;align-items:center;gap:10px;font-size:9px;letter-spacing:2.5px;margin:29px 0 16px;color:#cdb784}.kino-ui .chapter>span{display:block;width:22px;height:1px;background:#b9a074}
+-.kino-ui h1{font-family:Georgia,'Times New Roman',serif;font-size:clamp(58px,6.6vw,98px);font-weight:400;line-height:.99;letter-spacing:-3.5px;color:#f0e5ce}.kino-ui h1>span{color:#b96749}
+-.kino-ui .tagline{font-size:14px;margin:20px 0 28px;color:#c0b7a4}.kino-ui #start{width:340px;max-width:100%;border:1px solid #cbb47c;background:#d4bf90;color:#151916;padding:17px 19px;font-size:10px;letter-spacing:1.55px;border-radius:2px;box-shadow:0 6px 20px #0003}.kino-ui #start:hover{background:#ebd7a7}.kino-ui #start:disabled{opacity:.45}.kino-ui #start span{font-size:20px}
+-.kino-ui #restart,.kino-ui #settings-open{width:340px;max-width:100%;padding:12px 18px;border:1px solid #c6b28440;background:#0e1412b3;font-size:9px;letter-spacing:1.25px;color:#cbbfa8;border-radius:2px}.kino-ui #restart:hover,.kino-ui #settings-open:hover{background:#c8b07e12;border-color:#c6b28480}
+-.kino-ui #start:focus-visible,.kino-ui #restart:focus-visible{outline:2px solid #f0dbad;outline-offset:4px}.kino-ui #menu-status{font-size:10px;color:#b1a68d;letter-spacing:.3px;margin:12px 0 0}.kino-ui #loading{width:340px;max-width:100%;font-size:10px;color:#c5b697}.kino-ui #load-progress{background:#c3a879}
+-.kino-ui .menu-controls{display:grid;grid-template-columns:1fr 1fr;width:380px;max-width:100%;gap:13px 16px;margin-top:28px;font-size:8px;letter-spacing:.5px;color:#b2a997}.kino-ui .menu-controls kbd{font-size:8px;padding:4px 5px;color:#d3c6ad;border-color:#baaa8640;white-space:nowrap}.kino-ui .local-note{font-size:9px;color:#8f8c7f;letter-spacing:.2px;line-height:1.6;margin:23px 0 16px}.kino-ui .desktop-options{margin-top:12px}.kino-ui #run-profile{color:#beaa85;letter-spacing:.4px}
+-.kino-ui .menu-side{right:8vw;top:50%;bottom:auto;transform:translateY(-42%);width:240px;align-items:stretch;gap:0;font-size:9px;letter-spacing:2.5px;color:#d1bd90;border:1px solid #ccb28442;padding:25px 24px;background:#11171463;box-shadow:0 8px 30px #0002}.kino-ui .program-label{font-size:8px;letter-spacing:1.8px}.kino-ui .program-rule{height:1px;background:#bea06a4a;margin:17px 0}.kino-ui .menu-side strong{font:normal 30px/1.2 Georgia,serif;color:#e0d3b9;letter-spacing:-.5px}.kino-ui .menu-side p{font:11px/1.9 Arial,sans-serif;color:#b6ad99;letter-spacing:.3px;margin:20px 0 2px}.kino-ui .program-foot{display:flex;justify-content:space-between;font-size:7px;letter-spacing:1.2px;color:#b3a482}
+-.kino-ui #settings-panel{border-color:#bda36d66;border-radius:3px;background:#101614fb}.kino-ui .settings-heading h2{color:#e9dfc9}.kino-ui .settings-actions #settings-done{background:#ccb789;border-color:#dcc99e;color:#161a16}
+-@media(max-width:1050px){.kino-ui .menu-side{right:6vw;width:220px}.kino-ui .menu-content{margin-left:6vw}.kino-ui #grenades{max-width:290px}}
+-@media(max-width:800px){.kino-ui .menu-side{display:none}.kino-ui .menu-content{margin:35px auto;width:440px}.menu-frame{inset:15px}.kino-ui #top{top:22px;left:22px}.kino-ui #objective{left:37px}.kino-ui #round-panel{left:22px}.kino-ui #player-panel{left:105px;padding-left:14px}.kino-ui #weapon-panel{right:22px}.kino-ui #controls-hint{left:22px;font-size:8px}.kino-ui #prompt.interaction-card{width:min(360px,calc(100vw - 28px))}}
+-@media(max-height:700px){.kino-ui #menu{align-items:flex-start}.kino-ui .menu-content{margin-top:32px;margin-bottom:32px}.kino-ui .chapter{margin-top:20px}.kino-ui h1{font-size:66px}.kino-ui .tagline{margin:14px 0 20px}.kino-ui .menu-controls{margin-top:21px}.kino-ui .local-note{margin-top:19px}.kino-ui #prompt.interaction-card{top:calc(50% + 55px);padding:10px 13px}.interaction-copy strong{font-size:16px}.interaction-main{margin-top:5px}.kino-ui #round-panel{bottom:34px}.kino-ui #player-panel{bottom:35px}.kino-ui #weapon-panel{bottom:31px}.kino-ui #mag{font-size:39px}.kino-ui #round{font-size:48px}.kino-ui #controls-hint{bottom:12px}.kino-ui #effects{bottom:20px}}
+-@media(max-height:600px){.kino-ui .menu-content{margin-top:24px;margin-bottom:24px}.kino-ui .chapter{margin-top:15px;margin-bottom:12px}.kino-ui h1{font-size:58px}.kino-ui .tagline{margin:12px 0 17px}.kino-ui .menu-controls{display:none}.kino-ui .local-note{margin:16px 0 10px}.kino-ui .menu-side{transform:translateY(-50%)}}
+-@media(max-width:480px){.kino-ui .menu-content{width:calc(100% - 48px);max-width:none}.kino-ui h1{font-size:64px}.kino-ui .menu-controls{gap:13px 12px;font-size:7px}.kino-ui #player-panel{left:94px;min-width:0}.kino-ui .health-track{width:97px}.kino-ui #weapon-panel{max-width:41vw}.kino-ui #grenades{font-size:8px;letter-spacing:0}.kino-ui #weapon-name{font-size:10px}.kino-ui .points{font-size:25px}.kino-ui #objective{max-width:70vw}.kino-ui #controls-hint{display:none}}
++/* A compact, plain menu; the game view supplies the background. */
++.kino-ui #menu{background:linear-gradient(90deg,#0b0e10f5 0%,#0b0e10dc 40%,#0b0e1066 78%,#0b0e1099);align-items:center;padding:40px 7vw;overflow:auto;scrollbar-gutter:stable}
++.kino-ui .menu-content{display:flex;flex-direction:column;position:relative;margin:0;width:400px;max-width:100%;padding:8px 0}
++.kino-ui h1{order:0;font:600 clamp(36px,4.4vw,58px)/1.08 Arial,Helvetica,sans-serif;letter-spacing:-1.7px;color:#f1eee7;margin:0;max-width:100%}
++.kino-ui .menu-subtitle{order:1;font-size:calc(15px * var(--ui-scale,1));line-height:1.5;color:#c1bcb1;margin:12px 0 30px}
++.kino-ui #start,.kino-ui #restart,.kino-ui #settings-open{width:100%;max-width:100%;min-height:46px;padding:13px 17px;border-radius:4px;text-align:left;font:600 calc(15px * var(--ui-scale,1))/1.3 Arial,Helvetica,sans-serif;letter-spacing:0;box-shadow:none}
++.kino-ui #start{order:3;border:1px solid #d9c599;background:#d9c599;color:#16191a;display:block;transition:background .15s}
++.kino-ui #start:hover{background:#efddb6}.kino-ui #start:disabled{opacity:.5}
++.kino-ui #restart{order:4;margin-top:8px}.kino-ui .desktop-options{order:5;margin-top:8px}
++.kino-ui #restart,.kino-ui #settings-open{border:1px solid #b5ad9859;background:#151a1cd6;color:#ebe6db;display:block}
++.kino-ui #restart:hover,.kino-ui #settings-open:hover{background:#252b2d;border-color:#c8bea1}
++.kino-ui #menu button:focus-visible,.kino-ui #menu input:focus-visible,.kino-ui #menu select:focus-visible{outline:3px solid #f1d89b;outline-offset:4px}
++.kino-ui #menu-status{order:6;font-size:calc(12px * var(--ui-scale,1));line-height:1.5;color:#c1b9a9;letter-spacing:0;margin:14px 0 0;min-height:18px}
++.kino-ui #results{order:7;font-size:calc(14px * var(--ui-scale,1));line-height:1.6;margin:10px 0 0;color:#e2d8c3}
++.kino-ui #loading{order:2;width:100%;font-size:calc(13px * var(--ui-scale,1));line-height:1.5;color:#c7bda8;margin:0 0 20px}.kino-ui #load-progress{background:#d9c599}
++.kino-ui .menu-controls{order:8;display:grid;grid-template-columns:1fr 1fr;width:100%;max-width:none;gap:14px 18px;list-style:none;padding:22px 0 0;margin:24px 0 0;border-top:1px solid #b6ac922e;font-size:calc(12px * var(--ui-scale,1));line-height:1.4;letter-spacing:0;color:#cbc6bc}
++.kino-ui .menu-controls li{display:flex;align-items:center;gap:9px;min-width:0}.kino-ui .menu-controls kbd{font:calc(11px * var(--ui-scale,1))/1.3 Arial,Helvetica,sans-serif;padding:4px 5px;margin:0;min-width:27px;text-align:center;color:#e1dacf;border:1px solid #b1a89269;border-radius:3px;white-space:nowrap}
++.kino-ui .local-note{order:9;font-size:calc(11px * var(--ui-scale,1));line-height:1.6;letter-spacing:0;color:#aaa69c;margin:24px 0 0}.kino-ui #run-profile{color:#c6b997;letter-spacing:0;font-size:calc(11px * var(--ui-scale,1))}
++.kino-ui #settings-panel{border-color:#bda36d66;border-radius:5px;background:#101614}.kino-ui .settings-heading h2{color:#e9dfc9}.kino-ui .settings-actions #settings-done{background:#ccb789;border-color:#dcc99e;color:#161a16}
++@media(max-width:1050px){.kino-ui #grenades{max-width:290px}}
++@media(max-width:800px){.kino-ui #menu{padding:32px 6vw}.kino-ui .menu-content{margin:0 auto;width:400px}.kino-ui #top{top:22px;left:22px}.kino-ui #objective{left:37px}.kino-ui #round-panel{left:22px}.kino-ui #player-panel{left:105px;padding-left:14px}.kino-ui #weapon-panel{right:22px}.kino-ui #controls-hint{left:22px;font-size:8px}.kino-ui #prompt.interaction-card{width:min(360px,calc(100vw - 28px))}}
++@media(max-height:700px){.kino-ui #menu{align-items:flex-start;padding-top:28px;padding-bottom:28px}.kino-ui h1{font-size:42px}.kino-ui .menu-subtitle{margin:8px 0 20px}.kino-ui .menu-controls{margin-top:18px;padding-top:18px;gap:10px 18px}.kino-ui .local-note{margin-top:18px}.kino-ui #prompt.interaction-card{top:calc(50% + 55px);padding:10px 13px}.interaction-copy strong{font-size:16px}.interaction-main{margin-top:5px}.kino-ui #round-panel{bottom:34px}.kino-ui #player-panel{bottom:35px}.kino-ui #weapon-panel{bottom:31px}.kino-ui #mag{font-size:39px}.kino-ui #round{font-size:48px}.kino-ui #controls-hint{bottom:12px}.kino-ui #effects{bottom:20px}}
++@media(max-width:480px){.kino-ui h1{font-size:38px}.kino-ui .menu-controls{grid-template-columns:1fr;gap:10px;font-size:calc(12px * var(--ui-scale,1))}.kino-ui .menu-controls kbd{font-size:calc(11px * var(--ui-scale,1))}.kino-ui #player-panel{left:94px;min-width:0}.kino-ui .health-track{width:97px}.kino-ui #weapon-panel{max-width:41vw}.kino-ui #grenades{font-size:8px;letter-spacing:0}.kino-ui #weapon-name{font-size:10px}.kino-ui .points{font-size:25px}.kino-ui #objective{max-width:70vw}.kino-ui #controls-hint{display:none}}
+ body.kino-ui.touch-mode #prompt.interaction-card{top:calc(50% + 38px);width:min(340px,72vw)}
+ @media(prefers-reduced-motion:reduce){.kino-ui *, .kino-ui *:before,.kino-ui *:after{transition:none!important;animation:none!important}}
+ </style>
+@@ -79,31 +86,21 @@
+ <div id="player-panel"><div id="perks"></div><span class="hud-label">POINTS</span><div class="points"><span>✦</span> <strong id="points">500</strong></div><div class="health-track"><i id="health-fill"></i></div><span id="health-label">100 / 100</span></div>
+ <div id="weapon-panel"><span class="hud-label">EQUIPPED</span><div id="weapon-name">M1911</div><div id="ammo"><strong id="mag">8</strong><span>/</span><span id="reserve">32</span></div><div id="aim-status" role="status" aria-live="polite" hidden>Q · TOGGLE AIM</div><div id="reload-label"></div><div id="reload-progress" hidden aria-hidden="true"><i id="reload-progress-fill"></i></div><div id="grenades">G · 4 GRENADES</div></div>
+ <div id="effects"></div><div id="objective"></div><div id="controls-hint">WASD move · Shift sprint · Q toggle aim · Left mouse fire · R reload · F use · Esc pause</div><div id="debug" hidden></div>
+-<section id="menu" aria-label="Kino der Toten menu">
+-  <div class="menu-grain"></div><div class="menu-frame" aria-hidden="true"></div>
++<section id="menu" aria-labelledby="menu-title">
+   <div class="menu-content">
+-    <div class="kicker">CALL OF DUTY <span>BLACK OPS</span></div>
+-    <p class="chapter"><span></span> ZOMBIES · SOLO SURVIVAL</p>
+-    <h1>KINO<br>DER TOTEN<span>.</span></h1>
+-    <p class="tagline">The lights are out. The show goes on.</p>
+-    <div id="loading"><span id="load-label">Recovering the theater…</span><div><i id="load-progress"></i></div></div>
+-    <button id="start" disabled>ENTER THE THEATER <span aria-hidden="true">↗</span></button>
+-    <button id="restart" class="secondary" hidden>NEW GAME</button>
+-    <p id="menu-status">Loading map and equipment</p><div id="results" hidden></div>
+-    <div class="menu-controls" aria-label="Quick controls">
+-      <span><kbd>W A S D</kbd> MOVE</span><span><kbd>LEFT MOUSE</kbd> FIRE</span>
+-      <span><kbd>Q</kbd> TOGGLE AIM</span><span><kbd>RIGHT MOUSE</kbd> HOLD TO AIM</span>
+-      <span><kbd>F / E</kbd> USE / HOLD TO REPAIR</span><span><kbd>R</kbd> RELOAD</span>
+-      <span><kbd>SPACE</kbd> JUMP</span><span><kbd>1 / 2</kbd> WEAPON</span>
+-      <span><kbd>V</kbd> KNIFE</span><span><kbd>5</kbd> ATTACHMENT</span>
+-    </div>
++    <h1 id="menu-title">Kino der Toten</h1>
++    <p class="menu-subtitle">Solo Zombies</p>
++    <div id="loading" role="status" aria-live="polite"><span id="load-label">Loading…</span><div aria-hidden="true"><i id="load-progress"></i></div></div>
++    <button id="start" type="button" disabled>Play</button>
++    <button id="restart" type="button" class="secondary" hidden>New game</button>
++    <p id="menu-status" role="status" aria-live="polite">Loading map and equipment</p><div id="results" hidden></div>
++    <ul class="menu-controls" aria-label="Essential controls">
++      <li><kbd>W A S D</kbd> Move</li><li><kbd>Left mouse / Z</kbd> Fire</li>
++      <li><kbd>Q</kbd> Toggle aim</li><li><kbd>R</kbd> Reload</li>
++      <li><kbd>F / E</kbd> Use / repair</li><li><kbd>1 / 2</kbd> Switch gun</li>
++      <li><kbd>Shift</kbd> Sprint</li><li><kbd>Esc</kbd> Pause</li>
++    </ul>
+     <p class="local-note">Unofficial fan reconstruction<br>Original browser project by Luckey Faraday</p>
+   </div>
+-  <div class="menu-side" aria-label="Survival briefing">
+-    <span class="program-label">THE EVENING PROGRAM</span>
+-    <div class="program-rule"></div><strong>One theater.<br>Endless rounds.</strong>
+-    <p>Restore the power.<br>Find your weapon.<br>Hold your ground.</p>
+-    <div class="program-rule"></div><span class="program-foot">KINO DER TOTEN <span>SOLO</span></span>
+-  </div>
+ </section>
+ <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/jsm/","three-mesh-bvh":"./vendor/bvh.js","@recast-navigation/core":"./vendor/recast-core.mjs","@recast-navigation/wasm":"./vendor/recast-wasm.js"}}</script><script type="module" src="game.js"></script></body></html>
+--- /dev/null
++++ v1.8/project/export/web/laptop-input.js
+@@ -0,0 +1,27 @@
++// Keyboard alternatives share gameplay state with the mouse; menus never own
++// held game actions. Toggle movement is cleared on pause, transport and downing.
++export class LaptopInput {
++  constructor(){this.clear();}
++  clear(){this.fire=false;this.crouch=false;this.sprint=false;this.wasMoving=false;}
++  press(code,{repeat=false,settings={}}={}){
++    if(repeat)return false;
++    if(code==='KeyZ'){const edge=!this.fire;this.fire=true;return edge;}
++    if(code==='KeyC'&&settings.crouchMode==='toggle')this.crouch=!this.crouch;
++    if((code==='ShiftLeft'||code==='ShiftRight')&&settings.sprintMode==='toggle')this.sprint=!this.sprint;
++    return false;
++  }
++  release(code){if(code==='KeyZ')this.fire=false;}
++  read(keys,settings={}){
++    const forward=keys.has('KeyW')&&!keys.has('KeyS');
++    if(this.wasMoving&&!forward)this.sprint=false;
++    this.wasMoving=forward;
++    return {fire:this.fire,
++      crouch:(settings.crouchMode==='toggle'?this.crouch:keys.has('KeyC'))||keys.has('ControlLeft')||keys.has('ControlRight'),
++      sprint:forward&&(settings.sprintMode==='toggle'?this.sprint:keys.has('ShiftLeft')||keys.has('ShiftRight'))};
++  }
++  snapshot(){return {fire:this.fire,crouchToggled:this.crouch,sprintToggled:this.sprint};}
++}
++export function acceptsGameKey(event,active){
++  return !!active&&!event.metaKey&&!event.altKey&&!event.isComposing&&
++    !event.target?.closest?.('input,select,textarea,button,[contenteditable="true"]');
++}
+--- v1.7/project/test/desktop-settings.test.mjs
++++ v1.8/project/test/desktop-settings.test.mjs
+@@ -1,12 +1,31 @@
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+-import {DEFAULT_SETTINGS,loadSettings,saveSettings,validateSettings,qualitySettings} from '../export/web/desktop-settings.js';
++import {DEFAULT_SETTINGS,loadSettings,saveSettings,validateSettings,qualitySettings,comfortSettings} from '../export/web/desktop-settings.js';
+ test('damaged, unavailable, and future settings storage recovers to usable defaults',()=>{
+   assert.deepEqual(loadSettings({getItem(){return '{broken';}}),DEFAULT_SETTINGS);
+   assert.deepEqual(loadSettings({getItem(){throw new Error('storage denied');}}),DEFAULT_SETTINGS);
+   assert.deepEqual(validateSettings({version:2,fov:150}),DEFAULT_SETTINGS);
+   assert.doesNotThrow(()=>saveSettings(DEFAULT_SETTINGS,{setItem(){throw new Error('quota exceeded');}}));
+ });
++test('existing v1 choices survive migration while new accessibility and input options use stable defaults',()=>{
++  const prior={version:1,quality:'quality',sensitivity:1.75,fov:91,master:32,profile:'reimagined',weaponBob:false};
++  const restored=loadSettings({getItem:()=>JSON.stringify(prior)});
++  for(const [key,value]of Object.entries(prior))assert.equal(restored[key],value);
++  assert.equal(restored.textSize,100);assert.equal(restored.crouchMode,'hold');assert.equal(restored.sprintMode,'hold');assert.equal(restored.wheelSwitch,true);
++});
++test('Laptop, readable text and accessible input choices survive storage, with unknown values rejected',()=>{
++  let saved;
++  saveSettings({...DEFAULT_SETTINGS,quality:'laptop',textSize:140,crouchMode:'toggle',sprintMode:'toggle',wheelSwitch:false},{setItem:(_,value)=>saved=value});
++  const actual=loadSettings({getItem:()=>saved});assert.equal(actual.quality,'laptop');assert.equal(actual.textSize,140);assert.equal(actual.crouchMode,'toggle');assert.equal(actual.sprintMode,'toggle');assert.equal(actual.wheelSwitch,false);
++  const invalid=validateSettings({version:1,textSize:999,crouchMode:'auto',sprintMode:true,wheelSwitch:'false'});
++  for(const key of ['textSize','crouchMode','sprintMode','wheelSwitch'])assert.equal(invalid[key],DEFAULT_SETTINGS[key]);
++});
++test('Comfort is an explicit narrow change preserving graphics, input, audio and rule choices',()=>{
++  const before={...DEFAULT_SETTINGS,quality:'quality',fov:93,master:37,crouchMode:'toggle',textSize:140,profile:'reimagined'};
++  const after=comfortSettings(before);assert.equal(after.reducedFlashes,true);assert.equal(after.weaponBob,false);assert.equal(after.textSize,140);
++  for(const key of Object.keys(before).filter(k=>!['reducedFlashes','weaponBob','textSize'].includes(k)))assert.equal(after[key],before[key]);
++  assert.equal(comfortSettings(DEFAULT_SETTINGS).textSize,120);assert.equal(before.reducedFlashes,false);
++});
+ test('saved settings cannot create invalid camera, mixer or profile values',()=>{
+   const actual=validateSettings({version:1,fov:900,sensitivity:-1,music:Infinity,master:NaN,invertLook:'yes',quality:'ultra',profile:'infinite-health'});
+   assert.equal(actual.fov,105);assert.equal(actual.sensitivity,.25);assert.equal(actual.music,65);assert.equal(actual.master,80);assert.equal(actual.invertLook,false);assert.equal(actual.profile,'classic');assert.equal(actual.quality,'balanced');
+--- /dev/null
++++ v1.8/project/test/display-performance.test.mjs
+@@ -0,0 +1,31 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {displaySettings,GRAPHICS_PRESETS} from '../export/web/display-performance.js';
++
++test('large and Retina displays stay inside their chosen pixel budget without increasing native pixel density',()=>{
++  for(const name of Object.keys(GRAPHICS_PRESETS))for(const [width,height]of [[1280,800],[1440,900],[1728,1117],[2560,1440],[3840,2160],[6016,3384]])for(const devicePixelRatio of [.75,1,2,3]){
++    const p=displaySettings(name,{width,height,devicePixelRatio});
++    assert(p.ratio>0&&p.ratio<=devicePixelRatio&&p.ratio<=GRAPHICS_PRESETS[name].ratio);
++    assert(Math.floor(width*p.ratio)*Math.floor(height*p.ratio)<=p.maxPixels,`${name} ${width}x${height} DPR ${devicePixelRatio}`);
++  }
++});
++test('Balanced preserves the current 1440 by 900 Retina presentation, while Laptop deliberately reduces work',()=>{
++  const screen={width:1440,height:900,devicePixelRatio:2};
++  const balanced=displaySettings('balanced',screen),laptop=displaySettings('laptop',screen);
++  assert.equal(balanced.ratio,1.25);assert.equal(balanced.fps,60);
++  assert(laptop.ratio<1);assert.equal(laptop.sceneQuality,'performance');assert.equal(laptop.fps,60);
++  assert(laptop.ratio**2/balanced.ratio**2<.63);
++});
++test('display resizing recomputes a stable bounded result without changing the selected preset',()=>{
++  const small=displaySettings('quality',{width:1280,height:800,devicePixelRatio:2});
++  const large=displaySettings('quality',{width:3456,height:2234,devicePixelRatio:2});
++  assert.equal(small.ratio,1.5);assert(large.ratio<1);assert.equal(large.sceneQuality,'quality');assert.equal(large.fps,120);
++  assert.deepEqual(displaySettings('quality',{width:1280,height:800,devicePixelRatio:2}),small);
++});
++test('mobile and invalid display inputs produce finite conservative resolution values',()=>{
++  const mobile=displaySettings('quality',{width:1440,height:900,devicePixelRatio:3,mobile:true});
++  assert(mobile.ratio<=1);assert.equal(mobile.maxPixels,1000000);assert.equal(mobile.fps,30);
++  for(const name of ['unknown','__proto__',undefined])for(const display of [{},{width:0,height:-1,devicePixelRatio:NaN},{width:Infinity,height:NaN,devicePixelRatio:0}]){
++    const p=displaySettings(name,display);assert(Number.isFinite(p.ratio)&&p.ratio>0);assert.equal(p.sceneQuality,'balanced');
++  }
++});
+--- /dev/null
++++ v1.8/project/test/laptop-input.test.mjs
+@@ -0,0 +1,15 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {LaptopInput,acceptsGameKey} from '../export/web/laptop-input.js';
++test('keyboard fire is edge triggered, held until release and cleared on input reset',()=>{
++ const x=new LaptopInput();assert(x.press('KeyZ'));assert(!x.press('KeyZ'));assert(!x.press('KeyZ',{repeat:true}));assert(x.read(new Set()).fire);x.release('KeyZ');assert(!x.read(new Set()).fire);assert(x.press('KeyZ'));x.clear();assert(!x.read(new Set()).fire);
++});
++test('toggle crouch ignores repeat; hold crouch and Control remain independent',()=>{
++ const x=new LaptopInput(),settings={crouchMode:'toggle'};x.press('KeyC',{settings});x.release('KeyC');assert(x.read(new Set(),settings).crouch);x.press('KeyC',{repeat:true,settings});assert(x.read(new Set(),settings).crouch);x.press('KeyC',{settings});assert(!x.read(new Set(),settings).crouch);assert(x.read(new Set(['ControlLeft']),settings).crouch);assert(x.read(new Set(['KeyC']),{crouchMode:'hold'}).crouch);x.clear();assert(!x.read(new Set(),settings).crouch);
++});
++test('toggle sprint can be armed before moving but cancels on stopping or reversing',()=>{
++ const x=new LaptopInput(),settings={sprintMode:'toggle'};x.press('ShiftLeft',{settings});assert(!x.read(new Set(),settings).sprint);assert(x.read(new Set(['KeyW']),settings).sprint);assert(!x.read(new Set(['KeyW','KeyS']),settings).sprint);assert(!x.read(new Set(['KeyW']),settings).sprint);x.press('ShiftLeft',{settings});assert(x.read(new Set(['KeyW']),settings).sprint);x.clear();assert(!x.read(new Set(['KeyW']),settings).sprint);assert(x.read(new Set(['KeyW','ShiftRight']),{}).sprint);
++});
++test('menus, editable controls, OS shortcuts and text composition cannot start game actions',()=>{
++ assert(acceptsGameKey({code:'KeyW'},true));assert(!acceptsGameKey({code:'Tab'},false));for(const key of ['metaKey','altKey','isComposing'])assert(!acceptsGameKey({[key]:true},true));assert(!acceptsGameKey({target:{closest:()=>({})}},true));
++});
+--- v1.7/desktop/main.mjs
++++ v1.8/desktop/main.mjs
+@@ -1,7 +1,9 @@
+-import { app, BrowserWindow, Menu, dialog, session, protocol } from 'electron';
++import { app, BrowserWindow, Menu, dialog, session, protocol, screen, powerMonitor } from 'electron';
+ import path from 'node:path';
+ import { fileURLToPath } from 'node:url';
++import { initialWindowSize } from './scripts/window-size.mjs';
+ import { startGameServer } from './scripts/server.mjs';
++import { fetchLocalAsset, closeLocalAssetRequests } from './scripts/local-fetch.mjs';
+ 
+ const here = path.dirname(fileURLToPath(import.meta.url));
+ const rootFlag = process.argv.indexOf('--game-root');
+@@ -55,7 +57,7 @@
+     }
+     // Node's fetch stays in the main process; the renderer can only address the
+     // registered game origin, never arbitrary local services or file paths.
+-    const response = await fetch(`${gameServer.origin}${url.pathname}${url.search}`, {
++    const response = await fetchLocalAsset(`${gameServer.origin}${url.pathname}${url.search}`, {
+       method: request.method, headers, redirect: 'error', signal: request.signal,
+     });
+     return new Response(response.body, { status: response.status, headers: response.headers });
+@@ -76,7 +78,8 @@
+   });
+   gameSession.on('will-download', event => event.preventDefault());
+   window = new BrowserWindow({
+-    title: 'Kino der Toten', width: 1440, height: 900, minWidth: 960, minHeight: 540,
++    title: 'Kino der Toten', ...initialWindowSize(screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workAreaSize),
++    minWidth: 720, minHeight: 480,
+     backgroundColor: '#08090b', show: false, fullscreenable: true,
+     webPreferences: {
+       session: gameSession, sandbox: true, contextIsolation: true, nodeIntegration: false,
+@@ -111,6 +114,17 @@
+   ]));
+   app.setAboutPanelOptions({ applicationName: 'Kino der Toten', applicationVersion: app.getVersion(),
+     copyright: 'Unofficial fan reconstruction. See the included credits and asset notices.' });
++  // Lid close / screen lock must freeze solo play even when the web view
++  // has not yet received a visibility change. Resume never resumes combat.
++  const notifyPower = name => {
++    if(window&&!window.isDestroyed()&&!window.webContents.isDestroyed())
++      window.webContents.executeJavaScript(`window.dispatchEvent(new Event('${name}'))`).catch(()=>{});
++  };
++  const pauseSystem = () => notifyPower('kino-system-pause');
++  const resumeSystem = () => notifyPower('kino-system-resume');
++  powerMonitor.on('suspend',pauseSystem);powerMonitor.on('lock-screen',pauseSystem);
++  powerMonitor.on('resume',resumeSystem);powerMonitor.on('unlock-screen',resumeSystem);
++  window.on('closed',()=>{powerMonitor.removeListener('suspend',pauseSystem);powerMonitor.removeListener('lock-screen',pauseSystem);powerMonitor.removeListener('resume',resumeSystem);powerMonitor.removeListener('unlock-screen',resumeSystem);});
+   await window.loadURL('kino://game/');
+   if (process.argv.includes('--game-devtools')) window.webContents.openDevTools({ mode: 'detach' });
+ }
+@@ -129,6 +143,7 @@
+     event.preventDefault();
+     closing = true;
+     gameSession?.flushStorageData();
++    closeLocalAssetRequests();
+     gameServer.close().finally(() => app.quit());
+   }
+ });
+--- v1.7/desktop/package.json
++++ v1.8/desktop/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "kino-desktop",
+   "productName": "Kino der Toten",
+-  "version": "1.7.0",
++  "version": "1.8.0",
+   "private": true,
+   "description": "Offline desktop launcher for the Kino browser reconstruction",
+   "type": "module",
+--- v1.7/desktop/scripts/bundle-macos.py
++++ v1.8/desktop/scripts/bundle-macos.py
+@@ -62,9 +62,9 @@
+     archive = runtime / verification['filename']
+     if hashlib.sha256(archive.read_bytes()).hexdigest() != verification['sha256']:
+         parser.error('Electron archive checksum does not match the verified runtime record')
+-    if verification['architecture'] != 'darwin-arm64':
+-        parser.error('This wrapper requires the macOS ARM64 runtime')
+-    extract = runtime / ('extracted-' + verification['version'])
++    if verification['architecture'] not in {'darwin-arm64','darwin-x64'}:
++        parser.error('This wrapper requires an official macOS arm64 or x64 runtime')
++    extract = runtime / ('extracted-' + verification['version'] + '-' + verification['architecture'])
+     if not (extract / 'Electron.app').is_dir():
+         extract.mkdir(parents=True, exist_ok=True)
+         run('/usr/bin/ditto', '-x', '-k', archive, extract)
+@@ -83,7 +83,8 @@
+         (app_root / 'scripts').mkdir(parents=True)
+         for filename in ['main.mjs', 'package.json']:
+             shutil.copy2(packaging / filename, app_root / filename)
+-        shutil.copy2(packaging / 'scripts' / 'server.mjs', app_root / 'scripts' / 'server.mjs')
++        for filename in ['server.mjs','window-size.mjs','local-fetch.mjs']:
++            shutil.copy2(packaging / 'scripts' / filename, app_root / 'scripts' / filename)
+         shutil.copytree(root, app_root / 'game', ignore=ignored)
+         licenses = resources / 'licenses'
+         licenses.mkdir(exist_ok=True)
+@@ -113,7 +114,7 @@
+             'CFBundleExecutable': 'Kino der Toten',
+             'CFBundleIdentifier': 'local.kino.der-toten',
+             'CFBundleShortVersionString': json.loads((packaging / 'package.json').read_text())['version'],
+-            'CFBundleVersion': '8',
++            'CFBundleVersion': '9',
+             'LSApplicationCategoryType': 'public.app-category.action-games',
+             'NSHumanReadableCopyright': 'Unofficial fan reconstruction. See Resources/licenses.',
+         })
+@@ -139,7 +140,7 @@
+     remove_finder_metadata(output)
+     run('/usr/bin/codesign', '--verify', '--deep', '--strict', output)
+     manifest = {'application': str(output), 'runtime': verification,
+-                'web_root': str(root), 'architecture': 'arm64', 'signing': 'local ad-hoc; not notarized'}
++                'web_root': str(root), 'architecture': verification['architecture'].removeprefix('darwin-'), 'signing': 'local ad-hoc; not notarized'}
+     output.with_suffix('.build.json').write_text(json.dumps(manifest, indent=2) + '\n')
+     print(json.dumps(manifest, indent=2))
+ 
+--- v1.7/desktop/scripts/check-electron.mjs
++++ v1.8/desktop/scripts/check-electron.mjs
+@@ -26,6 +26,8 @@
+   process.argv[4] || path.join(work, 'desktop-runtime/extracted-44.7.0/Electron.app/Contents/MacOS/Electron');
+ const packaged = Boolean(appPath || process.argv[4]);
+ const performanceRequested = process.argv.includes('--performance');
++const testedQuality=option('--quality')||'balanced';
++const expectedArch=option('--expected-arch')||'arm64';
+ const verificationProfile = option('--profile');
+ if (verificationProfile) await fs.mkdir(path.resolve(verificationProfile), { recursive: true });
+ await fs.mkdir(output, { recursive: true });
+@@ -79,7 +81,7 @@
+ 
+ async function performancePhases() {
+   report.performancePhases = [];
+-  report.performanceMethod = 'Controlled visible native window; 1440 by 900 content pixels; Balanced. Incidental movement/fire/look input blocked only during performance phases; Escape still pauses. Invulnerability prevents benchmark deaths. Lobby keeps normal spawns; stage and round-25 stress use explicit debug setup. These are controlled performance measurements, not survival achievements.';
++  report.performanceMethod = 'Controlled visible native window; 1440 by 900 content pixels; selected graphics preset (recorded per phase). Incidental movement/fire/look input blocked only during performance phases; Escape still pauses. Invulnerability prevents benchmark deaths. Lobby keeps normal spawns; stage and round-25 stress use explicit debug setup. These are controlled performance measurements, not survival achievements.';
+   await page.evaluate(() => {
+     // Isolate controlled frame measurements from incidental desktop input.
+     // Escape still pauses; the check fails rather than concealing focus loss.
+@@ -145,8 +147,8 @@
+     report.signatureVerified = true;
+   }
+   for (let iteration = 0; iteration < 2; iteration++) {
+-    electronApp = await _electron.launch({ executablePath,
+-      args: [...(packaged ? [] : [packaging, '--game-root', gameRoot]), ...(verificationProfile ? ['--verification-profile',path.resolve(verificationProfile)] : [])], timeout: 30000 });
++    electronApp = await _electron.launch({ executablePath:option('--launch-executable')||executablePath,
++      args: [...(packaged ? [] : [packaging, '--game-root', gameRoot]), ...(verificationProfile ? ['--verification-profile',path.resolve(verificationProfile)] : [])], timeout: 90000 });
+     page = await electronApp.firstWindow();
+     await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1440, 900));
+     page.on('pageerror', error => report.errors.push(String(error)));
+@@ -187,12 +189,12 @@
+     assert.equal(environment.url, 'kino://game/'); assert.equal(environment.secure, true);
+     assert.equal(environment.require, 'undefined'); assert.equal(environment.process, 'undefined');
+     assert.equal(settings.sandbox, true); assert.equal(settings.contextIsolation, true);
+-    assert.equal(settings.nodeIntegration, false); assert.equal(settings.arch, 'arm64');
++    assert.equal(settings.nodeIntegration, false); assert.equal(settings.arch, expectedArch);
+     if (appPath) {
+       assert.equal(settings.appPath, path.join(appPath, 'Contents/Resources/app'));
+       assert.equal(settings.executable, executablePath);
+       assert.equal(settings.isPackaged, true);
+-      assert.equal(settings.applicationVersion, '1.7.0');
++      assert.equal(settings.applicationVersion, '1.8.0');
+       report.actualBundledExecutableVerified = true;
+     }
+     if (iteration === 0) {
+@@ -215,9 +217,9 @@
+       report.offlineProof.localReloadReady = true;
+       await page.evaluate(() => localStorage.setItem('kino-wrapper-storage-probe', 'persists'));
+       originalQuality = await page.locator('[data-setting="quality"]').inputValue();
+-      if (performanceRequested && originalQuality !== 'balanced') {
++      if (performanceRequested && originalQuality !== testedQuality) {
+         await page.locator('#settings-open').click();
+-        await page.locator('[data-setting="quality"]').selectOption('balanced');
++        await page.locator('[data-setting="quality"]').selectOption(testedQuality);
+         await page.locator('#settings-done').click();
+       }
+       await page.screenshot({ path: path.join(output, '01-desktop-menu.png') });
+@@ -252,6 +254,28 @@
+       report.machinePresentation = await page.evaluate(() => ({machines:kino.debug.machineState(),locator:kino.debug.boxLocatorState()}));
+       assert.equal(report.machinePresentation.machines.nativeHands,3);assert.equal(report.machinePresentation.locator.lamps,81);
+       report.keyboardAimMethod = 'Actual packaged keyboard Q toggle plus left mouse fire; Q release retains aim and second press exits. Automated input on this Mac, not physical Magic Mouse hardware testing.';
++      const beforeZ = await page.evaluate(() => kino.debug.getState().weapon.mag);
++      await page.keyboard.press('KeyZ');
++      await page.waitForFunction(m=>kino.debug.getState().weapon.mag===m-1,beforeZ);
++      report.keyboardFirePassed=true;
++      // Exercise the main-process powerMonitor handlers without putting the
++      // user's computer to sleep or locking their screen.
++      await page.keyboard.down('KeyW');await page.keyboard.down('KeyZ');
++      await electronApp.evaluate(({powerMonitor})=>powerMonitor.emit('suspend'));
++      await page.waitForFunction(()=>!kino.debug.getState().active&&!document.pointerLockElement);
++      const asleep=await page.evaluate(()=>kino.debug.getState());
++      await page.keyboard.up('KeyW');await page.keyboard.up('KeyZ');
++      await page.waitForTimeout(350);
++      assert.equal(await page.evaluate(()=>kino.debug.getState().time),asleep.time);
++      assert(!asleep.input.primary&&!asleep.input.ads&&!asleep.input.laptop.fire);
++      await electronApp.evaluate(({powerMonitor})=>powerMonitor.emit('resume'));
++      await page.waitForTimeout(250);
++      assert.equal(await page.evaluate(()=>kino.debug.getState().time),asleep.time);
++      assert.equal(await page.evaluate(()=>kino.debug.getState().active),false);
++      await page.locator('#start').click();await page.waitForFunction(()=>kino.debug.getState().active&&document.pointerLockElement);
++      assert.equal(await page.evaluate(()=>kino.debug.getState().weapon.mag),asleep.weapon.mag);
++      report.systemSleepWakePassed=true;
++      report.systemSleepWakeMethod='Main-process powerMonitor suspend/resume events emitted deliberately; verifies wrapper-to-renderer freeze/clear/manual-resume. No physical lid close or sleep.';
+       report.performance = await page.evaluate(() => kino.debug.getState().performance);
+       await page.screenshot({ path: path.join(output, '02-desktop-gameplay.png') });
+       if (performanceRequested) await performancePhases();
+--- /dev/null
++++ v1.8/desktop/scripts/local-fetch.mjs
+@@ -0,0 +1,47 @@
++import { Agent, request } from 'node:http';
++import { Readable } from 'node:stream';
++
++// Thousands of bundled assets may load at once. Keep a bounded pool, including
++// while response bodies stream, rather than opening one socket per asset.
++const agent = new Agent({ keepAlive: true, maxSockets: 12, maxTotalSockets: 12,
++  maxFreeSockets: 4, scheduling: 'lifo' });
++const resetCodes = new Set(['ECONNRESET', 'EPIPE', 'UND_ERR_SOCKET']);
++
++function readOnce(target, options) {
++  return new Promise((resolve, reject) => {
++    const req = request(target, { method: options.method, agent, signal: options.signal,
++      headers: Object.fromEntries(new Headers(options.headers)) }, incoming => {
++      const status = incoming.statusCode;
++      if (status >= 300 && status < 400) {
++        incoming.destroy(); reject(new Error('Local asset redirects are disabled')); return;
++      }
++      const headers = new Headers();
++      for (let i = 0; i < incoming.rawHeaders.length; i += 2)
++        headers.append(incoming.rawHeaders[i], incoming.rawHeaders[i + 1]);
++      const empty = options.method === 'HEAD' || [204, 205, 304].includes(status);
++      if (empty) incoming.resume();
++      resolve(new Response(empty ? null : Readable.toWeb(incoming), { status, headers }));
++    });
++    req.once('error', reject);
++    req.end();
++  });
++}
++
++export function closeLocalAssetRequests() { agent.destroy(); }
++
++export async function fetchLocalAsset(url, options = {}) {
++  const target = new URL(url);
++  if (target.protocol !== 'http:' || target.hostname !== '127.0.0.1' ||
++      target.username || target.password) throw new TypeError('Expected local game server');
++  const method = options.method || 'GET';
++  if (!['GET', 'HEAD'].includes(method)) throw new TypeError('Expected read-only asset request');
++  try {
++    return await readOnce(target, { ...options, method });
++  } catch (error) {
++    // Retry only a reset before headers. Body failures, HTTP errors,
++    // cancellation and persistent failures remain visible to the loader.
++    if (options.signal?.aborted || !resetCodes.has(error.code ?? error.cause?.code)) throw error;
++    options.signal?.throwIfAborted();
++    return readOnce(target, { ...options, method });
++  }
++}
+--- /dev/null
++++ v1.8/desktop/scripts/sign-universal.py
+@@ -0,0 +1,14 @@
++#!/usr/bin/env python3
++"""Locally sign and strictly verify a merged Mac app; never publish it."""
++from pathlib import Path
++import argparse,plistlib,subprocess,tempfile
++p=argparse.ArgumentParser(description=__doc__);p.add_argument('app',type=Path);a=p.parse_args().app.resolve()
++assert a.suffix=='.app' and (a/'Contents/Info.plist').is_file()
++with tempfile.TemporaryDirectory(prefix='kino-sign-') as tmp:
++ ent=Path(tmp)/'entitlements.plist'
++ ent.write_bytes(plistlib.dumps({'com.apple.security.cs.allow-jit':True,'com.apple.security.cs.allow-unsigned-executable-memory':True}))
++ for key in ['com.apple.FinderInfo','com.apple.ResourceFork']:
++  subprocess.run(['/usr/bin/xattr','-dr',key,str(a)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=False)
++ subprocess.run(['/usr/bin/codesign','--force','--deep','--sign','-','--entitlements',str(ent),str(a)],check=True)
++ subprocess.run(['/usr/bin/codesign','--verify','--deep','--strict',str(a)],check=True)
++print('Local signature and strict verification passed:',a)
+--- /dev/null
++++ v1.8/desktop/scripts/window-size.mjs
+@@ -0,0 +1,6 @@
++// Leave room for the menu bar, Dock and the window frame on smaller laptops.
++export function initialWindowSize(workArea={}) {
++ const valid=(value,fallback)=>Number.isFinite(value)&&value>0?value:fallback;
++ return {width:Math.max(720,Math.min(1440,Math.floor(valid(workArea.width,1440)-48))),
++   height:Math.max(480,Math.min(900,Math.floor(valid(workArea.height,900)-48)))};
++}
+--- /dev/null
++++ v1.8/desktop/test/local-fetch.test.mjs
+@@ -0,0 +1,74 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { createServer } from 'node:http';
++import { fetchLocalAsset } from '../scripts/local-fetch.mjs';
++
++async function fixture(t, handler) {
++  const server = createServer(handler);
++  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
++  t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
++  return `http://127.0.0.1:${server.address().port}/kino.gltf`;
++}
++
++test('recovers a real reset before headers and preserves range and body bytes', async t => {
++  let requests = 0;
++  const url = await fixture(t, (req, res) => {
++    assert.equal(req.method, 'GET'); assert.equal(req.headers.range, 'bytes=3-8');
++    if (++requests === 1) return req.socket.destroy();
++    res.writeHead(206, { 'Content-Range': 'bytes 3-8/10', 'Content-Type': 'model/gltf+json' }).end('abcdef');
++  });
++  const response = await fetchLocalAsset(url, { headers: { range: 'bytes=3-8' } });
++  assert.equal(response.status, 206); assert.equal(response.headers.get('Content-Range'), 'bytes 3-8/10');
++  assert.equal(await response.text(), 'abcdef'); assert.equal(requests, 2);
++});
++
++test('persistent reset is bounded to two requests', async t => {
++  let requests = 0;
++  const url = await fixture(t, req => { requests++; req.socket.destroy(); });
++  await assert.rejects(fetchLocalAsset(url)); assert.equal(requests, 2);
++});
++
++test('does not retry an HTTP error or follow a redirect', async t => {
++  let requests = 0;
++  const url = await fixture(t, (_req, res) => { requests++; res.writeHead(404).end('missing'); });
++  assert.equal((await fetchLocalAsset(url)).status, 404); assert.equal(requests, 1);
++  const redirect = await fixture(t, (_req, res) => res.writeHead(302, { location: 'https://example.com/' }).end());
++  await assert.rejects(fetchLocalAsset(redirect));
++});
++
++test('an aborted request is not replayed', async t => {
++  const controller = new AbortController(); let requests = 0;
++  const url = await fixture(t, () => { requests++; controller.abort(); });
++  await assert.rejects(fetchLocalAsset(url, { signal: controller.signal }), { name: 'AbortError' });
++  assert.equal(requests, 1);
++});
++
++test('HEAD stays bodyless and unsafe targets or methods are rejected', async t => {
++  let requests = 0;
++  const url = await fixture(t, (req, res) => { requests++; assert.equal(req.method, 'HEAD'); res.writeHead(200).end(); });
++  assert.equal(await (await fetchLocalAsset(url, { method: 'HEAD' })).text(), '');
++  await assert.rejects(fetchLocalAsset(url, { method: 'POST' }));
++  await assert.rejects(fetchLocalAsset('https://example.com/'));
++  await assert.rejects(fetchLocalAsset('http://user@127.0.0.1/'));
++  assert.equal(requests, 1);
++});
++
++test('asset burst has at most twelve active transfers until bodies finish', async t => {
++  let active = 0, peak = 0, requests = 0;
++  const url = await fixture(t, (_req, res) => {
++    active++; requests++; peak = Math.max(peak, active);
++    res.writeHead(200); res.write('first');
++    setTimeout(() => { active--; res.end('last'); }, 20);
++  });
++  const bodies = await Promise.all(Array.from({ length: 80 }, async () =>
++    (await fetchLocalAsset(url)).text()));
++  assert.equal(requests, 80); assert(peak > 1 && peak <= 12, `peak transfers: ${peak}`);
++  assert(bodies.every(body => body === 'firstlast'));
++});
++
++test('canceling a streaming body frees a slot without replaying it', async t => {
++  let requests = 0;
++  const url = await fixture(t, (_req, res) => { requests++; res.writeHead(200); res.write('stream'); });
++  const response = await fetchLocalAsset(url);
++  await response.body.cancel(); assert.equal(requests, 1);
++});
+--- /dev/null
++++ v1.8/desktop/test/window-size.test.mjs
+@@ -0,0 +1,12 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {initialWindowSize} from '../scripts/window-size.mjs';
++test('laptop window fits common work areas rather than forcing a 1440x900 window',()=>{
++ for(const [width,height]of [[1280,720],[1440,810],[1512,880],[1920,1080]]){
++  const size=initialWindowSize({width,height});assert(size.width<=width-48);assert(size.height<=height-48);assert(size.width>=720);assert(size.height>=480);
++ }
++ assert.deepEqual(initialWindowSize({width:2560,height:1400}),{width:1440,height:900});
++});
++test('invalid display data does not generate invalid window dimensions',()=>{
++ assert.deepEqual(initialWindowSize({width:NaN,height:0}),{width:1392,height:852});
++});

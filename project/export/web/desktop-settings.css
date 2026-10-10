@@ -1,0 +1,32 @@
+.desktop-options{margin-top:12px}.desktop-options>.secondary{margin-top:0;display:flex;justify-content:space-between;font-size:10px;letter-spacing:1.5px}.desktop-options button:focus-visible,.desktop-options input:focus-visible,.desktop-options select:focus-visible{outline:2px solid #d4b887;outline-offset:4px}#settings-panel{position:fixed;inset:5vh max(4vw,calc((100vw - 860px)/2));background:#101312f7;border:1px solid #69634e;padding:28px 32px;z-index:30;overflow:auto;box-shadow:0 24px 100px #000c;backdrop-filter:blur(18px)}.settings-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.settings-heading h2{font:normal 28px Georgia,serif;margin:0;color:#e6decd}.settings-heading button{font-size:28px;border:0;background:none;color:#bfb59f}.settings-columns{display:grid;grid-template-columns:1fr 1fr;gap:35px}.settings-columns fieldset{border:0;padding:0;margin:0;min-width:0}.settings-columns legend{font-size:9px;letter-spacing:2px;color:#b59766;margin:0 0 18px}.settings-columns label{display:grid;grid-template-columns:1fr auto;gap:9px;font-size:12px;margin-bottom:16px;color:#d1c9b9}.settings-columns label input[type=range]{grid-row:2;grid-column:1/-1;width:100%;accent-color:#c0a070}.settings-columns label output{grid-row:1;grid-column:2;color:#bba884;font-variant-numeric:tabular-nums}.settings-columns label.check{display:flex;align-items:center;font-size:11px;gap:9px}.settings-columns input[type=checkbox]{accent-color:#ba9065;width:15px;height:15px;margin:0}.settings-columns select,.profile-label select{border:1px solid #766348;background:#171b19;color:#ddd2bb;padding:9px;font-size:11px;grid-column:1/-1}.profile-label{display:flex;align-items:center;gap:18px;font-size:12px;border-top:1px solid #484637;padding-top:18px;margin-top:4px}.settings-note{font-size:11px;line-height:1.6;color:#a49d8c;margin:10px 0 17px}.settings-controls{font-size:10px;line-height:1.9;color:#bdb5a3;margin:15px 0;padding:14px 0;border-top:1px solid #484637}.settings-actions{display:flex;justify-content:space-between;gap:20px}.settings-actions button{background:#942f27;color:#eee1cd;border:1px solid #ad4a38;padding:11px 24px;font-size:10px;letter-spacing:1px}.settings-actions #settings-defaults{background:transparent;border-color:#5b5646;color:#afa58e}#menu.settings-visible .menu-side{display:none}#run-profile{font-size:9px;letter-spacing:1px;color:#b29773;display:block;margin-top:6px}.local-note{line-height:1.6}.touch-mode .settings-controls{display:none}@media(max-width:650px){#settings-panel{inset:3vh 4vw;padding:22px}.settings-columns{grid-template-columns:1fr;gap:15px}.settings-heading h2{font-size:22px}.profile-label{align-items:flex-start;flex-direction:column;gap:8px}}
+
+#damage-direction{position:fixed;left:50%;top:50%;width:230px;height:230px;border-radius:50%;border:3px solid transparent;border-top-color:#d8432c;z-index:4;pointer-events:none;opacity:0;filter:drop-shadow(0 0 6px #a91313);transition:opacity .1s}.menu-open #damage-direction{display:none}
+
+@media(min-width:651px) and (max-height:950px){#settings-panel{padding:22px 30px}.settings-heading{margin-bottom:16px}.settings-columns legend{margin-bottom:14px}.settings-columns label{margin-bottom:12px}.settings-controls{padding:10px 0;margin:10px 0}.settings-note{margin-bottom:12px}}
+
+/* Text remains native-resolution DOM even when the 3D picture is scaled down. */
+:root{--ui-scale:1}
+.desktop-options>.secondary{font-size:calc(14px * var(--ui-scale));letter-spacing:.3px;text-transform:none}
+#settings-panel{overscroll-behavior:contain;scrollbar-gutter:stable;max-width:940px;backdrop-filter:none;background:#101312}
+.settings-heading h2{font-size:calc(28px * var(--ui-scale))}
+.settings-heading button{width:44px;height:44px;flex:none}
+.settings-columns legend{font-size:calc(11px * var(--ui-scale));letter-spacing:1.4px}
+.settings-columns label,.profile-label{font-size:calc(14px * var(--ui-scale));line-height:1.4}
+.settings-columns label.check{font-size:calc(13px * var(--ui-scale));min-height:28px}
+.settings-columns input[type=checkbox]{width:19px;height:19px;flex:none}
+.settings-columns label input[type=range]{height:24px;margin:0}
+.settings-columns select,.profile-label select{font-size:calc(13px * var(--ui-scale));min-height:42px;max-width:100%;border-radius:4px}
+.settings-note,.settings-controls{font-size:calc(12px * var(--ui-scale));color:#bbb5a7;letter-spacing:0}
+.settings-actions button,.comfort-row button{font-size:calc(12px * var(--ui-scale));min-height:44px;letter-spacing:.3px;border-radius:4px}
+.comfort-row{display:flex;gap:18px;align-items:center;justify-content:space-between;border:1px solid #5d5a49;border-radius:6px;padding:15px;margin-bottom:24px;background:#cfb78308}
+.comfort-row strong{font-size:calc(14px * var(--ui-scale));font-weight:500;color:#e3d9c4}
+.comfort-row p{font-size:calc(12px * var(--ui-scale));line-height:1.5;color:#bdb5a5;margin:6px 0 0}
+.comfort-row button{background:#282d29;border:1px solid #96866a;color:#eee2cc;padding:10px 14px;flex:none}
+html:not([data-ui-text="100"]) #location{font-size:calc(16px * var(--ui-scale))}
+html:not([data-ui-text="100"]) #health-label,html:not([data-ui-text="100"]) #remaining,html:not([data-ui-text="100"]) #grenades{font-size:calc(10px * var(--ui-scale))}
+html:not([data-ui-text="100"]) #weapon-name,html:not([data-ui-text="100"]) #objective,html:not([data-ui-text="100"]) #controls-hint{font-size:calc(12px * var(--ui-scale))}
+html:not([data-ui-text="100"]) #toast{font-size:calc(13px * var(--ui-scale))}
+html:not([data-ui-text="100"]) #reload-label{font-size:calc(11px * var(--ui-scale));height:auto;min-height:18px}
+html:not([data-ui-text="100"]) #prompt.interaction-card .interaction-copy>strong{font-size:calc(18px * var(--ui-scale))}
+html:not([data-ui-text="100"]) #prompt.interaction-card .interaction-detail,html:not([data-ui-text="100"]) #prompt.interaction-card .interaction-footer,html:not([data-ui-text="100"]) #prompt.interaction-card .interaction-input{font-size:calc(11px * var(--ui-scale))}
+@media(max-width:650px){.comfort-row{align-items:stretch;flex-direction:column;gap:12px}.settings-actions{gap:10px;flex-wrap:wrap}.settings-actions button{flex:1;padding:12px}.settings-heading h2{font-size:calc(24px * var(--ui-scale))}#settings-panel{inset:12px;padding:18px}.profile-label select{width:100%}}

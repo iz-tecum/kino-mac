@@ -1,0 +1,12 @@
+node_modules/
+artifacts/
+.DS_Store
+.env
+.env.*
+*.pem
+*.key
+*.log
+*.pid
+*.zip
+*.app/
+profiles/

@@ -1,0 +1,40 @@
+{
+  "name": "@electron/universal",
+  "version": "3.0.6",
+  "scripts": {
+    "lint": "oxfmt --check . && oxlint",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.entry-asar.json && tsc -p entry-asar/esm/tsconfig.json",
+    "prepack": "npm run build",
+    "prepare": "husky",
+    "lint:fix": "oxfmt --write . && oxlint --fix",
+    "build:docs": "typedoc"
+  },
+  "dependencies": {
+    "debug": "^4.3.1",
+    "plist": "^3.1.0",
+    "@electron/asar": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "dist": {
+    "shasum": "8fe09bede4b2216006e62be0571e360447ad6872",
+    "tarball": "https://registry.npmjs.org/@electron/universal/-/universal-3.0.6.tgz",
+    "fileCount": 29,
+    "integrity": "sha512-MonS1kfkZdSEkLZI0pdR/TCx8ecxwRSFm7sORfwIkDI9UaIbHnk4Mgeqq+Ob9qDQRV8LZ9+hHCmimpA9BRcNxw==",
+    "signatures": [
+      {
+        "sig": "MEUCIQCoBpFSCdfhigB00XRq+7NB6tw/QVQKONJ8g4an7a2tiwIgTeYOj3LT3QY71GJLg+57nCkAP2zA7C+EAtpmcdU0rTY=",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      }
+    ],
+    "attestations": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/@electron%2funiversal@3.0.6",
+      "provenance": {
+        "predicateType": "https://slsa.dev/provenance/v1"
+      }
+    },
+    "unpackedSize": 84517
+  }
+}

@@ -1,0 +1,121 @@
+KINO 1.8 — FINAL R3 CANDIDATE VERIFICATION
+
+Scope
+Classic four-perk solo Kino reconstruction; optional Reimagined recovery only.
+This turn adds Laptop graphics, bounded render resolution, readable text,
+simpler menus, keyboard fire and configurable hold/toggle controls. Existing
+weapon, audio, map and gameplay limitations remain below.
+
+Rules and browser acceptance
+314/314 runtime unit tests passed, zero failures/skips: v9-final/unit.log.
+382/382 grouped browser checks passed across 14 suites. Counts describe test
+assertions, not unique features, frames, human play sessions or complete map
+certification.
+qa: 25/25, zero unexpected browser errors.
+routes: 4/4, zero unexpected browser errors.
+extras: 6/6, zero unexpected browser errors.
+completion: 19/19, zero unexpected browser errors.
+melee: 15/15, zero unexpected browser errors.
+zombies: 20/20, zero unexpected browser errors.
+Menu: 8/8, zero unexpected browser errors.
+Laptop settings: 8/8, zero unexpected browser errors.
+Laptop controls: 11/11, zero unexpected browser errors.
+Q aim: 15/15, zero unexpected browser errors.
+Existing input: 7/7, zero unexpected browser errors.
+Loading/restarts: 6/6, zero unexpected browser errors.
+Weapons: 32/32, zero unexpected browser errors.
+Presentation: 206/206, zero unexpected browser errors.
+
+The six core suites total 89/89; the final run had no source hash changes.
+The earlier successful run during startup-message/panel edits is retained as
+v9-final/core-before-final-ui. Controlled suites use setup/grants, spawns,
+teleportation, invulnerability or accelerated simulation as applicable. These
+are functional acceptance, not an unassisted survival playthrough.
+
+Separate wrapper and failure checks
+9/9 desktop wrapper tests passed (wrapper-v9-unit.log), separate from the 314
+runtime units. Local asset transport allows at most 12 active transfers and
+holds a slot until the body completes or is cancelled. Tests cover real resets,
+one bounded retry before headers, range/body preservation, cancellation,
+non-retry of HTTP errors/redirects, safe targets and laptop window sizing.
+
+The separate v9-graphics-unavailable/report.json test passed with WebGL and
+software rasterization deliberately disabled. The clear failure state and
+Retry worked; expected context-creation errors are recorded. This is outside
+the 382 checks and is not a test of an unsupported physical GPU.
+
+Settings and interface
+Actual WebGL canvas size obeyed the chosen pixel budget during Retina emulation
+and resizing. Laptop selected existing lower-effect scene paths; saved choices
+remained selected. Larger text, comfort controls, keyboard focus containment,
+Escape-to-close and persistence passed. At 1728x1117 CSS pixels with density 2,
+Balanced rendered 2,099,330 pixels and Laptop 1,248,220. Rendered layouts were
+inspected at ordinary and narrow sizes on the current Mac.
+
+Final r3 native ARM64 acceptance — PASSED
+The ZIP-extracted 1.8.0 executable passed 2 launches and 3648 local requests,
+with zero unexpected script, console, HTTP or asset errors. Strict local
+signature and actual bundled executable were verified. The app reported arm64,
+isPackaged=true, sandbox=true, contextIsolation=true and nodeIntegration=false;
+renderer require/process were unavailable.
+
+External renderer/session probes were blocked and local reload succeeded under
+the same policy. The machine network stayed connected: application-policy
+offline verification. Actual input moved the player 24.65 map units. Q aiming,
+keyboard fire, pause, settings persistence/restoration, no saved run and helper
+shutdown passed. Deliberately emitted wrapper suspend/resume events verified
+freeze/input clearing/manual resume; no physical lid close or sleep was tested.
+Report: evidence/current-v1.8/packaged-v9-r3-arm-check/report.json.
+
+Intel startup — LIMITATION
+The final r3 Intel attempt did not become ready within the 120-second test.
+It made 695 local requests with zero unexpected script/request/HTTP errors;
+last observed loading was 42%, "Restoring theater materials and lighting".
+It did not reach playable state. Full Intel gameplay is therefore UNVERIFIED.
+No native Intel hardware or physical MacBook was tested. Architecture presence,
+signature verification and an empty error list are not runtime acceptance.
+Reports: evidence/current-v1.8/packaged-v9-r3-intel-check/report.json and
+r3-intel-loading-state.json in that same evidence directory.
+
+Final r3 performance on the current Mac
+Apple M3 iMac Mac15,5, 24 GB, 10 GPU cores. Visible packaged ARM64 window;
+Laptop preset; 1440x900 content area, density 2, 1414x883 render buffer.
+lobby-after-15-second-warmup: 59.90 rendered FPS over 15.03s; callback p95 17.60ms, max 33.50ms.
+power-on-stage: 59.85 rendered FPS over 10.01s; callback p95 17.60ms, max 33.40ms.
+controlled-round-25-with-24-active-zombies: 59.35 rendered FPS over 15.01s; callback p95 17.60ms, max 33.80ms.
+
+Short controlled phases: six lobby enemies, no stage enemies, and a debug
+round-25 setup with 24 active zombies and invulnerability. The fixed stage/stress
+view is not a worst-case crowd-on-screen benchmark. Callback percentiles are
+not rendered-frame-time percentiles. The changed Laptop resolution/effects
+prevent an equal-quality speed comparison with previous Balanced results.
+No physical MacBook, Intel, sustained-session, thermal or battery claim follows.
+Exact measurements and conditions are in PERFORMANCE.json.
+
+Archive checks and historical native evidence
+The r3 ZIP passed CRC, safe-path/duplicate checks and strict signature after
+extraction. Both architecture slices are present; 6,128 runtime files match the
+active source. See evidence/current-v1.8/zip-roundtrip-v9-r3.json. These checks
+are separate from runtime support. This record does not claim installation or
+cloud publication. Earlier packaged-v9-arm-check and packaged-v9-intel-check-final
+reports are retained as pre-transport history and superseded by r3 for current
+candidate status and performance.
+
+Preserved limits
+No full retail BO1 parity. Original T5 lightmaps/material layering, exact
+recoil/penetration/ragdolls and some equipment actions remain approximate.
+Exact creature voice banks and some gun/machinery/character recordings are
+missing; credited community voices and disclosed generated effects remain.
+Native sole-gun PaP knife presentation and knuckle choreography are incomplete.
+Radios, portrait dialogue/camera feeds, Mule Kick, co-op, saved runs and gamepad
+are absent or incomplete. The app is locally signed, not Apple-notarized.
+
+Deeper v1.7 audio, upgraded-weapon, Moon combat, trap, machinery, ordinary-round
+and PaP reports remain under evidence/current-v1.7; they are historical evidence,
+not all newly repeated checks. No physical peripheral, human audio listening,
+thermal, battery or prolonged MacBook testing is claimed.
+
+Evidence
+Current report paths above resolve under evidence/current-v1.8 unless explicitly
+labelled historical. Source-level reports also remain in project/artifacts.
+FEATURE-REGISTER.json separates current checks, inherited features and limits.

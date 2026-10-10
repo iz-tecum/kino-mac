@@ -1,0 +1,5822 @@
+{
+  "version": 1,
+  "source": "Locally shipped native PNG normal images; DXT5nm X=alpha, Y=green, positive Z reconstructed.",
+  "limitations": "Filename-paired normal detail. Surface parameters are reconstructed; native material layering, specular slot metadata and T5 lightmaps are unavailable.",
+  "normalConvention": "Decoded DirectX tangent normal; negative material Y scale converts handedness for the existing glTF UVs.",
+  "materials": {
+    "textures/~-gberlin_wall_plaster_wallpaper14_c.png": {
+      "normal": "environment/normals/berlin_wall_plaster_wallpaper14_n.png",
+      "sourceNormal": "textures/berlin_wall_plaster_wallpaper14_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_wall_plaster_wallpaper02_c.png": {
+      "normal": "environment/normals/eb_art_wall_plaster_wallpaper02_n.png",
+      "sourceNormal": "textures/eb_art_wall_plaster_wallpaper02_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_wall_metal_painted_~76ec22f3.png": {
+      "normal": "environment/normals/eb_art_wall_metal_painted_chipped01_n.png",
+      "sourceNormal": "textures/eb_art_wall_metal_painted_chipped01_n.png",
+      "pairing": "unambiguous-truncated-image-prefix",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-geb_art_wall_plaster_chippe~e4283810.png": {
+      "normal": "environment/normals/eb_art_wall_plaster_chipped_orange_n.png",
+      "sourceNormal": "textures/eb_art_wall_plaster_chipped_orange_n.png",
+      "pairing": "unambiguous-truncated-image-prefix",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_wall_metal_oldbrush_silver_c.png": {
+      "normal": "environment/normals/eb_art_wall_metal_oldbrush_silver_n.png",
+      "sourceNormal": "textures/eb_art_wall_metal_oldbrush_silver_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-grus_art_metal_panel_c.png": {
+      "normal": "environment/normals/rus_art_metal_panel_n.png",
+      "sourceNormal": "textures/rus_art_metal_panel_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-geb_art_trim_wood_panel_ornate_c.png": {
+      "normal": "environment/normals/eb_art_trim_wood_panel_ornate_n.png",
+      "sourceNormal": "textures/eb_art_trim_wood_panel_ornate_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-geb_art_trim_wood_plain_c.png": {
+      "normal": "environment/normals/eb_art_trim_wood_plain_n.png",
+      "sourceNormal": "textures/eb_art_trim_wood_plain_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-geb_art_wall_plaster_dirty_c.png": {
+      "normal": "environment/normals/eb_art_wall_plaster_dirty_n.png",
+      "sourceNormal": "textures/eb_art_wall_plaster_dirty_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-grussian_concrete_cracked_c.png": {
+      "normal": "environment/normals/russian_concrete_cracked_n.png",
+      "sourceNormal": "textures/russian_concrete_cracked_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_trim_concrete_beveld_c.png": {
+      "normal": "environment/normals/eb_art_trim_concrete_beveld_n.png",
+      "sourceNormal": "textures/eb_art_trim_concrete_beveld_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gcub_art_plaster_beige_wall03_c.png": {
+      "normal": "environment/normals/cub_art_plaster_beige_wall03_n.png",
+      "sourceNormal": "textures/cub_art_plaster_beige_wall03_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gtheater_carpet_red_1_d.png": {
+      "normal": "environment/normals/theater_carpet_red_1_n.png",
+      "sourceNormal": "textures/theater_carpet_red_1_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "fabric",
+      "roughness": 1.0,
+      "metalness": 0,
+      "normalScale": [
+        0.7,
+        -0.7
+      ]
+    },
+    "textures/~-geb_art_floor_wood_hardwood02_c.png": {
+      "normal": "environment/normals/eb_art_floor_wood_hardwood02_n.png",
+      "sourceNormal": "textures/eb_art_floor_wood_hardwood02_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-geb_art_trim_rock_rough_c.png": {
+      "normal": "environment/normals/eb_art_trim_rock_rough_n.png",
+      "sourceNormal": "textures/eb_art_trim_rock_rough_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gtheater_column_set_1_c.png": {
+      "normal": "environment/normals/theater_column_set_1_n.png",
+      "sourceNormal": "textures/theater_column_set_1_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "ornament",
+      "roughness": 0.63,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-gtheater_trim_set_2_c.png": {
+      "normal": "environment/normals/theater_trim_set_2_n.png",
+      "sourceNormal": "textures/theater_trim_set_2_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "ornament",
+      "roughness": 0.63,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-grus_wall_brick_red_c.png": {
+      "normal": "environment/normals/rus_wall_brick_red_n.png",
+      "sourceNormal": "textures/rus_wall_brick_red_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_floor_concrete_tile03_c.png": {
+      "normal": "environment/normals/eb_art_floor_concrete_tile03_n.png",
+      "sourceNormal": "textures/eb_art_floor_concrete_tile03_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gcub_art_plaster_beige_wall05_c.png": {
+      "normal": "environment/normals/cub_art_plaster_beige_wall05_n.png",
+      "sourceNormal": "textures/cub_art_plaster_beige_wall05_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_trim_plaster_dirt_c.png": {
+      "normal": "environment/normals/eb_art_trim_plaster_dirt_n.png",
+      "sourceNormal": "textures/eb_art_trim_plaster_dirt_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_ceiling_metal_rust01_c.png": {
+      "normal": "environment/normals/eb_art_ceiling_metal_rust01_n.png",
+      "sourceNormal": "textures/eb_art_ceiling_metal_rust01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gcub_art_plaster_worn_c.png": {
+      "normal": "environment/normals/cub_art_plaster_worn_n.png",
+      "sourceNormal": "textures/cub_art_plaster_worn_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gconcrete_sidewalk_set_01_c.png": {
+      "normal": "environment/normals/concrete_sidewalk_set_01_n.png",
+      "sourceNormal": "textures/concrete_sidewalk_set_01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gtheater_trim_set_1_c.png": {
+      "normal": "environment/normals/theater_trim_set_1_n.png",
+      "sourceNormal": "textures/theater_trim_set_1_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "ornament",
+      "roughness": 0.63,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-geb_art_trim_wood_molding_c.png": {
+      "normal": "environment/normals/eb_art_trim_wood_molding_n.png",
+      "sourceNormal": "textures/eb_art_trim_wood_molding_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-geb_art_wall_brick_plain02_c.png": {
+      "normal": "environment/normals/eb_art_wall_brick_plain02_n.png",
+      "sourceNormal": "textures/eb_art_wall_brick_plain02_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-grus_art_trim_metal_beam_c.png": {
+      "normal": "environment/normals/rus_art_trim_metal_beam_n.png",
+      "sourceNormal": "textures/rus_art_trim_metal_beam_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-geb_art_trim_metal03_c.png": {
+      "normal": "environment/normals/eb_art_trim_metal03_n.png",
+      "sourceNormal": "textures/eb_art_trim_metal03_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-geb_ter_asphalt_old_c.png": {
+      "normal": "environment/normals/eb_ter_asphalt_old_n.png",
+      "sourceNormal": "textures/eb_ter_asphalt_old_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gglo_dirt_burnt_c.png": {
+      "normal": "environment/normals/glo_dirt_burnt_n.png",
+      "sourceNormal": "textures/glo_dirt_burnt_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-grus_art_door_metal_indus_old_c.png": {
+      "normal": "environment/normals/rus_art_door_metal_indus_old_n.png",
+      "sourceNormal": "textures/rus_art_door_metal_indus_old_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-geb_art_wall_metal_panel_green_c.png": {
+      "normal": "environment/normals/eb_art_wall_metal_panel_green_n.png",
+      "sourceNormal": "textures/eb_art_wall_metal_panel_green_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-geb_art_window_warehouse01_c.png": {
+      "normal": "environment/normals/eb_art_window_warehouse01_n.png",
+      "sourceNormal": "textures/eb_art_window_warehouse01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-geb_art_trim_wood_panels_c.png": {
+      "normal": "environment/normals/eb_art_trim_wood_panels_n.png",
+      "sourceNormal": "textures/eb_art_trim_wood_panels_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-gjun_art_trim_wood_cmolding_c.png": {
+      "normal": "environment/normals/jun_art_trim_wood_cmolding_n.png",
+      "sourceNormal": "textures/jun_art_trim_wood_cmolding_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-gudr_base_wall_metal_c.png": {
+      "normal": "environment/normals/udr_base_wall_metal_n.png",
+      "sourceNormal": "textures/udr_base_wall_metal_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gtesla_c.png": {
+      "normal": "environment/normals/tesla_n.png",
+      "sourceNormal": "textures/tesla_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_clothcable_c.png": {
+      "normal": "environment/normals/zombie_clothcable_n.png",
+      "sourceNormal": "textures/zombie_clothcable_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "fabric",
+      "roughness": 1.0,
+      "metalness": 0,
+      "normalScale": [
+        0.7,
+        -0.7
+      ]
+    },
+    "textures/~-geb_art_ceiling_metal02_c.png": {
+      "normal": "environment/normals/eb_art_ceiling_metal02_n.png",
+      "sourceNormal": "textures/eb_art_ceiling_metal02_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-geb_art_door_wood_rita_c.png": {
+      "normal": "environment/normals/eb_art_door_wood_rita_n.png",
+      "sourceNormal": "textures/eb_art_door_wood_rita_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-geb_art_roof_brick_slate02_c.png": {
+      "normal": "environment/normals/eb_art_roof_brick_slate02_n.png",
+      "sourceNormal": "textures/eb_art_roof_brick_slate02_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_wall_concrete_gritty_c.png": {
+      "normal": "environment/normals/eb_art_wall_concrete_gritty_n.png",
+      "sourceNormal": "textures/eb_art_wall_concrete_gritty_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_window_white_grimy_c.png": {
+      "normal": "environment/normals/eb_art_window_white_grimy_n.png",
+      "sourceNormal": "textures/eb_art_window_white_grimy_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gjun_art_metal_brushed_c.png": {
+      "normal": "environment/normals/jun_art_metal_brushed_n.png",
+      "sourceNormal": "textures/jun_art_metal_brushed_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-grus_door_metal02_c.png": {
+      "normal": "environment/normals/rus_door_metal02_n.png",
+      "sourceNormal": "textures/rus_door_metal02_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-geb_art_floor_metal_rivets_c.png": {
+      "normal": "environment/normals/eb_art_floor_metal_rivets_n.png",
+      "sourceNormal": "textures/eb_art_floor_metal_rivets_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gberlin_trim_metal3_c.png": {
+      "normal": "environment/normals/berlin_trim_metal3_n.png",
+      "sourceNormal": "textures/berlin_trim_metal3_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gmakin_door_wood2_c.png": {
+      "normal": "environment/normals/makin_door_wood2_n.png",
+      "sourceNormal": "textures/makin_door_wood2_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-geb_art_door_wood_ornate_c.png": {
+      "normal": "environment/normals/eb_art_door_wood_ornate_n.png",
+      "sourceNormal": "textures/eb_art_door_wood_ornate_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-geb_art_facade_concrete04_c.png": {
+      "normal": "environment/normals/eb_art_facade_concrete04_n.png",
+      "sourceNormal": "textures/eb_art_facade_concrete04_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_floor_concrete_tile_dirty_c.png": {
+      "normal": "environment/normals/eb_art_floor_concrete_tile_dirty_n.png",
+      "sourceNormal": "textures/eb_art_floor_concrete_tile_dirty_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_floor_wood_core_c.png": {
+      "normal": "environment/normals/eb_art_floor_wood_core_n.png",
+      "sourceNormal": "textures/eb_art_floor_wood_core_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-geb_art_roof_brick_slate04_c.png": {
+      "normal": "environment/normals/eb_art_roof_brick_slate04_n.png",
+      "sourceNormal": "textures/eb_art_roof_brick_slate04_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_shutter_wood_green_c.png": {
+      "normal": "environment/normals/eb_art_shutter_wood_green_n.png",
+      "sourceNormal": "textures/eb_art_shutter_wood_green_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-geb_art_trim_brick_side_c.png": {
+      "normal": "environment/normals/eb_art_trim_brick_side_n.png",
+      "sourceNormal": "textures/eb_art_trim_brick_side_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_trim_concrete_ornat~6fd31bae.png": {
+      "normal": "environment/normals/eb_art_trim_concrete_ornate_group01_n.png",
+      "sourceNormal": "textures/eb_art_trim_concrete_ornate_group01_n.png",
+      "pairing": "unambiguous-truncated-image-prefix",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_trim_top_drkred_c.png": {
+      "normal": "environment/normals/eb_art_trim_top_drkred_n.png",
+      "sourceNormal": "textures/eb_art_trim_top_drkred_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-geb_art_wall_brick_gritty_c.png": {
+      "normal": "environment/normals/eb_art_wall_brick_gritty_n.png",
+      "sourceNormal": "textures/eb_art_wall_brick_gritty_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-geb_art_wall_plaster_wallpaper05_c.png": {
+      "normal": "environment/normals/eb_art_wall_plaster_wallpaper05_n.png",
+      "sourceNormal": "textures/eb_art_wall_plaster_wallpaper05_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gjun_art_plywood_dirty_c.png": {
+      "normal": "environment/normals/jun_art_plywood_dirty_n.png",
+      "sourceNormal": "textures/jun_art_plywood_dirty_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-gplywood_dark_03_c.png": {
+      "normal": "environment/normals/plywood_dark_03_n.png",
+      "sourceNormal": "textures/plywood_dark_03_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-gj_woodpanel_wall_dry_c.png": {
+      "normal": "environment/normals/j_woodpanel_wall_dry_n.png",
+      "sourceNormal": "textures/j_woodpanel_wall_dry_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-ganim_berlin_asylum_dbl_doors_c.png": {
+      "normal": "environment/normals/anim_berlin_asylum_dbl_doors_n.png",
+      "sourceNormal": "textures/anim_berlin_asylum_dbl_doors_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gtheater_red_velvet_c.png": {
+      "normal": "environment/normals/theater_red_velvet_n.png",
+      "sourceNormal": "textures/theater_red_velvet_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "fabric",
+      "roughness": 1.0,
+      "metalness": 0,
+      "normalScale": [
+        0.7,
+        -0.7
+      ]
+    },
+    "textures/~-gpent_art_curtains01_c.png": {
+      "normal": "environment/normals/pent_art_curtains01_n.png",
+      "sourceNormal": "textures/pent_art_curtains01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "fabric",
+      "roughness": 1.0,
+      "metalness": 0,
+      "normalScale": [
+        0.7,
+        -0.7
+      ]
+    },
+    "textures/~-gpent_art_wall_baseboard01_c.png": {
+      "normal": "environment/normals/pent_art_wall_baseboard01_n.png",
+      "sourceNormal": "textures/pent_art_wall_baseboard01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gpent_art_wall_wood02_c.png": {
+      "normal": "environment/normals/pent_art_wall_wood02_n.png",
+      "sourceNormal": "textures/pent_art_wall_wood02_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-gjun_art_metal_paintchip_gray_c.png": {
+      "normal": "environment/normals/jun_art_metal_paintchip_gray_n.png",
+      "sourceNormal": "textures/jun_art_metal_paintchip_gray_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-grus_art_plywood_light_02_c.png": {
+      "normal": "environment/normals/rus_art_plywood_light_02_n.png",
+      "sourceNormal": "textures/rus_art_plywood_light_02_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-grus_roof_brick_slate_c.png": {
+      "normal": "environment/normals/rus_roof_brick_slate_n.png",
+      "sourceNormal": "textures/rus_roof_brick_slate_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-grus_crate_wood_squre01_c.png": {
+      "normal": "environment/normals/rus_crate_wood_squre01_n.png",
+      "sourceNormal": "textures/rus_crate_wood_squre01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-geb_art_floor_metal_catwalk_c.png": {
+      "normal": "environment/normals/eb_art_floor_metal_catwalk_n.png",
+      "sourceNormal": "textures/eb_art_floor_metal_catwalk_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzom_c_art_mesh_grate_c.png": {
+      "normal": "environment/normals/zom_c_art_mesh_grate_n.png",
+      "sourceNormal": "textures/zom_c_art_mesh_grate_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-glightning_chamber_main_c.png": {
+      "normal": "environment/normals/lightning_chamber_main_n.png",
+      "sourceNormal": "textures/lightning_chamber_main_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-geb_art_wall_plaster_tile_sub_red_c.png": {
+      "normal": "environment/normals/eb_art_wall_plaster_tile_sub_red_n.png",
+      "sourceNormal": "textures/eb_art_wall_plaster_tile_sub_red_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gpent_art_wall_whitepaint01_c.png": {
+      "normal": "environment/normals/pent_art_wall_whitepaint01_n.png",
+      "sourceNormal": "textures/pent_art_wall_whitepaint01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_jun_rubble02_brick_c.png": {
+      "normal": "environment/normals/p_jun_rubble02_brick_n.png",
+      "sourceNormal": "textures/p_jun_rubble02_brick_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gp_jun_rubble02_concrete_c.png": {
+      "normal": "environment/normals/p_jun_rubble02_concrete_n.png",
+      "sourceNormal": "textures/p_jun_rubble02_concrete_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gp_jun_rubble03_concrete_c.png": {
+      "normal": "environment/normals/p_jun_rubble03_concrete_n.png",
+      "sourceNormal": "textures/p_jun_rubble03_concrete_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gzombie_posters_anatomy_c.png": {
+      "normal": "environment/normals/zombie_posters_anatomy_n.png",
+      "sourceNormal": "textures/zombie_posters_anatomy_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_signs_c.png": {
+      "normal": "environment/normals/zombie_signs_n.png",
+      "sourceNormal": "textures/zombie_signs_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gtheater_bigtrim_c.png": {
+      "normal": "environment/normals/theater_bigtrim_n.png",
+      "sourceNormal": "textures/theater_bigtrim_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gglo_dec_trash_pile_c.png": {
+      "normal": "environment/normals/glo_dec_trash_pile_n.png",
+      "sourceNormal": "textures/glo_dec_trash_pile_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gmtl_russian_rocket_wht.png": {
+      "normal": "environment/normals/mtl_russian_rocket_wht_n.png",
+      "sourceNormal": "textures/mtl_russian_rocket_wht_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gzombie_clothcable_broken_c.png": {
+      "normal": "environment/normals/zombie_clothcable_broken_n.png",
+      "sourceNormal": "textures/zombie_clothcable_broken_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "fabric",
+      "roughness": 1.0,
+      "metalness": 0,
+      "normalScale": [
+        0.7,
+        -0.7
+      ]
+    },
+    "textures/~-gstatic_peleliu_shelves_ammo_c.png": {
+      "normal": "environment/normals/static_peleliu_shelves_ammo_n.png",
+      "sourceNormal": "textures/static_peleliu_shelves_ammo_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gstatic_berlin_victorian_couch_c.png": {
+      "normal": "environment/normals/static_berlin_victorian_couch_n.png",
+      "sourceNormal": "textures/static_berlin_victorian_couch_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-glights_tinhatlamp_c.png": {
+      "normal": "environment/normals/lights_tinhatlamp_n.png",
+      "sourceNormal": "textures/lights_tinhatlamp_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_cabinet_metal_c.png": {
+      "normal": "environment/normals/p_rus_cabinet_metal_n.png",
+      "sourceNormal": "textures/p_rus_cabinet_metal_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_cabinet_metal_large_c.png": {
+      "normal": "environment/normals/p_rus_cabinet_metal_large_n.png",
+      "sourceNormal": "textures/p_rus_cabinet_metal_large_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gmtl_p_int_light_overhead_c.png": {
+      "normal": "environment/normals/mtl_p_int_light_overhead_n.png",
+      "sourceNormal": "textures/mtl_p_int_light_overhead_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gxpec_hanging_clothes_col.png": {
+      "normal": "environment/normals/xpec_hanging_clothes_n.png",
+      "sourceNormal": "textures/xpec_hanging_clothes_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "fabric",
+      "roughness": 1.0,
+      "metalness": 0,
+      "normalScale": [
+        0.7,
+        -0.7
+      ]
+    },
+    "textures/~-gp_rus_industrial_cart_c.png": {
+      "normal": "environment/normals/p_rus_industrial_cart_n.png",
+      "sourceNormal": "textures/p_rus_industrial_cart_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_jun_surgical_tools_c.png": {
+      "normal": "environment/normals/p_jun_surgical_tools_n.png",
+      "sourceNormal": "textures/p_jun_surgical_tools_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_int_surgical_tools_c.png": {
+      "normal": "environment/normals/p_int_surgical_tools_n.png",
+      "sourceNormal": "textures/p_int_surgical_tools_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gberlin_books_c.png": {
+      "normal": "environment/normals/berlin_books_n.png",
+      "sourceNormal": "textures/berlin_books_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_bookshelf_wide_d_c.png": {
+      "normal": "environment/normals/p_glo_bookshelf_wide_d_n.png",
+      "sourceNormal": "textures/p_glo_bookshelf_wide_d_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gelectric_box1_c.png": {
+      "normal": "environment/normals/electric_box1_n.png",
+      "sourceNormal": "textures/electric_box1_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_pipes_c.png": {
+      "normal": "environment/normals/p_glo_pipes_n.png",
+      "sourceNormal": "textures/p_glo_pipes_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_lab_equip_stand_c.png": {
+      "normal": "environment/normals/p_rus_lab_equip_stand_n.png",
+      "sourceNormal": "textures/p_rus_lab_equip_stand_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_lab_equip1_pi_c.png": {
+      "normal": "environment/normals/p_rus_lab_equip1_pi_n.png",
+      "sourceNormal": "textures/p_rus_lab_equip1_pi_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_lab_equip_testtubetray_c.png": {
+      "normal": "environment/normals/p_rus_lab_equip_testtubetray_n.png",
+      "sourceNormal": "textures/p_rus_lab_equip_testtubetray_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_towel_stack_lrg_c.png": {
+      "normal": "environment/normals/p_rus_towel_stack_lrg_n.png",
+      "sourceNormal": "textures/p_rus_towel_stack_lrg_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-glights_hang_lamp_off_c.png": {
+      "normal": "environment/normals/lights_hang_lamp_off_n.png",
+      "sourceNormal": "textures/lights_hang_lamp_off_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_wood_chair_1_c.png": {
+      "normal": "environment/normals/p_glo_wood_chair_1_n.png",
+      "sourceNormal": "textures/p_glo_wood_chair_1_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-gzombie_teddybear_c.png": {
+      "normal": "environment/normals/zombie_teddybear_n.png",
+      "sourceNormal": "textures/zombie_teddybear_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_jun_cook_pot_c.png": {
+      "normal": "environment/normals/p_jun_cook_pot_n.png",
+      "sourceNormal": "textures/p_jun_cook_pot_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_bookcase_fncy_c.png": {
+      "normal": "environment/normals/p_rus_bookcase_fncy_n.png",
+      "sourceNormal": "textures/p_rus_bookcase_fncy_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_bed_3_c.png": {
+      "normal": "environment/normals/p_glo_bed_3_n.png",
+      "sourceNormal": "textures/p_glo_bed_3_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_palacepot_c.png": {
+      "normal": "environment/normals/p_glo_palacepot_n.png",
+      "sourceNormal": "textures/p_glo_palacepot_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_jun_int_bench_c.png": {
+      "normal": "environment/normals/p_jun_int_bench_n.png",
+      "sourceNormal": "textures/p_jun_int_bench_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-glanternbody_c.png": {
+      "normal": "environment/normals/lanternbody_n.png",
+      "sourceNormal": "textures/lanternbody_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_us_pictureframes_painting_set01_c.png": {
+      "normal": "environment/normals/p_us_pictureframes_painting_set01_n.png",
+      "sourceNormal": "textures/p_us_pictureframes_painting_set01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_theater_frame_c.png": {
+      "normal": "environment/normals/zombie_theater_frame_n.png",
+      "sourceNormal": "textures/zombie_theater_frame_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_clock_table_c.png": {
+      "normal": "environment/normals/p_glo_clock_table_n.png",
+      "sourceNormal": "textures/p_glo_clock_table_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_coffee_table_sm_c.png": {
+      "normal": "environment/normals/p_glo_coffee_table_sm_n.png",
+      "sourceNormal": "textures/p_glo_coffee_table_sm_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gflower_pot_large_col.png": {
+      "normal": "environment/normals/flower_pot_large_n.png",
+      "sourceNormal": "textures/flower_pot_large_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_ger_folding_chair_c.png": {
+      "normal": "environment/normals/p_ger_folding_chair_n.png",
+      "sourceNormal": "textures/p_ger_folding_chair_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_dresser_d_c.png": {
+      "normal": "environment/normals/p_glo_dresser_d_n.png",
+      "sourceNormal": "textures/p_glo_dresser_d_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_stapler_c.png": {
+      "normal": "environment/normals/p_rus_stapler_n.png",
+      "sourceNormal": "textures/p_rus_stapler_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_pent_desk_wood_c.png": {
+      "normal": "environment/normals/p_pent_desk_wood_n.png",
+      "sourceNormal": "textures/p_pent_desk_wood_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-gp_pent_papers_c.png": {
+      "normal": "environment/normals/p_pent_papers_n.png",
+      "sourceNormal": "textures/p_pent_papers_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_pent_cords_c.png": {
+      "normal": "environment/normals/p_pent_cords_n.png",
+      "sourceNormal": "textures/p_pent_cords_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_pent_phone_office_c.png": {
+      "normal": "environment/normals/p_pent_phone_office_n.png",
+      "sourceNormal": "textures/p_pent_phone_office_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_pent_tv_base_c.png": {
+      "normal": "environment/normals/p_pent_tv_base_n.png",
+      "sourceNormal": "textures/p_pent_tv_base_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_pent_printer_d.png": {
+      "normal": "environment/normals/p_pent_printer_n.png",
+      "sourceNormal": "textures/p_pent_printer_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_pent_av_cart_c.png": {
+      "normal": "environment/normals/p_pent_av_cart_n.png",
+      "sourceNormal": "textures/p_pent_av_cart_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_pent_av_cart_cables_c.png": {
+      "normal": "environment/normals/p_pent_av_cart_cables_n.png",
+      "sourceNormal": "textures/p_pent_av_cart_cables_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_zapper_c.png": {
+      "normal": "environment/normals/zombie_zapper_n.png",
+      "sourceNormal": "textures/zombie_zapper_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_cinder_block_c.png": {
+      "normal": "environment/normals/p_glo_cinder_block_n.png",
+      "sourceNormal": "textures/p_glo_cinder_block_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_garbage_bin_c.png": {
+      "normal": "environment/normals/p_glo_garbage_bin_n.png",
+      "sourceNormal": "textures/p_glo_garbage_bin_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gstatic_berlin_stair_railing_c.png": {
+      "normal": "environment/normals/static_berlin_stair_railing_n.png",
+      "sourceNormal": "textures/static_berlin_stair_railing_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_theater_clubchair_c.png": {
+      "normal": "environment/normals/zombie_theater_clubchair_n.png",
+      "sourceNormal": "textures/zombie_theater_clubchair_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "fabric",
+      "roughness": 1.0,
+      "metalness": 0,
+      "normalScale": [
+        0.7,
+        -0.7
+      ]
+    },
+    "textures/~-gzombie_theater_seat_c.png": {
+      "normal": "environment/normals/zombie_theater_seat_n.png",
+      "sourceNormal": "textures/zombie_theater_seat_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "fabric",
+      "roughness": 1.0,
+      "metalness": 0,
+      "normalScale": [
+        0.7,
+        -0.7
+      ]
+    },
+    "textures/~-gp_glo_sandbags_lego_c.png": {
+      "normal": "environment/normals/p_glo_sandbags_lego_n.png",
+      "sourceNormal": "textures/p_glo_sandbags_lego_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_us_walltable_c.png": {
+      "normal": "environment/normals/p_us_walltable_n.png",
+      "sourceNormal": "textures/p_us_walltable_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_dest_electrical_boxes01_c.png": {
+      "normal": "environment/normals/p_dest_electrical_boxes01_n.png",
+      "sourceNormal": "textures/p_dest_electrical_boxes01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_theater_vrope_c.png": {
+      "normal": "environment/normals/zombie_theater_vrope_n.png",
+      "sourceNormal": "textures/zombie_theater_vrope_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_theater_chandelier_off_d.png": {
+      "normal": "environment/normals/zombie_theater_chandelier_off_n.png",
+      "sourceNormal": "textures/zombie_theater_chandelier_off_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gstatic_berlin_dining_table_oval_c.png": {
+      "normal": "environment/normals/static_berlin_dining_table_oval_n.png",
+      "sourceNormal": "textures/static_berlin_dining_table_oval_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_meteor_c.png": {
+      "normal": "environment/normals/zombie_meteor_n.png",
+      "sourceNormal": "textures/zombie_meteor_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_perkbottle_jugg_out_c.png": {
+      "normal": "environment/normals/zombie_perkbottle_jugg_out_n.png",
+      "sourceNormal": "textures/zombie_perkbottle_jugg_out_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_theater_projector_c.png": {
+      "normal": "environment/normals/zombie_theater_projector_n.png",
+      "sourceNormal": "textures/zombie_theater_projector_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_ger_desk_old_c.png": {
+      "normal": "environment/normals/p_ger_desk_old_n.png",
+      "sourceNormal": "textures/p_ger_desk_old_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_tank_closed_c.png": {
+      "normal": "environment/normals/zombie_tank_closed_n.png",
+      "sourceNormal": "textures/zombie_tank_closed_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_theater_dresstable_c.png": {
+      "normal": "environment/normals/zombie_theater_dresstable_n.png",
+      "sourceNormal": "textures/zombie_theater_dresstable_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_us_oval_diningtable_c.png": {
+      "normal": "environment/normals/p_us_oval_diningtable_n.png",
+      "sourceNormal": "textures/p_us_oval_diningtable_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_wood_chair_2_c.png": {
+      "normal": "environment/normals/p_glo_wood_chair_2_n.png",
+      "sourceNormal": "textures/p_glo_wood_chair_2_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-gp_cub_barstool_c.png": {
+      "normal": "environment/normals/p_cub_barstool_n.png",
+      "sourceNormal": "textures/p_cub_barstool_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gstatic_berlin_mannequin_c.png": {
+      "normal": "environment/normals/static_berlin_mannequin_n.png",
+      "sourceNormal": "textures/static_berlin_mannequin_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_theater_costumes_c.png": {
+      "normal": "environment/normals/zombie_theater_costumes_n.png",
+      "sourceNormal": "textures/zombie_theater_costumes_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gstatic_berlin_engine_control_a_c.png": {
+      "normal": "environment/normals/static_berlin_engine_control_a_n.png",
+      "sourceNormal": "textures/static_berlin_engine_control_a_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gberlin_wall_metal_silver_c.png": {
+      "normal": "environment/normals/berlin_wall_metal_silver_n.png",
+      "sourceNormal": "textures/berlin_wall_metal_silver_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gberlin_wall_metal_panels_c.png": {
+      "normal": "environment/normals/berlin_wall_metal_panels_n.png",
+      "sourceNormal": "textures/berlin_wall_metal_panels_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gch_stage_light01_col.png": {
+      "normal": "environment/normals/ch_stage_light01_n.png",
+      "sourceNormal": "textures/ch_stage_light01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gprops_global_trash_4x4_c.png": {
+      "normal": "environment/normals/props_global_trash_4x4_n.png",
+      "sourceNormal": "textures/props_global_trash_4x4_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gprops_global_trash_2x2_c.png": {
+      "normal": "environment/normals/props_global_trash_2x2_n.png",
+      "sourceNormal": "textures/props_global_trash_2x2_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gdumpster_col.png": {
+      "normal": "environment/normals/dumpster_n.png",
+      "sourceNormal": "textures/dumpster_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gdumpster_lid_col.png": {
+      "normal": "environment/normals/dumpster_lid_n.png",
+      "sourceNormal": "textures/dumpster_lid_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_generator_big_c.png": {
+      "normal": "environment/normals/p_rus_generator_big_n.png",
+      "sourceNormal": "textures/p_rus_generator_big_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_storage_cabinet_c.png": {
+      "normal": "environment/normals/p_rus_storage_cabinet_n.png",
+      "sourceNormal": "textures/p_rus_storage_cabinet_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_rubble_small_rocks_c.png": {
+      "normal": "environment/normals/p_glo_rubble_small_rocks_n.png",
+      "sourceNormal": "textures/p_glo_rubble_small_rocks_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-glights_hang_brass_c.png": {
+      "normal": "environment/normals/lights_hang_brass_n.png",
+      "sourceNormal": "textures/lights_hang_brass_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-glights_sconce_shade_off_c.png": {
+      "normal": "environment/normals/lights_sconce_shade_off_n.png",
+      "sourceNormal": "textures/lights_sconce_shade_off_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/lights_hang_lamp_off_c.png": {
+      "normal": "environment/normals/lights_hang_lamp_off_n.png",
+      "sourceNormal": "textures/lights_hang_lamp_off_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_pent_bookshelf_c.png": {
+      "normal": "environment/normals/p_pent_bookshelf_n.png",
+      "sourceNormal": "textures/p_pent_bookshelf_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_dresser1_c.png": {
+      "normal": "environment/normals/p_glo_dresser1_n.png",
+      "sourceNormal": "textures/p_glo_dresser1_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_jun_chum_bucket_c.png": {
+      "normal": "environment/normals/p_jun_chum_bucket_n.png",
+      "sourceNormal": "textures/p_jun_chum_bucket_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-ganim_jun_clthsline_shirt_c.png": {
+      "normal": "environment/normals/anim_jun_clthsline_shirt_n.png",
+      "sourceNormal": "textures/anim_jun_clthsline_shirt_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gcub_pottedplant_01_c.png": {
+      "normal": "environment/normals/cub_pottedplant_01_n.png",
+      "sourceNormal": "textures/cub_pottedplant_01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gflower_pot_dirt_col.png": {
+      "normal": "environment/normals/flower_pot_dirt_n.png",
+      "sourceNormal": "textures/flower_pot_dirt_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "masonry",
+      "roughness": 0.94,
+      "metalness": 0,
+      "normalScale": [
+        1.0,
+        -1.0
+      ]
+    },
+    "textures/~-gp_rus_chair_dining_fancy_c.png": {
+      "normal": "environment/normals/p_rus_chair_dining_fancy_n.png",
+      "sourceNormal": "textures/p_rus_chair_dining_fancy_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_jun_dinnerware_c.png": {
+      "normal": "environment/normals/p_jun_dinnerware_n.png",
+      "sourceNormal": "textures/p_jun_dinnerware_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_pent_curtains_c.png": {
+      "normal": "environment/normals/p_pent_curtains_n.png",
+      "sourceNormal": "textures/p_pent_curtains_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "fabric",
+      "roughness": 1.0,
+      "metalness": 0,
+      "normalScale": [
+        0.7,
+        -0.7
+      ]
+    },
+    "textures/~-gmtl_p_int_monitor_a_c.png": {
+      "normal": "environment/normals/mtl_p_int_monitor_a_n.png",
+      "sourceNormal": "textures/mtl_p_int_monitor_a_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/mtl_p_int_monitor_a_c.png": {
+      "normal": "environment/normals/mtl_p_int_monitor_a_n.png",
+      "sourceNormal": "textures/mtl_p_int_monitor_a_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gcorkboard_1_col.png": {
+      "normal": "environment/normals/corkboard_1_n.png",
+      "sourceNormal": "textures/corkboard_1_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gdoorknob_col.png": {
+      "normal": "environment/normals/doorknob_n.png",
+      "sourceNormal": "textures/doorknob_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gpent_art_door_wood04_c.png": {
+      "normal": "environment/normals/pent_art_door_wood04_n.png",
+      "sourceNormal": "textures/pent_art_door_wood04_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "wood",
+      "roughness": 0.73,
+      "metalness": 0,
+      "normalScale": [
+        0.85,
+        -0.85
+      ]
+    },
+    "textures/~-gdata_recorder01_c.png": {
+      "normal": "environment/normals/data_recorder01_n.png",
+      "sourceNormal": "textures/data_recorder01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_ger_radio_c.png": {
+      "normal": "environment/normals/p_ger_radio_n.png",
+      "sourceNormal": "textures/p_ger_radio_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gt5_veh_civ_microbus_inside_c.png": {
+      "normal": "environment/normals/t5_veh_civ_microbus_inside_n.png",
+      "sourceNormal": "textures/t5_veh_civ_microbus_inside_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gt5_veh_civ_microbus_wheel_c.png": {
+      "normal": "environment/normals/t5_veh_civ_microbus_wheel_n.png",
+      "sourceNormal": "textures/t5_veh_civ_microbus_wheel_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gmtl_veh_civ_vw_bus_body_c.png": {
+      "normal": "environment/normals/mtl_veh_civ_vw_bus_body_n.png",
+      "sourceNormal": "textures/mtl_veh_civ_vw_bus_body_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_ger_bulletin_board_c.png": {
+      "normal": "environment/normals/p_ger_bulletin_board_n.png",
+      "sourceNormal": "textures/p_ger_bulletin_board_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_jun_clock_lrg_c.png": {
+      "normal": "environment/normals/p_jun_clock_lrg_n.png",
+      "sourceNormal": "textures/p_jun_clock_lrg_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_metal_pipe_green_c.png": {
+      "normal": "environment/normals/zombie_metal_pipe_green_n.png",
+      "sourceNormal": "textures/zombie_metal_pipe_green_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_theater_marquee_c.png": {
+      "normal": "environment/normals/zombie_theater_marquee_n.png",
+      "sourceNormal": "textures/zombie_theater_marquee_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_hose_fitting_end_c.png": {
+      "normal": "environment/normals/p_rus_hose_fitting_end_n.png",
+      "sourceNormal": "textures/p_rus_hose_fitting_end_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gmonkey_bomb_c.png": {
+      "normal": "environment/normals/monkey_bomb_n.png",
+      "sourceNormal": "textures/monkey_bomb_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "fabric",
+      "roughness": 1.0,
+      "metalness": 0,
+      "normalScale": [
+        0.7,
+        -0.7
+      ]
+    },
+    "textures/~-gusa_monkey_bomb_explosive_c.png": {
+      "normal": "environment/normals/usa_monkey_bomb_explosive_n.png",
+      "sourceNormal": "textures/usa_monkey_bomb_explosive_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_telporter_c.png": {
+      "normal": "environment/normals/zombie_telporter_n.png",
+      "sourceNormal": "textures/zombie_telporter_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/vacuum_tube_c.png": {
+      "normal": "environment/normals/vacuum_tube_n.png",
+      "sourceNormal": "textures/vacuum_tube_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gvacuum_tube_c.png": {
+      "normal": "environment/normals/vacuum_tube_n.png",
+      "sourceNormal": "textures/vacuum_tube_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_teleporter_glow_c.png": {
+      "normal": "environment/normals/zombie_teleporter_glow_n.png",
+      "sourceNormal": "textures/zombie_teleporter_glow_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_power_lever_c.png": {
+      "normal": "environment/normals/zombie_power_lever_n.png",
+      "sourceNormal": "textures/zombie_power_lever_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gdifference_engine_c.png": {
+      "normal": "environment/normals/difference_engine_n.png",
+      "sourceNormal": "textures/difference_engine_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gparticle_board_02_c.png": {
+      "normal": "environment/normals/particle_board_02_n.png",
+      "sourceNormal": "textures/particle_board_02_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gj_metal_grey_c.png": {
+      "normal": "environment/normals/j_metal_grey_n.png",
+      "sourceNormal": "textures/j_metal_grey_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_pent_con_table_c.png": {
+      "normal": "environment/normals/p_pent_con_table_n.png",
+      "sourceNormal": "textures/p_pent_con_table_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gzombie_ground_debris_c.png": {
+      "normal": "environment/normals/zombie_ground_debris_n.png",
+      "sourceNormal": "textures/zombie_ground_debris_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_tools_wheelbarrow_c.png": {
+      "normal": "environment/normals/p_glo_tools_wheelbarrow_n.png",
+      "sourceNormal": "textures/p_glo_tools_wheelbarrow_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gch_floor_broken02_col.png": {
+      "normal": "environment/normals/ch_floor_broken02_n.png",
+      "sourceNormal": "textures/ch_floor_broken02_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gme_roof_c.png": {
+      "normal": "environment/normals/me_roof_n.png",
+      "sourceNormal": "textures/me_roof_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_pipes_modular_c.png": {
+      "normal": "environment/normals/p_rus_pipes_modular_n.png",
+      "sourceNormal": "textures/p_rus_pipes_modular_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "coated-metal",
+      "roughness": 0.57,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_glo_curtain_white_c.png": {
+      "normal": "environment/normals/p_glo_curtain_white_n.png",
+      "sourceNormal": "textures/p_glo_curtain_white_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "fabric",
+      "roughness": 1.0,
+      "metalness": 0,
+      "normalScale": [
+        0.7,
+        -0.7
+      ]
+    },
+    "textures/~-gelectronic_cabinet_c.png": {
+      "normal": "environment/normals/electronic_cabinet_n.png",
+      "sourceNormal": "textures/electronic_cabinet_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_console_addon_c.png": {
+      "normal": "environment/normals/p_rus_console_addon_n.png",
+      "sourceNormal": "textures/p_rus_console_addon_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_console_buttonframes_c.png": {
+      "normal": "environment/normals/p_rus_console_buttonframes_n.png",
+      "sourceNormal": "textures/p_rus_console_buttonframes_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_console_pannel_01_c.png": {
+      "normal": "environment/normals/p_rus_console_pannel_01_n.png",
+      "sourceNormal": "textures/p_rus_console_pannel_01_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/electronic_cabinet_c.png": {
+      "normal": "environment/normals/electronic_cabinet_n.png",
+      "sourceNormal": "textures/electronic_cabinet_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    },
+    "textures/~-gp_rus_console_pannel_02_c.png": {
+      "normal": "environment/normals/p_rus_console_pannel_02_n.png",
+      "sourceNormal": "textures/p_rus_console_pannel_02_n.png",
+      "pairing": "exact-image-stem",
+      "surface": "painted-prop",
+      "roughness": 0.83,
+      "metalness": 0,
+      "normalScale": [
+        0.75,
+        -0.75
+      ]
+    }
+  },
+  "textures": {
+    "berlin_wall_plaster_wallpaper14_n.png": {
+      "source": "textures/berlin_wall_plaster_wallpaper14_n.png",
+      "sourceSha256": "cd791c1ab8b637eda0b78e481c130671d398c1fb9d9eb7af7ce0a7c1b15d3121",
+      "outputSha256": "657122a631fa130c2f1e8bba583e509a1cca75ac1a069b8d0a1668b2dfa576b2",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_wall_plaster_wallpaper02_n.png": {
+      "source": "textures/eb_art_wall_plaster_wallpaper02_n.png",
+      "sourceSha256": "f6585b4d857b2ae475b5d96118ce80792da6497b912b62876ea0a7306d0e66c7",
+      "outputSha256": "acf2dce084b8085e824203e538cc05024ecd23485390818b8207ee3b66e10232",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_wall_metal_painted_chipped01_n.png": {
+      "source": "textures/eb_art_wall_metal_painted_chipped01_n.png",
+      "sourceSha256": "be53d633ef9ec4d7c3c53d2f395cd3caa76e215beac7f664afaa54b902bbb205",
+      "outputSha256": "912987e2d6af738d7310ec8f67b6d6127fceddfe01081aaa7c6c08934b5bc2f4",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_wall_plaster_chipped_orange_n.png": {
+      "source": "textures/eb_art_wall_plaster_chipped_orange_n.png",
+      "sourceSha256": "634404d5d5b92f970c5a01b9c23cc1709d9c2a2416a2614c2c2d067647ed6e18",
+      "outputSha256": "eb64fd798c095dd262217b718568f1dd46bdc5cbb07be79cf5d12c8f2afc0f8b",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_wall_metal_oldbrush_silver_n.png": {
+      "source": "textures/eb_art_wall_metal_oldbrush_silver_n.png",
+      "sourceSha256": "ab7418b3bf2085c544908afdc08dada1b6bec2490f4dc186243e0a65513648c2",
+      "outputSha256": "74464a0663da4a170ffab66116de5be9b5e0a87c4cc7a557bc80a2164abfd357",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "rus_art_metal_panel_n.png": {
+      "source": "textures/rus_art_metal_panel_n.png",
+      "sourceSha256": "bb5a781ea16747204597cea0640d55e56a99ecb861bfce1d0c0045783e717702",
+      "outputSha256": "99c7b62d4ed28fa317e6bd05e9021811b7ee289d121fa00279d2c01397fa53bf",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_trim_wood_panel_ornate_n.png": {
+      "source": "textures/eb_art_trim_wood_panel_ornate_n.png",
+      "sourceSha256": "e3de3cdadc63797aff6461f7a6ce9c49b0a5f603e85a4ad5dd11e1bf4decf949",
+      "outputSha256": "1f4926c24a59cf82c225b7b4faff7c9680498ce2e09d7c5d2074bbdda0afeb4b",
+      "sourceSize": [
+        512,
+        256
+      ],
+      "size": [
+        256,
+        128
+      ]
+    },
+    "eb_art_trim_wood_plain_n.png": {
+      "source": "textures/eb_art_trim_wood_plain_n.png",
+      "sourceSha256": "5e4965e8556f225754b1c11aa750ba8298663872358aff587eb2707d98615171",
+      "outputSha256": "2c990cef5117b9346c9e1cdfc37b459933d670ac3e6fd6a5a5d0ab8910a441e9",
+      "sourceSize": [
+        128,
+        512
+      ],
+      "size": [
+        64,
+        256
+      ]
+    },
+    "eb_art_wall_plaster_dirty_n.png": {
+      "source": "textures/eb_art_wall_plaster_dirty_n.png",
+      "sourceSha256": "7ed5032850dc4ae8e24486db5a1d79032abb778da38307aac09ad7767a99f6a0",
+      "outputSha256": "da427d459ae5998c71a0e33c38ca00e9cc9951a1783bb382b7d174ccafc90e9b",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "russian_concrete_cracked_n.png": {
+      "source": "textures/russian_concrete_cracked_n.png",
+      "sourceSha256": "88c24fe441392879e30f4db1921224cf8798734996e62ff43cfd8658a1d3fd2d",
+      "outputSha256": "d4e91e9d161b8f39b62c16ee94d83dfed1646c979e614f0ac3897c6f2a51d9a0",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_trim_concrete_beveld_n.png": {
+      "source": "textures/eb_art_trim_concrete_beveld_n.png",
+      "sourceSha256": "fff330bd6d43faaff76ce333cfbbd338ea58c80a68290882f97925bf6f6da917",
+      "outputSha256": "f05b8cd7375e4aa09687b7c04a29f677e2007c60672b768ee544107539271862",
+      "sourceSize": [
+        512,
+        128
+      ],
+      "size": [
+        256,
+        64
+      ]
+    },
+    "cub_art_plaster_beige_wall03_n.png": {
+      "source": "textures/cub_art_plaster_beige_wall03_n.png",
+      "sourceSha256": "d0ad44dacb6b0a08379a1cce72f7a9abcf71fd82d00406d63b35b2904434c4d7",
+      "outputSha256": "a24137ed41f6d2c1402c55fc2f707c487acf80f890108f24801c1d7e10cf9516",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "theater_carpet_red_1_n.png": {
+      "source": "textures/theater_carpet_red_1_n.png",
+      "sourceSha256": "8be8a713f098965ea30e6b7900b233e05f47a2f6b2215512594b4326785060a0",
+      "outputSha256": "9faf99af1c4bb86ae6b59733c25d815c2c4decaf3643885037e548120740371e",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_floor_wood_hardwood02_n.png": {
+      "source": "textures/eb_art_floor_wood_hardwood02_n.png",
+      "sourceSha256": "3873f417584a8db060705077cf6e4e9cd829ea5cef1956c81a147c4036883d65",
+      "outputSha256": "02e98b37cd58b23b35adb173681fc474a67c335aece473c9a3e805b8569f4217",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_trim_rock_rough_n.png": {
+      "source": "textures/eb_art_trim_rock_rough_n.png",
+      "sourceSha256": "cf71d5ee57a360269d85c31782b079d0173a016745a9b02eb3aed8fb6fcf9990",
+      "outputSha256": "357f925856f1d473e2c3dfd673f2962cba3ff959f8574169fd32fe0855d000e3",
+      "sourceSize": [
+        512,
+        64
+      ],
+      "size": [
+        256,
+        32
+      ]
+    },
+    "theater_column_set_1_n.png": {
+      "source": "textures/theater_column_set_1_n.png",
+      "sourceSha256": "387e269a5c01f8d293551e0c7976bfbc26f79e7492fc2367c1545e5079d6dee7",
+      "outputSha256": "a037a48eba91b9330f765d21596ecb88ad7a5d8be6f5c44eee3cc220a84b998a",
+      "sourceSize": [
+        256,
+        512
+      ],
+      "size": [
+        256,
+        512
+      ]
+    },
+    "theater_trim_set_2_n.png": {
+      "source": "textures/theater_trim_set_2_n.png",
+      "sourceSha256": "7fcb7366af93c104e7687c513af5973e1ec9c05a5d032cbf579a9939f97f22ad",
+      "outputSha256": "287c9a04ecd88daae14656365ae4a7e042dcf5b3d1c244d40a8c54c31315610d",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "rus_wall_brick_red_n.png": {
+      "source": "textures/rus_wall_brick_red_n.png",
+      "sourceSha256": "7f3939704c59542dc1d7813e9601c232f0b09a60c159b321d1808246406637fb",
+      "outputSha256": "143e5e76835521a1e0c21e999174c10395cfe324ba9728d05cf7fd5ad39ee37f",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_floor_concrete_tile03_n.png": {
+      "source": "textures/eb_art_floor_concrete_tile03_n.png",
+      "sourceSha256": "787329c91ebd5ccb6a4a62ad99407546e58801a278b6d16ef70119ca23b90a41",
+      "outputSha256": "6abdf980a6948e8e53caf24771ab2f586f3cc1b505b71f91daea2d0ac0f474b8",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "cub_art_plaster_beige_wall05_n.png": {
+      "source": "textures/cub_art_plaster_beige_wall05_n.png",
+      "sourceSha256": "bfa60666538da72e41a7a482943e5cfc837d6c4d560cf59024da69b4a161bc85",
+      "outputSha256": "6582d1ee925cd84a21642f8d249680b1a67624ce57a24838732d3da017f6e817",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_trim_plaster_dirt_n.png": {
+      "source": "textures/eb_art_trim_plaster_dirt_n.png",
+      "sourceSha256": "7871d90aec3d189893c2e15b4084aec9e8589d5c654cb765bbc2acc791f42d5d",
+      "outputSha256": "8426f407021db69626c2f3b8a123603a335e19287230e9087e3474ff48b3003a",
+      "sourceSize": [
+        512,
+        128
+      ],
+      "size": [
+        256,
+        64
+      ]
+    },
+    "eb_art_ceiling_metal_rust01_n.png": {
+      "source": "textures/eb_art_ceiling_metal_rust01_n.png",
+      "sourceSha256": "b70eb68a8b5b4782672a5ad7cccbbe14d2d3f5bc5f57f55e99c5dc8db301458a",
+      "outputSha256": "d5cedc3945d1265efbc240ca8a835bab1c8c6a0cb1ffa8c60e2f91b06d08525f",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "cub_art_plaster_worn_n.png": {
+      "source": "textures/cub_art_plaster_worn_n.png",
+      "sourceSha256": "f1fc1bf2ac8e326bbab03d6f2eb3c5701679980e0226a57b05ce73a5335a3863",
+      "outputSha256": "5c262ed00c4bed1ecae0d0d1b8d2fdc80b66b41817d067218e2a6a0da87258de",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "concrete_sidewalk_set_01_n.png": {
+      "source": "textures/concrete_sidewalk_set_01_n.png",
+      "sourceSha256": "c27a7d9627004af577a12e8e7a53a23cf13b2374a2adf230969b6a3f7900d52a",
+      "outputSha256": "98d4fd2d27e1ed24e37629ae8b5f22db7f1522e1d4a9a444d734b14fb16bce2f",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "theater_trim_set_1_n.png": {
+      "source": "textures/theater_trim_set_1_n.png",
+      "sourceSha256": "e47955ac379295e98da1f9d51233d0c376ad9ddf1cc334b21d546fd91d6c1931",
+      "outputSha256": "20566f31320fdeb56f080451769b9dea579642bd36d57b669d351592dd0dbf3e",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_trim_wood_molding_n.png": {
+      "source": "textures/eb_art_trim_wood_molding_n.png",
+      "sourceSha256": "c04115251693fcda3d9f1a8ec534d60ea9123acfadc8fb21dddb2f2076139d21",
+      "outputSha256": "53acf5bf0d22af18f0dc37731b6d821362fc5fc0f31878ed623c34695bd64fcb",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_wall_brick_plain02_n.png": {
+      "source": "textures/eb_art_wall_brick_plain02_n.png",
+      "sourceSha256": "838be0590bcb1f18e856047d5e75bf0a83d08605ad92fed7cb4865c68f7fa415",
+      "outputSha256": "eea83afa183809f06627bb8351d72638b5f0bf949233819be6e03f705da8efc0",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "rus_art_trim_metal_beam_n.png": {
+      "source": "textures/rus_art_trim_metal_beam_n.png",
+      "sourceSha256": "9bbe32fb20c6a1774d74ff1c55a0c42d9ef209b8e220dbce889d825c5c7a62f3",
+      "outputSha256": "b14a95e7747fd59f45bce5760ba8b821998dc1e73c73926f59620791cfc57a51",
+      "sourceSize": [
+        256,
+        128
+      ],
+      "size": [
+        256,
+        128
+      ]
+    },
+    "eb_art_trim_metal03_n.png": {
+      "source": "textures/eb_art_trim_metal03_n.png",
+      "sourceSha256": "0eda2f69a2ca59e7ced476adcd4a5858d4fe73dbeb177beb7a4501755f26d285",
+      "outputSha256": "0ce9d188b191ea4aafac71f9f477b77bed205106fa4c6cdce321f1c03bc31364",
+      "sourceSize": [
+        512,
+        64
+      ],
+      "size": [
+        256,
+        32
+      ]
+    },
+    "eb_ter_asphalt_old_n.png": {
+      "source": "textures/eb_ter_asphalt_old_n.png",
+      "sourceSha256": "8075b32c859a4ecf8955ef262ddccc8a445dc22d53b6d56985c793d48ca7b1de",
+      "outputSha256": "6fa6dc98a7838b0a501495b430786ee1eb4844e76245b5b1503d44d516b84d74",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "glo_dirt_burnt_n.png": {
+      "source": "textures/glo_dirt_burnt_n.png",
+      "sourceSha256": "30eb8ed6798d48a9b4a78a8ba333049ab020e0a754585f6ec35bca41cc79052a",
+      "outputSha256": "4efab928b54675894f923dc9f2d9c59797730f2b091b05290cdb217731bb2a14",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "rus_art_door_metal_indus_old_n.png": {
+      "source": "textures/rus_art_door_metal_indus_old_n.png",
+      "sourceSha256": "c87d743e2be6f0b08851aeba364c37441e2351470ada84617c64bfa213099096",
+      "outputSha256": "e1e7397f12bb36a7234ccdb79f710dbc8cdde455725f259d316ab21b1481dc1c",
+      "sourceSize": [
+        256,
+        512
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "eb_art_wall_metal_panel_green_n.png": {
+      "source": "textures/eb_art_wall_metal_panel_green_n.png",
+      "sourceSha256": "fa556549481747db6373f59e1bc1306f6ee5a9ed92ced066b0aa88881de9e28a",
+      "outputSha256": "014eb8ee81740dae81ba4f3af49595d515c60ae5008c74048a44362ff338e0af",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_window_warehouse01_n.png": {
+      "source": "textures/eb_art_window_warehouse01_n.png",
+      "sourceSha256": "875e02e694137d996490ec774703c7985a534b1a5c348b718981952d6cce39c3",
+      "outputSha256": "2c5cd0bfa220b5f7dc91692b22db8c01dd78390fdf0fcfa155e9425c632dd764",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_trim_wood_panels_n.png": {
+      "source": "textures/eb_art_trim_wood_panels_n.png",
+      "sourceSha256": "66cdb633eb9d0db01a5a9204d4f37e64584522dd35bbee637ce223487b5eabee",
+      "outputSha256": "80610e0229615e596df522e46e8a6beb306fa8cb32153c42986f2c066574a21f",
+      "sourceSize": [
+        512,
+        256
+      ],
+      "size": [
+        256,
+        128
+      ]
+    },
+    "jun_art_trim_wood_cmolding_n.png": {
+      "source": "textures/jun_art_trim_wood_cmolding_n.png",
+      "sourceSha256": "9b8a335d071dd96cf76017abbaf8ef254543ac80dbea6161b6e1e333f28d40c3",
+      "outputSha256": "0ac80a185f1b5add8bed27cedd6c481300c93448685c6c6c3000a6eb7dc43b81",
+      "sourceSize": [
+        512,
+        64
+      ],
+      "size": [
+        256,
+        32
+      ]
+    },
+    "udr_base_wall_metal_n.png": {
+      "source": "textures/udr_base_wall_metal_n.png",
+      "sourceSha256": "3a5457a6cd74589381ff168530960ce90b2749f7ddec84af4c29796a65bb7c16",
+      "outputSha256": "264894a574664a027e375b79cbdd153bc819725963c5ca8c701feeeb24e2e8fa",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "tesla_n.png": {
+      "source": "textures/tesla_n.png",
+      "sourceSha256": "5b2935851d46dcb61dd162508383a901636227a409acb4f1e87905df29cedb68",
+      "outputSha256": "6740f4435d2306329bf3c99087c94861441d1b50223865c909698fb0ce990825",
+      "sourceSize": [
+        1024,
+        1024
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_clothcable_n.png": {
+      "source": "textures/zombie_clothcable_n.png",
+      "sourceSha256": "d7a89a14294f322debca3e347d607731035269deba3a9a84d3d78fe3a01cca0b",
+      "outputSha256": "6ca68ae89dbc4998ba0137f67410172701e3707622d3d7db3806a32f14c677ac",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "eb_art_ceiling_metal02_n.png": {
+      "source": "textures/eb_art_ceiling_metal02_n.png",
+      "sourceSha256": "1c80bcd541839cbbb0ef0dc0522bd88740793653a510bca5b9e69e9d3961c869",
+      "outputSha256": "0381b2cd47abfd35c070dbaf39accbe6f88105984dba1a9d7d05a32c92c5df90",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_door_wood_rita_n.png": {
+      "source": "textures/eb_art_door_wood_rita_n.png",
+      "sourceSha256": "eaeaff117b81568a243b3d31198220b19fdbd8902877d2e7bcda620250dea6b5",
+      "outputSha256": "22565b68353519fae83bc87974db6df93fa9562385557e90c3f61168af784ba5",
+      "sourceSize": [
+        256,
+        512
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "eb_art_roof_brick_slate02_n.png": {
+      "source": "textures/eb_art_roof_brick_slate02_n.png",
+      "sourceSha256": "802f2abfd2622039704d5774db34260986837e89d3d354796af8b3fdbe762000",
+      "outputSha256": "cd1dd35ecdc464da5e786ffdea6be4560cdbc0b0c3c746cfe4268aa43db85b80",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_wall_concrete_gritty_n.png": {
+      "source": "textures/eb_art_wall_concrete_gritty_n.png",
+      "sourceSha256": "ddac5abb83d9793236e9fe75268e324bdd24a4127adce8f311dd16627b249f1c",
+      "outputSha256": "4924934e063552acb62969054ea365cc331afc71f5912c11e1107562e91eff96",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_window_white_grimy_n.png": {
+      "source": "textures/eb_art_window_white_grimy_n.png",
+      "sourceSha256": "f8a94b45058305f419bd6cd2e354f5c9cafce3debf5ba3a0920253a661b6dad9",
+      "outputSha256": "a1d0a77b38954763664317c934bc4d7861f21601c61e9b5981042467330f55c5",
+      "sourceSize": [
+        256,
+        512
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "jun_art_metal_brushed_n.png": {
+      "source": "textures/jun_art_metal_brushed_n.png",
+      "sourceSha256": "e2c8ff2c5d39c6c530cbd0eca7f955aab2b0e2ba097ccdc3e7748f20e2322719",
+      "outputSha256": "975efdf1b2437d5bd91ff50513fca6d8177566b6fe58069b193c1f7a8489305d",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "rus_door_metal02_n.png": {
+      "source": "textures/rus_door_metal02_n.png",
+      "sourceSha256": "ddde6beb0e8403742a9cc45d4e59afef6510aff5fcbca65ce73242ccfaffa0c6",
+      "outputSha256": "73d3d06b427096f5c0017d923597ae67323913bdfbd645cb8573a7c55c8d65a7",
+      "sourceSize": [
+        256,
+        512
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "eb_art_floor_metal_rivets_n.png": {
+      "source": "textures/eb_art_floor_metal_rivets_n.png",
+      "sourceSha256": "fdf167dd60960d87321bc370b1b2ee491a093ca3224e67fe7e5d545c15722817",
+      "outputSha256": "a81cf4b1320991b69efa739d50e2f61f85ee2b1dcc510f4e91279734cd0c0332",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "berlin_trim_metal3_n.png": {
+      "source": "textures/berlin_trim_metal3_n.png",
+      "sourceSha256": "38a722df9092cdafdade3196a50717ed4292f9812ba55a8b3c97bcb737b5564e",
+      "outputSha256": "cc28c77ee38c5551a28192546d0f28fe641e01182d2c79c86aecb97539510029",
+      "sourceSize": [
+        512,
+        64
+      ],
+      "size": [
+        256,
+        32
+      ]
+    },
+    "makin_door_wood2_n.png": {
+      "source": "textures/makin_door_wood2_n.png",
+      "sourceSha256": "d9af891496b93754bdbd03bc9002cb8b72b4cbc6abc132f05af512a20ce72748",
+      "outputSha256": "70a5e51d71d4bc56acf8ea10b4cf74b5437532b46e6fe4c565c2f7c97e97bc27",
+      "sourceSize": [
+        256,
+        512
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "eb_art_door_wood_ornate_n.png": {
+      "source": "textures/eb_art_door_wood_ornate_n.png",
+      "sourceSha256": "7739a1e44386b0f7758f13f3a271183bbc50ef4aada5da21f85660484da04b62",
+      "outputSha256": "68bfe7114c33f0f1a1939ca1e82070ec502e0c28cc0862174373e3af88836d49",
+      "sourceSize": [
+        256,
+        512
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "eb_art_facade_concrete04_n.png": {
+      "source": "textures/eb_art_facade_concrete04_n.png",
+      "sourceSha256": "22025da34da714963e71b9345e0bd3bb7c3f06cbaf90634dbbfb9548503ad5dd",
+      "outputSha256": "ec538e8a5d107a9ab5cc8914175db205be654edee896e4ec3cffcbb73d9394b8",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_floor_concrete_tile_dirty_n.png": {
+      "source": "textures/eb_art_floor_concrete_tile_dirty_n.png",
+      "sourceSha256": "6d6e6722068f58e43b09d8a6e624e46799048ef0784715eda7574920ae403dbb",
+      "outputSha256": "e3247886a67ec3918679b58ac7e980ac82d2208a749c2a625deb10201b7e2625",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_floor_wood_core_n.png": {
+      "source": "textures/eb_art_floor_wood_core_n.png",
+      "sourceSha256": "5f127fdccccb36523daaceba5b734f3ccc42c3919ffccfba6a8071dfec6ed3c7",
+      "outputSha256": "a03a090200e3882dad71556dc59f0413cca87d0898edbc3ed21bce489352d138",
+      "sourceSize": [
+        512,
+        128
+      ],
+      "size": [
+        256,
+        64
+      ]
+    },
+    "eb_art_roof_brick_slate04_n.png": {
+      "source": "textures/eb_art_roof_brick_slate04_n.png",
+      "sourceSha256": "6af8b36beee7ce493030b91d3cf266407e9842d2caa3c971264f6c9485e23ed2",
+      "outputSha256": "1591ddc1ffe8a900d0ec776c43d9b39319865f8d8a6a8c235b3590645de78689",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_shutter_wood_green_n.png": {
+      "source": "textures/eb_art_shutter_wood_green_n.png",
+      "sourceSha256": "ebb5d87e913d54914ddfc05e9e71fc5121719cae0a79f5046f82e932112f32b7",
+      "outputSha256": "1b1cb1f4bed71213324ce0e563b09cc689b719ebab5ca71c5a96f4d20d7ad5e5",
+      "sourceSize": [
+        256,
+        512
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "eb_art_trim_brick_side_n.png": {
+      "source": "textures/eb_art_trim_brick_side_n.png",
+      "sourceSha256": "6c6b0c6b663ae506e4096d384933b831d372f33aced2d948ecf117b54d300636",
+      "outputSha256": "d665d3946c6ebd4d50cee1e90ef09c07862961bb1d0803c679fbd23cd1c35096",
+      "sourceSize": [
+        128,
+        256
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "eb_art_trim_concrete_ornate_group01_n.png": {
+      "source": "textures/eb_art_trim_concrete_ornate_group01_n.png",
+      "sourceSha256": "7e705e31bdc3046e1619382113d94c659110ec58a8271f0014e3d3c0d67a01eb",
+      "outputSha256": "b8f4e7023df7e5289090f7af8a0ab820d87ca32495c8c7697d3b8b2c68591705",
+      "sourceSize": [
+        512,
+        256
+      ],
+      "size": [
+        256,
+        128
+      ]
+    },
+    "eb_art_trim_top_drkred_n.png": {
+      "source": "textures/eb_art_trim_top_drkred_n.png",
+      "sourceSha256": "e22991e5d7c7c18decd86916ae42f96f52b22396b7ed400715fd7f877615d7ff",
+      "outputSha256": "38f4cfdda421cc21fe44361b5d176b440c6a94b5ff2c90c27542516a8dc23373",
+      "sourceSize": [
+        512,
+        128
+      ],
+      "size": [
+        256,
+        64
+      ]
+    },
+    "eb_art_wall_brick_gritty_n.png": {
+      "source": "textures/eb_art_wall_brick_gritty_n.png",
+      "sourceSha256": "0c3867b26730e93c2be44018bfb2e6bf55ede8dc42f86b3c1b47e3efb025ce26",
+      "outputSha256": "90c13fdd051a4d3f54a400bb08375f55de1d40f8f1ce6c98d531d0b7dced2243",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_wall_plaster_wallpaper05_n.png": {
+      "source": "textures/eb_art_wall_plaster_wallpaper05_n.png",
+      "sourceSha256": "48c694e3343aad9da6cc0cfa63cd88dfa2ae3ee18a970dd37c92c4951d0e38fd",
+      "outputSha256": "595ced4c89c254a257c57c03568dd76ed574abd9da84e9e4139ad977b9f8b172",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "jun_art_plywood_dirty_n.png": {
+      "source": "textures/jun_art_plywood_dirty_n.png",
+      "sourceSha256": "79c381b2f76fa67446df5d40a6b7bcb99c03fc84301c1a7db74aa4239125ad39",
+      "outputSha256": "34c03c67ab0c865451b65524e916408edcc01d9e33b54674eda6f006c6ae39ae",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "plywood_dark_03_n.png": {
+      "source": "textures/plywood_dark_03_n.png",
+      "sourceSha256": "d324eec43ced3cb9c615b1628005727586eb08c424aef7b66a5516da951ef342",
+      "outputSha256": "a0db763a8ce8511842ce0e29fadfa1bda25200bb3563a558b7850f3185e90ee8",
+      "sourceSize": [
+        512,
+        256
+      ],
+      "size": [
+        256,
+        128
+      ]
+    },
+    "j_woodpanel_wall_dry_n.png": {
+      "source": "textures/j_woodpanel_wall_dry_n.png",
+      "sourceSha256": "095cc8cd0a69fc6b910f946996a4a835bcd4ea18d0d28f81499549a88c9e509f",
+      "outputSha256": "83eec8fd727f75b1b36d1c8326676d2d3a91e5584c548712190514721e5ffdb0",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "anim_berlin_asylum_dbl_doors_n.png": {
+      "source": "textures/anim_berlin_asylum_dbl_doors_n.png",
+      "sourceSha256": "9b05c880080ab133c125b708b5821ca7da7b228f7bca9922d7af9440a298c2fb",
+      "outputSha256": "fcea7095580528715033a03bf92f6f48efff9a466dcff7972c4de1cfefd2b439",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "theater_red_velvet_n.png": {
+      "source": "textures/theater_red_velvet_n.png",
+      "sourceSha256": "c471860b9b361b91dba3da2648195b3fe82b63b28d8841751246ef9ebab0cc4f",
+      "outputSha256": "cb611814248166af4bf3f46ae49ad71665112d63743c13e91b745563de8b0957",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "pent_art_curtains01_n.png": {
+      "source": "textures/pent_art_curtains01_n.png",
+      "sourceSha256": "43a68a659a2f928ac23492fccb10e32edfcbd18d1d881bb67ba2057b71fcb793",
+      "outputSha256": "a7a1a30cde06720391cccee8bf2eb2cbf19818038bc7ee25fd3f045c84f5c802",
+      "sourceSize": [
+        256,
+        512
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "pent_art_wall_baseboard01_n.png": {
+      "source": "textures/pent_art_wall_baseboard01_n.png",
+      "sourceSha256": "fda20a7f8d0bf956f2f773950f9a81fc09273fd20fdede043b434cac9faaab3b",
+      "outputSha256": "27bb13153b9e107d10051105326239070adde48edccf186e3adf2b811263a647",
+      "sourceSize": [
+        512,
+        32
+      ],
+      "size": [
+        256,
+        16
+      ]
+    },
+    "pent_art_wall_wood02_n.png": {
+      "source": "textures/pent_art_wall_wood02_n.png",
+      "sourceSha256": "3f0eb620ed8bb1d821a83d5f4422efe244877c9117204479b5cecb4924a1cd2f",
+      "outputSha256": "2d06f13f381c43158e6c504568adb8cb8f1e96c5f6b4ae310dd69992e2299bd3",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "jun_art_metal_paintchip_gray_n.png": {
+      "source": "textures/jun_art_metal_paintchip_gray_n.png",
+      "sourceSha256": "ed24fee253672f628ddb81673eafa04e5cbab0f7f2aacab102cfb5e662c9819e",
+      "outputSha256": "cf0b3d662bb4ff6351cc116239745a66a8caa95f2eea3457e453fceb149ac340",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "rus_art_plywood_light_02_n.png": {
+      "source": "textures/rus_art_plywood_light_02_n.png",
+      "sourceSha256": "500b53cd417c05cbead04403d0940c59e79e0e9e25bc88e33567054ef72b6317",
+      "outputSha256": "0bd1b5233c9c00665bc75308cd2fbff36538bca3a4b3f592e2f3f0430fa674d3",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "rus_roof_brick_slate_n.png": {
+      "source": "textures/rus_roof_brick_slate_n.png",
+      "sourceSha256": "5e9a95c140ba32a4e951690d298677a63dc749de6ff59369782be3f8d1dcc93b",
+      "outputSha256": "5943d9e28127e1da9dcef27c011c0ef0df277cfcbf206e5dbba284390241de76",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "rus_crate_wood_squre01_n.png": {
+      "source": "textures/rus_crate_wood_squre01_n.png",
+      "sourceSha256": "543c81e9e456ebf105e4407663116ff5cd5a3c5f8ea67012400c0ce572e63025",
+      "outputSha256": "0fb0d72531c921f60daeaece82b8a2c91024c5696ca3a0df02312e45cf6c40fe",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eb_art_floor_metal_catwalk_n.png": {
+      "source": "textures/eb_art_floor_metal_catwalk_n.png",
+      "sourceSha256": "bf3237a46ec1d87a20825dadb3766b9e0c0df3868294fd09891d1df7b2550659",
+      "outputSha256": "73aa9ba0e6283203aa24be9786f608462f2276721f37890fe1631dd5650fef20",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zom_c_art_mesh_grate_n.png": {
+      "source": "textures/zom_c_art_mesh_grate_n.png",
+      "sourceSha256": "6db44e5883fed607e91dc59032cb391d99d09998c830937897464f895ed95570",
+      "outputSha256": "d1ec3bdd46188823ba4d92918d5dbfe10a8354a1fa67a46db9dfc96fc7494bcc",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "lightning_chamber_main_n.png": {
+      "source": "textures/lightning_chamber_main_n.png",
+      "sourceSha256": "f0cacbba2f6d26e8a73a834b3bae533401f57bcc750894713e32b004b475a8b2",
+      "outputSha256": "4a8748dfb8ad7703348de5153f103575f525100460c33dc4eff6901075f4ece3",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "eb_art_wall_plaster_tile_sub_red_n.png": {
+      "source": "textures/eb_art_wall_plaster_tile_sub_red_n.png",
+      "sourceSha256": "6c3bbe5a388851a2e6b96c2e1bafb3daae34576b7f333d53507c69c50556ff7e",
+      "outputSha256": "a4cc5ce33b169418b60c845474fb7399bbd7a65b74abd6f606688089615033ac",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "pent_art_wall_whitepaint01_n.png": {
+      "source": "textures/pent_art_wall_whitepaint01_n.png",
+      "sourceSha256": "f8b16b0d08a048aed43208574ef5bf7e09b4075fa8ef0c48340c637fb25bc9ef",
+      "outputSha256": "974607c7c8d9d4a39b3e0c0ed797c53fd42b35e947361ed24a97398091b7ec47",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_jun_rubble02_brick_n.png": {
+      "source": "textures/p_jun_rubble02_brick_n.png",
+      "sourceSha256": "18d50e3114ff3c801026bd925b7174263345a42327c9ab50f069862b14974ed0",
+      "outputSha256": "4ae7318749782415644502c7bdec1ddbe8bb121270d790552468d35ff0e1273b",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_jun_rubble02_concrete_n.png": {
+      "source": "textures/p_jun_rubble02_concrete_n.png",
+      "sourceSha256": "1f426446cf7a8b6bca16fefdb38c72c42c9892338c77129314489cbb82cba0a8",
+      "outputSha256": "09bec8a643d20a54f509e418491ac774bf4238c691dfa994e55632f6114b3cb3",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_jun_rubble03_concrete_n.png": {
+      "source": "textures/p_jun_rubble03_concrete_n.png",
+      "sourceSha256": "20ac532652d2155e82eefda0771b50c11a660855ac1eb1a5b3eb347b97f31d41",
+      "outputSha256": "eae743797b018cf7060a0579f61def37d94917c3e01263d0a6545ea528272b65",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_posters_anatomy_n.png": {
+      "source": "textures/zombie_posters_anatomy_n.png",
+      "sourceSha256": "c67997ab262130aadaabcb1ab3b761036a337a61f78f7475c14e43baf4713245",
+      "outputSha256": "fbc7b383e981315735cf65734b430f4f56333ab2693fa857b42987d840133a9f",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_signs_n.png": {
+      "source": "textures/zombie_signs_n.png",
+      "sourceSha256": "8bbcaeb53a926263d393e02dd91e851116e49e8492fa31eb271873f97e5d0c87",
+      "outputSha256": "94cf234b28841de54cfdfbf85bd99ed475d8a8028f38541c8f5eaf997b63c416",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "theater_bigtrim_n.png": {
+      "source": "textures/theater_bigtrim_n.png",
+      "sourceSha256": "ea176f24c1e8a97a70758849c1746419c63f977d7b38545295805ceb3df664b6",
+      "outputSha256": "3fc1b311f0460b94b15d4c52ca69f0062435cc114df145475f47571cdc4d9b78",
+      "sourceSize": [
+        256,
+        512
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "glo_dec_trash_pile_n.png": {
+      "source": "textures/glo_dec_trash_pile_n.png",
+      "sourceSha256": "b6c4979a4d5c1d3bee63f897a3ea21dbafc47f20ec5d84c2be7c6475619b6d58",
+      "outputSha256": "ae493495631828f14a9453f9ca7094318ca9e2511604c26baf23d30183571804",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "mtl_russian_rocket_wht_n.png": {
+      "source": "textures/mtl_russian_rocket_wht_n.png",
+      "sourceSha256": "349157e60229c06f64898042efa1b03d97d795b2a43d1d7911d6ef4b5118ed97",
+      "outputSha256": "b42df3d7ebb815172bb6c0fe64ca71ca88ef80f9da49406a1776c00a27363c9a",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_clothcable_broken_n.png": {
+      "source": "textures/zombie_clothcable_broken_n.png",
+      "sourceSha256": "186927e54b9cd6b2ce3f3c83988311965fc58a9ab95824bad8f290020075e971",
+      "outputSha256": "7bfd127f348840982cbedeca0ff72b55954c3c05d59909809892e096815e615a",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "static_peleliu_shelves_ammo_n.png": {
+      "source": "textures/static_peleliu_shelves_ammo_n.png",
+      "sourceSha256": "e709324f436841514be467545a83eb820a4e14ce9b6d71a5106dc8d26f55eff7",
+      "outputSha256": "cb5770bf0f11072cb6e40da593fac7282915e8b961d532dd90571868639f884b",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "static_berlin_victorian_couch_n.png": {
+      "source": "textures/static_berlin_victorian_couch_n.png",
+      "sourceSha256": "1e73b627eb806d3db2ac15f374b2e227c115cbe747c6b02c7205f9a3c032b846",
+      "outputSha256": "cf8c012b4cc43b7843d71bb7bfe426d1f4bf70590871544e5e8767264291c12e",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "lights_tinhatlamp_n.png": {
+      "source": "textures/lights_tinhatlamp_n.png",
+      "sourceSha256": "701bb57f771829d9bbc59ff47a254a9105cb8db958a75e1562237756bee45e34",
+      "outputSha256": "9ea5f68779fc350fd20dd80b698993366dd36258d577376abca474769049d965",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_cabinet_metal_n.png": {
+      "source": "textures/p_rus_cabinet_metal_n.png",
+      "sourceSha256": "5a0c338411195d9fbf0f893e73a7ba68b3c208896191c85e11d4b2827d214039",
+      "outputSha256": "f3fb2b1aff0189cec993e4f748dec6efa0d6cc6b504a886c035182d8c7eae64c",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_cabinet_metal_large_n.png": {
+      "source": "textures/p_rus_cabinet_metal_large_n.png",
+      "sourceSha256": "bbf2ac8b626908c386d7f8179ac61fe931c10acec5ee999ada95b1759ba0bf4d",
+      "outputSha256": "e1e303f9eb173932a057d0ccbc19bdf111842c9599c398abfa2f3e07541d007b",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "mtl_p_int_light_overhead_n.png": {
+      "source": "textures/mtl_p_int_light_overhead_n.png",
+      "sourceSha256": "53dc26333d7b788bbad1f9d3d395d0abacde6e24cdee6b680c7882398cd11ef7",
+      "outputSha256": "f826ed9a51f6f962150787292371d7093fb3d5040baf0eab9da897f1cce8a82c",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "xpec_hanging_clothes_n.png": {
+      "source": "textures/xpec_hanging_clothes_n.png",
+      "sourceSha256": "8be00bb4737385605ddd6460b1cbcfa0ea35f9ae9bc018418a052a1413a2c0a9",
+      "outputSha256": "1eeea4fb0c577c0c58e2dce07ac7536b4ce816ccf86e987570283dd9a091e1db",
+      "sourceSize": [
+        512,
+        128
+      ],
+      "size": [
+        256,
+        64
+      ]
+    },
+    "p_rus_industrial_cart_n.png": {
+      "source": "textures/p_rus_industrial_cart_n.png",
+      "sourceSha256": "22be4325a0aae0d547e92fd772b220b4d560facd18976ab310d2ec8a38c821c9",
+      "outputSha256": "1564ff7ee82e823d7f2174fb3373fa6e666f1b29fd1694dc093d27dfb8237291",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_jun_surgical_tools_n.png": {
+      "source": "textures/p_jun_surgical_tools_n.png",
+      "sourceSha256": "043892f6ab590e0c50342aab91027f9d8f03fdc3207dd608220d413bc974ba8f",
+      "outputSha256": "70dbdc4d3eddf3a376747247db07c2a544d0cbd9ba3c84e03203deaf20485df7",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_int_surgical_tools_n.png": {
+      "source": "textures/p_int_surgical_tools_n.png",
+      "sourceSha256": "e61fc4bf658a7a80ccc7a64d0a7b1a35f9c4d5f0a794e48c8e3a2551acd49fe8",
+      "outputSha256": "4ec80b315e3c933bd49ce4b81d7fa40e1e8641c59b896dce4df8f234a518c7b6",
+      "sourceSize": [
+        256,
+        128
+      ],
+      "size": [
+        256,
+        128
+      ]
+    },
+    "berlin_books_n.png": {
+      "source": "textures/berlin_books_n.png",
+      "sourceSha256": "97453eb82e5cf3d39b13e21a9481f2ef3c9c6e2612ed04d38f9afe7a63b7987a",
+      "outputSha256": "b77a4421b82a55d75b4f7904881589f1d1163537c0febcbf56403eae56d0e4f4",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_bookshelf_wide_d_n.png": {
+      "source": "textures/p_glo_bookshelf_wide_d_n.png",
+      "sourceSha256": "d73ca3c979a150b44065407ae1444b76bca1a9f29662693cde5ef60db649c127",
+      "outputSha256": "92cd7f48f3adb56bcf3bef67de2cc43761cc446e85c1f8a78670e3100a812a63",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "electric_box1_n.png": {
+      "source": "textures/electric_box1_n.png",
+      "sourceSha256": "6ddebfd00e342c3361d81bb9372b7920a5d5b582e404fd601825088715e9e634",
+      "outputSha256": "9d6426b451775985d083b0b77d7f8f49689ecdabde29e030023ece0431ee5e2d",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_pipes_n.png": {
+      "source": "textures/p_glo_pipes_n.png",
+      "sourceSha256": "f1e94a93fee3555174702f208b098a0eaf47bc33e94f19a0269d4d3364fe0582",
+      "outputSha256": "a55b3f77658fcabd7e50e7059a84d6ca8376eb576c46daa4c930b52209fe60e1",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_lab_equip_stand_n.png": {
+      "source": "textures/p_rus_lab_equip_stand_n.png",
+      "sourceSha256": "918504f606be82bb03914332bc68cfad17a350c0d00dcc414c55a321a02b4dca",
+      "outputSha256": "6433be6c8eb5d895182e10c9e7a2769cccf7a226d3e5546fd518a754f15b5c0c",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_lab_equip1_pi_n.png": {
+      "source": "textures/p_rus_lab_equip1_pi_n.png",
+      "sourceSha256": "22785faf9b8b68b05f5cc6570dc9ce6ff85ffedc7eec8c3d1ca46de164989cbe",
+      "outputSha256": "e92c313923162185d833109e6585b72953a1546b8fe7c0445cda80d8995db9fc",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_lab_equip_testtubetray_n.png": {
+      "source": "textures/p_rus_lab_equip_testtubetray_n.png",
+      "sourceSha256": "934ef7a860c53dc0b383d6da24f9411e91a3988adbb15f7a695e04a2ff67639a",
+      "outputSha256": "09706231fe444f68d0a68a8d2bc0ea42c53c8f2d8c6f166dc18e5def96f7953b",
+      "sourceSize": [
+        64,
+        64
+      ],
+      "size": [
+        64,
+        64
+      ]
+    },
+    "p_rus_towel_stack_lrg_n.png": {
+      "source": "textures/p_rus_towel_stack_lrg_n.png",
+      "sourceSha256": "de22682861e924eeda8dd5a8140bcff019604118886db00185347128feeb4ac8",
+      "outputSha256": "5f5917c3037ebfb1bff809088533b7048a17f9c646320b65e18c0df1abf36392",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "lights_hang_lamp_off_n.png": {
+      "source": "textures/lights_hang_lamp_off_n.png",
+      "sourceSha256": "9c6b7876025d6360b0ab59b929de7342aa5254c35bae6943412bec5aa7c395c7",
+      "outputSha256": "63dd19c3fa5a9c0cd4a974fc0fb9cb465d984bd24f70d147a4ae81152f30ea39",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_wood_chair_1_n.png": {
+      "source": "textures/p_glo_wood_chair_1_n.png",
+      "sourceSha256": "c2b8343f42db24b7963ef4e6516c37aa43d10212e89c862da3c459b704316fdf",
+      "outputSha256": "79d9586f81aa5d361886f220a5f8ab13739b45779432c542fab1b0ba20f281ac",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_teddybear_n.png": {
+      "source": "textures/zombie_teddybear_n.png",
+      "sourceSha256": "0f7412ea603b8aebfd1a4d893f1298c4f88ae5bde06147bf85a376105e469f44",
+      "outputSha256": "72ac62942ff60c62685987b58d13de0da208bad834a654b2de1cc64fcb047570",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_jun_cook_pot_n.png": {
+      "source": "textures/p_jun_cook_pot_n.png",
+      "sourceSha256": "4f583d57388aa7998f420c961906a24ad2da01e7ebbc9541f06f397c44423590",
+      "outputSha256": "ce9b37a0342e9fecb27803662e790a40bd26b0a1b6f9727d9113f82758d02f5b",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_bookcase_fncy_n.png": {
+      "source": "textures/p_rus_bookcase_fncy_n.png",
+      "sourceSha256": "f59059b8179b5c98f1cde6fe5e6958a589f0387815339346a2aff393c31fe6ef",
+      "outputSha256": "2f75edd951df18b502643bbc0e3394193edeea582fdd10fa9fc2146c49206092",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_bed_3_n.png": {
+      "source": "textures/p_glo_bed_3_n.png",
+      "sourceSha256": "83b04d4f2229b50344e4f2a3998860efb71561cba39c3fca5b50f28fe53b39ed",
+      "outputSha256": "992cf87e48deb8be31bbef1d2e09e44dcddc97fda60e36fb73ea169624d9f2eb",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_palacepot_n.png": {
+      "source": "textures/p_glo_palacepot_n.png",
+      "sourceSha256": "c0c45a2fdfedc7f3724a5e5d5e134184a514fd2bb9dca1f7974fa5a9dcc3f2b2",
+      "outputSha256": "c4fc786b7faf6636222dea59955f5bfa9a121c93b2c967a62cfe65441b0ce781",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_jun_int_bench_n.png": {
+      "source": "textures/p_jun_int_bench_n.png",
+      "sourceSha256": "adbe095866f68485107b2fee19dcc04920f939302de0e0eafb8436386f092207",
+      "outputSha256": "4145aaafcb8c50ae6cb8111422110b493f0c2f27fbc058fce407a26cd53c439a",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "lanternbody_n.png": {
+      "source": "textures/lanternbody_n.png",
+      "sourceSha256": "1d49901f2265fcc6dcfb14f797f0eb6889c438f883bd548065f053c1dc3a034a",
+      "outputSha256": "543305968151b9fec7c206e8968825c21af616bf6fea07e6adfa7ab0435107f3",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_us_pictureframes_painting_set01_n.png": {
+      "source": "textures/p_us_pictureframes_painting_set01_n.png",
+      "sourceSha256": "5dbc260dbeeadbf9d6975f17e93852c733c2fe7df549462209d51f170a3d29b6",
+      "outputSha256": "fccff17f16d9276c8d267ee039c70e132ecc6443215217575488cdb48bd58d35",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_theater_frame_n.png": {
+      "source": "textures/zombie_theater_frame_n.png",
+      "sourceSha256": "2da88e0c8141757103a529566a4d0e77e38cbf21c51a689a63071e30a65db78f",
+      "outputSha256": "c0d503033b3d2ec6299b50ace281b5ac46125d0b5e6a6e20b591f72b2fd12475",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_clock_table_n.png": {
+      "source": "textures/p_glo_clock_table_n.png",
+      "sourceSha256": "5e4be07c233e2308c0f743e41fa31d8dd1bc4ae9e2ddba530e5ce40eb416f0a7",
+      "outputSha256": "b89f40282b6d1d322b926970066f76ad8857ae2c66583adeed605fcdf321c6f4",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "p_glo_coffee_table_sm_n.png": {
+      "source": "textures/p_glo_coffee_table_sm_n.png",
+      "sourceSha256": "395fd9be29e2d961c005468cc8625cf3c96aa84d0de8fe62831165c8225cef47",
+      "outputSha256": "57399dd58fd933f5bcc23581b3e1c3a05c6509ccaec1fffd5018f72171519d75",
+      "sourceSize": [
+        64,
+        64
+      ],
+      "size": [
+        64,
+        64
+      ]
+    },
+    "flower_pot_large_n.png": {
+      "source": "textures/flower_pot_large_n.png",
+      "sourceSha256": "04c7787d1fe070ce2935c8188460a480d3534caf6ea417329be10d77ee269f25",
+      "outputSha256": "c3a9a1d305b136693aeb4e145ba2133a1945ea2e4219de63d1d17d5111ddcbe8",
+      "sourceSize": [
+        256,
+        64
+      ],
+      "size": [
+        256,
+        64
+      ]
+    },
+    "p_ger_folding_chair_n.png": {
+      "source": "textures/p_ger_folding_chair_n.png",
+      "sourceSha256": "cef56ddf9f2fecf9f8c83589b8667b264bc71ef306e154ba90f29f37ea6342c6",
+      "outputSha256": "6f37169ab28b538bb3cc43d8ea1d83b6d46e7775d8e88c46cb9a534ed6ad69f6",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_dresser_d_n.png": {
+      "source": "textures/p_glo_dresser_d_n.png",
+      "sourceSha256": "a6b705dea5271a659a47bbc1d553b51b4a7243ca7362271c1ea02a3bf74b3e33",
+      "outputSha256": "ad8c0fabcf54b5d6ab41a6aab64e82f45265ba6e06e806388546b1d0b9cfa041",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_stapler_n.png": {
+      "source": "textures/p_rus_stapler_n.png",
+      "sourceSha256": "3e5be9550c5d6507695eae94fdffc7cdd52d3a50fd0a0a3594c121a81fdacd7b",
+      "outputSha256": "846b9dd3932866052f0a0397da4e5fb5b1b4151aadd8b68f230275575cdb2871",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "p_pent_desk_wood_n.png": {
+      "source": "textures/p_pent_desk_wood_n.png",
+      "sourceSha256": "a60e8195dd2c9e0afaa267d21695a7c107fca455acd4b9dda2ab8ef4f78be63e",
+      "outputSha256": "08457793f38b56b5d6a5296c6ca227e3ab5facdc0c3e561f1c9a09b54f4d3126",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "p_pent_papers_n.png": {
+      "source": "textures/p_pent_papers_n.png",
+      "sourceSha256": "f9888c5984fc65bc9a960d5ccd0d1d6832654bde858f43fb134f88b8749830e5",
+      "outputSha256": "be1e05a74b489f313b49890fcca42c2fd9924b0f191f906f04ac8bb10dbda420",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_pent_cords_n.png": {
+      "source": "textures/p_pent_cords_n.png",
+      "sourceSha256": "6c72931870be0910d1073880e8cdc0d538e6b5c0027178bbd8f02640d0a85723",
+      "outputSha256": "6d9b31e4e506ce46483c4055ad0a3c435cddb7c0570a80a8934fe8a8998c1231",
+      "sourceSize": [
+        64,
+        64
+      ],
+      "size": [
+        64,
+        64
+      ]
+    },
+    "p_pent_phone_office_n.png": {
+      "source": "textures/p_pent_phone_office_n.png",
+      "sourceSha256": "8219e58752573238dea8f23bbf9fe9f1ecae1a5c11bb11cf6febd8b4d8664b11",
+      "outputSha256": "c1f4ee28026d4a79c4a958350b548c34284442667c533ea16c7ba7c121db523c",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_pent_tv_base_n.png": {
+      "source": "textures/p_pent_tv_base_n.png",
+      "sourceSha256": "248db8425db59ba9221c0cff7b3ec51d959b13b5d05984cb2cb088bdf49d541f",
+      "outputSha256": "48a8b5b44c6f8d2665188093ccaaf46e1637ca88850371b362efe43bca9d04df",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_pent_printer_n.png": {
+      "source": "textures/p_pent_printer_n.png",
+      "sourceSha256": "71b7765559c626a6b2eabea2faa903b0f6dd8cf5c6955c47eed56a7608ce0ac7",
+      "outputSha256": "1dfcaed840b0b9ebb71c63b26acb3d2d996c46d4bfbbcd163636db6b6b1620ce",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_pent_av_cart_n.png": {
+      "source": "textures/p_pent_av_cart_n.png",
+      "sourceSha256": "b2fd5d30214886d53336c6e25db8f8e4ffc51e700a43e16077620ea8c25bca9f",
+      "outputSha256": "8dc2f66780c60bacb8b3502df448369ab1f54f703a81b511534a05ab00832c01",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_pent_av_cart_cables_n.png": {
+      "source": "textures/p_pent_av_cart_cables_n.png",
+      "sourceSha256": "fe066c38f8872450f8bf92ee8c335dba864ad79f9bb9b16958be301a8ac5b829",
+      "outputSha256": "c9cecace30a5cda1080fd74d4ae1bc72cc0ad5bd8be06aac8bd7398ff35b59cb",
+      "sourceSize": [
+        64,
+        128
+      ],
+      "size": [
+        64,
+        128
+      ]
+    },
+    "zombie_zapper_n.png": {
+      "source": "textures/zombie_zapper_n.png",
+      "sourceSha256": "0c00b2baa445a45fd8a1c40dc8f64cd8d354cfefd326839dad136c1d3b854f20",
+      "outputSha256": "c53c79c2aaf7ffa5f6303cd25d1591174b3b2d31f4a83ff0634162ac94ba4f01",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_cinder_block_n.png": {
+      "source": "textures/p_glo_cinder_block_n.png",
+      "sourceSha256": "dca586bf52016dea6beec5c2097d339e54bfd8709751e0aa1bcf77efbe22bab3",
+      "outputSha256": "95eb73af954a53910c574c3c19b802d1bfaf50b43470f9e5ff4b69a8f1f193da",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_garbage_bin_n.png": {
+      "source": "textures/p_glo_garbage_bin_n.png",
+      "sourceSha256": "a0838e983790b0c520455a884fc9fc60df592435232809f521cfff8eafe51279",
+      "outputSha256": "990f6427199a305b050218fd064c5dc6c0d94f1e3bdf3ea2d99073531a4c589c",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "static_berlin_stair_railing_n.png": {
+      "source": "textures/static_berlin_stair_railing_n.png",
+      "sourceSha256": "49415fddb51dadc2c8f78bb7b7ccacc79c6ae79712bd9a9cec6f4a0b5fd115e3",
+      "outputSha256": "f7d1c4e75de0c43f3e27584735ca370e8fdbb52523e0d5f82833ddc4c142a7af",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_theater_clubchair_n.png": {
+      "source": "textures/zombie_theater_clubchair_n.png",
+      "sourceSha256": "ecacf7992a041826e23197d3f310f18454150ea8d0a948cde609da97a68cf5d8",
+      "outputSha256": "d98ba2f7d7452e0e013fe1ef71b6afc4a1f58e9b73ca05ada26d81b676663334",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_theater_seat_n.png": {
+      "source": "textures/zombie_theater_seat_n.png",
+      "sourceSha256": "df035147769ed9addefdbcc027caa62530caa5d633d6a43dff1db4f1eb4e00bf",
+      "outputSha256": "896f4fb00e029c599f378023ef2a5e1e12369485c3f38b982eb7a76259e2ee2e",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_sandbags_lego_n.png": {
+      "source": "textures/p_glo_sandbags_lego_n.png",
+      "sourceSha256": "49d347dc5be0015de7e336a9897790553a3f32030f990464200fd05f283468f0",
+      "outputSha256": "efcd416d466a13075ce6f0974185168e4292e28465fcb3126b560ace1012af88",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_us_walltable_n.png": {
+      "source": "textures/p_us_walltable_n.png",
+      "sourceSha256": "d24e747b4e8419c702e6e42d9340b0143866ba7e235aca585dd8135290e639d4",
+      "outputSha256": "7cea07f76f7052f9fcf64cb8647566fe8f95eeef321220ab26156416139b030c",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_dest_electrical_boxes01_n.png": {
+      "source": "textures/p_dest_electrical_boxes01_n.png",
+      "sourceSha256": "7bbb6f76fa7bbd6219ac1990f626f1a9fe293c44188e2ae57e52ac6c1e065cc4",
+      "outputSha256": "84091cc405a0148681145d4435769f9bf2384599a0a1d93950fa07f1143a1480",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_theater_vrope_n.png": {
+      "source": "textures/zombie_theater_vrope_n.png",
+      "sourceSha256": "2ebaed2e762ec8457a70c5f3b15956d7a26e8073c16af48dc01694d6cb6f5cab",
+      "outputSha256": "092f1c9f80051dc38f5294d98b4411bd1ba40abfaa927b3df5ea14611110f8cc",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "zombie_theater_chandelier_off_n.png": {
+      "source": "textures/zombie_theater_chandelier_off_n.png",
+      "sourceSha256": "e5146e0f827bd3566bf3642a4c51f62ea37f714580377cdb9525f8f5d950b6df",
+      "outputSha256": "1ea8c69cf94ad7c96668f585d7626bb96d63133306b4b4de8d7f251fdb408049",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "static_berlin_dining_table_oval_n.png": {
+      "source": "textures/static_berlin_dining_table_oval_n.png",
+      "sourceSha256": "22399ca8196429f1c04508b84203af2e6e656e6391c15cdf4a919e1fe06a2258",
+      "outputSha256": "59b4bb4623ca31e839b97bc9fe96a0bc2dc4a6356e955a50109db0c04955ad3e",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_meteor_n.png": {
+      "source": "textures/zombie_meteor_n.png",
+      "sourceSha256": "d1bd8b0dfe9a9dfb66f657adb86090294a20f6c3ebc9cc5e1a95ce9d99eea13d",
+      "outputSha256": "f230369a0ad1587f158c0a7083c79475fcf395c752a62aca5632ab5b6d53f34a",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_perkbottle_jugg_out_n.png": {
+      "source": "textures/zombie_perkbottle_jugg_out_n.png",
+      "sourceSha256": "3693f751a15446e217a6d9d35eafc4f6ee80245dee29d623b3522f98550d7fb5",
+      "outputSha256": "adc0a2d5b0c63360b25d06d81eebe5aa526ae9050adc45ea37ab33b3b57fecb2",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_theater_projector_n.png": {
+      "source": "textures/zombie_theater_projector_n.png",
+      "sourceSha256": "5c12304a72d8fbcd70a91cdb887bbbecd798536a9b61994eafa178870d830b4c",
+      "outputSha256": "3454218cc7c1a9dacff09be7cc37d893c579838b5fa11036049c56b3af836259",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_ger_desk_old_n.png": {
+      "source": "textures/p_ger_desk_old_n.png",
+      "sourceSha256": "0903b0e6223c31e03eaac1bc5d27128550ccbc02fa69dfb069f2be222cea62fb",
+      "outputSha256": "3b1f5e4b3ffa501d981a0b0568f122a870b6814873bac5a8e4f59943c6b31d5f",
+      "sourceSize": [
+        256,
+        128
+      ],
+      "size": [
+        256,
+        128
+      ]
+    },
+    "zombie_tank_closed_n.png": {
+      "source": "textures/zombie_tank_closed_n.png",
+      "sourceSha256": "ec40e62e8243970db3419f88c666e66d72758440f5e3f02feb6a3efc4d4249a0",
+      "outputSha256": "6bab8454ebd6c46c5f45f9c7c8ebf696759a6b2d770fe1b18f3b93f0e48b308f",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_theater_dresstable_n.png": {
+      "source": "textures/zombie_theater_dresstable_n.png",
+      "sourceSha256": "9d920b878b22d63b2e66658f7b0ee3c4f83c2e6ae215201ecfcd1203086b3bca",
+      "outputSha256": "72c4978f66b76753b1f1ee38d941ac945c6a492e571157b54a5058bebe96608d",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_us_oval_diningtable_n.png": {
+      "source": "textures/p_us_oval_diningtable_n.png",
+      "sourceSha256": "d51bbf4fbe4c08896b47baddcfc509e668be3ccd5ec51e2dff5d95508d46024c",
+      "outputSha256": "b4b54d805e349126c7a004041a18e8343520100244242e3bb2a7437e4570902f",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_wood_chair_2_n.png": {
+      "source": "textures/p_glo_wood_chair_2_n.png",
+      "sourceSha256": "5b7a6f4d0ab8d46a478dd035b621ca7710ec917a4b9d44aee21e83b7f706fb06",
+      "outputSha256": "3512a89a0bfe9b7800fc739581a161ee679ee414599a3981f6552964e57a5275",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_cub_barstool_n.png": {
+      "source": "textures/p_cub_barstool_n.png",
+      "sourceSha256": "b2e3cba582ff47b1f5e02967815a16dd342a4cadab62bb7c4d516343564f32ee",
+      "outputSha256": "87d6b71491adbe0f84943a4fc5c2de80f714debdc60c92710fc7573699764013",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "static_berlin_mannequin_n.png": {
+      "source": "textures/static_berlin_mannequin_n.png",
+      "sourceSha256": "6ef75b6fe803e9d2e62ae1eb35465b451f41481f91d2f1be5b4523f7fd5a117a",
+      "outputSha256": "6ee8b1f40ed37461e56e3bc27e58665df4872955ff9b87cfdb5954f0c4194f22",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_theater_costumes_n.png": {
+      "source": "textures/zombie_theater_costumes_n.png",
+      "sourceSha256": "0317e57c2c8414268a485a819368509cb06b98be042a097ac19511c99ddedd0c",
+      "outputSha256": "3e823d587783931b2c2cbc859a331b71cce6b481c1a9e64ef8de84a11dd1415b",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "static_berlin_engine_control_a_n.png": {
+      "source": "textures/static_berlin_engine_control_a_n.png",
+      "sourceSha256": "12ae2d88b4d8e78fe18f4d4f1e084352694c011b56c954f0bac270c3d86b4c83",
+      "outputSha256": "2ff256b292b58cb1332623c62d808b7d48f8b2edd285cc619b7a14efe7ba31b4",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "berlin_wall_metal_silver_n.png": {
+      "source": "textures/berlin_wall_metal_silver_n.png",
+      "sourceSha256": "a7815e8ee794d35f998b41dbe6b82fb7eca1e06fd6d144010336c3a7b7b9cf4e",
+      "outputSha256": "20e7ed716f6e021237d9c49cdd562a1c83c6a047658cc3891943187b4be0a8ba",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "berlin_wall_metal_panels_n.png": {
+      "source": "textures/berlin_wall_metal_panels_n.png",
+      "sourceSha256": "6743597b78bff66abf9a989127379cb9db731d267a194961cfa48ec0f5cd86ec",
+      "outputSha256": "5fe656bf5231120753bbb0ce5fd9d066e4233e8dc6c9e6361e41bd0f859a378a",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "ch_stage_light01_n.png": {
+      "source": "textures/ch_stage_light01_n.png",
+      "sourceSha256": "ff8cd5ddf19a6a17200b288808d216498cd5b0c1ce7bdf699a0244a76cd22b82",
+      "outputSha256": "5eb55fe6b6cae2eb0c76e8151a51a2e480db33ad168214d21f6008250834c2da",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "props_global_trash_4x4_n.png": {
+      "source": "textures/props_global_trash_4x4_n.png",
+      "sourceSha256": "200ac45453be98bd25adb05d887661bbc5ed3a0086fd0186f613356103616d6b",
+      "outputSha256": "156f3799f769d8cc65f8d7e119233a323a1ca49a7808a54374b53730419f4152",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "props_global_trash_2x2_n.png": {
+      "source": "textures/props_global_trash_2x2_n.png",
+      "sourceSha256": "28a7ea986b9a6b8452fd430d2808de4b38d1635aaa6fc53cf85b8e73d32efa0a",
+      "outputSha256": "f973199b820baeeef57b23748fd1c2cc387ed03758e99f1bd50dbf6141479fa5",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "dumpster_n.png": {
+      "source": "textures/dumpster_n.png",
+      "sourceSha256": "a070aaff4c2e92e8a326ee0c75a8008361bcddd4be5292080b5f249fe5f4c9a7",
+      "outputSha256": "98abadaad4df17b9eb76d10166263d81089a68ada5b5197985d98059a6fcfe16",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "dumpster_lid_n.png": {
+      "source": "textures/dumpster_lid_n.png",
+      "sourceSha256": "0ecb11c5b7db26ed672a44e8723a3256bdd1df1fddda665d30b11143d7f6bc0c",
+      "outputSha256": "7d0d37942593ca65ca7fb90d9c315742e77e87e4040abf14100a12f2ae3723de",
+      "sourceSize": [
+        128,
+        256
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "p_rus_generator_big_n.png": {
+      "source": "textures/p_rus_generator_big_n.png",
+      "sourceSha256": "87d252dc5ed9f8141f3cece0d9a3ef3afca8dcac95ef6c8af09638e6fba78168",
+      "outputSha256": "c2660d2a38d06171f71194a70b316a428ed68cdc3580ffc947723f940cd03c22",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_storage_cabinet_n.png": {
+      "source": "textures/p_rus_storage_cabinet_n.png",
+      "sourceSha256": "486f9608eccd25ab1c8db359a80a9a473003595f5562859e9e610edb56808af4",
+      "outputSha256": "44dbd015229ed810595d8ca75f62dd6b73edc958581da6c18afa3ecc946446f2",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_rubble_small_rocks_n.png": {
+      "source": "textures/p_glo_rubble_small_rocks_n.png",
+      "sourceSha256": "33fff8c88e2f2ae7fd6a8491acb0cee1056769695a6680365a5b06ff43b9f16d",
+      "outputSha256": "7fbb8af3c409edd1490c01c663d8892ca7158a947a5efdf5629dd1f8cb501fa0",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "lights_hang_brass_n.png": {
+      "source": "textures/lights_hang_brass_n.png",
+      "sourceSha256": "f2c47d63f8b28fbff69e38437f9ecff6566b718816d6326a5a2eeb90c792d618",
+      "outputSha256": "83ea42d2fe82ca8a87305e3200cfb368ffbff97c216ea6c286513d98d77e67fd",
+      "sourceSize": [
+        128,
+        256
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "lights_sconce_shade_off_n.png": {
+      "source": "textures/lights_sconce_shade_off_n.png",
+      "sourceSha256": "c64aa7865ddf587aeaee77b858dbac3b4278b9fa2d12cbcdf08325ad2ba2d5e4",
+      "outputSha256": "36d879122424404027b9ec7d65eea2b55a96b206af1a7e33e62560fe79bb4cf0",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "p_pent_bookshelf_n.png": {
+      "source": "textures/p_pent_bookshelf_n.png",
+      "sourceSha256": "030aa66a98156917027edd6eff70d915413b6b7f388fa89b73d2ef5401d8090e",
+      "outputSha256": "3bb5ed361e8229c527990d8ab9cc6b56430a0600d16f4b89f6a1848cfd37421b",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_dresser1_n.png": {
+      "source": "textures/p_glo_dresser1_n.png",
+      "sourceSha256": "3967f6ea1577a96a71afd4f07d43b2e74c2dd36517f52bed9aa12f2ea6777645",
+      "outputSha256": "fe99403b84bd6b3f5b448682b2f72c58831250e409bcdce43e5c3a4065038b07",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_jun_chum_bucket_n.png": {
+      "source": "textures/p_jun_chum_bucket_n.png",
+      "sourceSha256": "102755591951ec4ced4f2779057f7272e5511912c1f69c80eb97d7627b7e4d97",
+      "outputSha256": "c2ba1d03171789ccd964a79b4aa465942c3feaef0f5fef330d8faadf00ecce12",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "anim_jun_clthsline_shirt_n.png": {
+      "source": "textures/anim_jun_clthsline_shirt_n.png",
+      "sourceSha256": "ecae328cb7fa2876be76f5efe86d965ecdb204c7e789cdd38ce8ac1919364a0a",
+      "outputSha256": "92d0310a1c9386eed187d820bbadd5708bcd8a4c054ea269016e7c8af7f297c2",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "cub_pottedplant_01_n.png": {
+      "source": "textures/cub_pottedplant_01_n.png",
+      "sourceSha256": "98cd84a109a744c9de703e3bf58584167ea3c0220077487e5a21aa01775965f7",
+      "outputSha256": "b7877e7d222b1f1126b678ac83dbdd75f9a957e0add5a7e8227d4252ad8f0992",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "flower_pot_dirt_n.png": {
+      "source": "textures/flower_pot_dirt_n.png",
+      "sourceSha256": "6a963629bd79d283adb73235fcba99c1c9c03a50e0398584687575d2683ce3c6",
+      "outputSha256": "51299745382d1d3ae6825656b353b9a75a24e4110c716a4a577e9c0438716fd9",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "p_rus_chair_dining_fancy_n.png": {
+      "source": "textures/p_rus_chair_dining_fancy_n.png",
+      "sourceSha256": "623bba6b740ef6cf2bb5be6add98c1b125cfa6ca019781f9a899c836c4cc2bbb",
+      "outputSha256": "a3c5b676facae48b8e534c22141058193df29533aad589d44f835f49a8ebb7e1",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_jun_dinnerware_n.png": {
+      "source": "textures/p_jun_dinnerware_n.png",
+      "sourceSha256": "f5dbf113a16cd2efdbbda4ffffe71b7f35e89c9d8154e00e128d7e73cc799107",
+      "outputSha256": "c97c7852f09b4c76f7eff025c5c4237fda21c592ce7b6ae827218ae5f77099f7",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "p_pent_curtains_n.png": {
+      "source": "textures/p_pent_curtains_n.png",
+      "sourceSha256": "d3f55fb13cf07786afb7dfd7c8b8ce2013cdd89dd543b7c9fc3a9bfc1a4c0d5d",
+      "outputSha256": "476009c8073cc290bdfd928ee5b3e1bfd26f428d3a5298b1556f98dc2fd70916",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "mtl_p_int_monitor_a_n.png": {
+      "source": "textures/mtl_p_int_monitor_a_n.png",
+      "sourceSha256": "dedca6b58cdc5fe5d54e9149740c795a1c95828b65cd69059b6ca46e6df62a6c",
+      "outputSha256": "9b9d058cab3c68152fb39a4c221a7c46b7041163035d224b45196abcf645ecde",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "corkboard_1_n.png": {
+      "source": "textures/corkboard_1_n.png",
+      "sourceSha256": "bf937b2bacfe2568f40232ad4379815a0c5ec92bdf790e2ff620932544f7d7a8",
+      "outputSha256": "23ff89025e0dbcddafb2ce78753d6c51029dd8535960c0a4b1d8d521e625efc9",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "doorknob_n.png": {
+      "source": "textures/doorknob_n.png",
+      "sourceSha256": "4cebe5acbf4d26d430f65eb1e08804b99c3b4480cecd08a761d5ef279e9a50c9",
+      "outputSha256": "61d7d8e18a1d8f16f30f1ba7dc0598d8ec8ffb9a1764b60e062aa0fd1d9d83f9",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "pent_art_door_wood04_n.png": {
+      "source": "textures/pent_art_door_wood04_n.png",
+      "sourceSha256": "c0702151c27d236ac168149eb71eb6622e03ac232a8bc85e265549850236af5f",
+      "outputSha256": "9289e1ae3966f645cd21aa607035bf0b960dd8460c6a853435f9e893fe9c0656",
+      "sourceSize": [
+        256,
+        512
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "data_recorder01_n.png": {
+      "source": "textures/data_recorder01_n.png",
+      "sourceSha256": "d0582fdf432829d7ddff17405314a04d02500b3d7384edf8796e06603217e811",
+      "outputSha256": "0a89f64c08f415b0c281df865b86dbfb881d0da5dbdbcce1cd16718e7443c29f",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_ger_radio_n.png": {
+      "source": "textures/p_ger_radio_n.png",
+      "sourceSha256": "12abee69463e8b156c15b0336c21154c379c8963e243f33ee0e86dd1baa7189d",
+      "outputSha256": "729c21aabb4b5a9578da06f31a557a2f304799835a1d81a779a4c0e418e6e78a",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "t5_veh_civ_microbus_inside_n.png": {
+      "source": "textures/t5_veh_civ_microbus_inside_n.png",
+      "sourceSha256": "0cb5ab72e5444349dcd9efdf87046573aae07fff42b1303e83aa40bfd75dcc92",
+      "outputSha256": "b4684b514d7bc756931645d7497aa700a5bae1ca02ae7484f840c07a7f51640e",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "t5_veh_civ_microbus_wheel_n.png": {
+      "source": "textures/t5_veh_civ_microbus_wheel_n.png",
+      "sourceSha256": "4e4af3812ca867919a6a8c02e71c34a5027d752eb2b4c60790bbf22a9ff38220",
+      "outputSha256": "5ccc2fb3505c7fdd239b189ee90da0ca7cb84228e30198d11afa9f138b164a6d",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "mtl_veh_civ_vw_bus_body_n.png": {
+      "source": "textures/mtl_veh_civ_vw_bus_body_n.png",
+      "sourceSha256": "6ef603a5922f01e60f8b6fe5e0ebd4ac5b01efef683c09201b056c557d049c90",
+      "outputSha256": "2546a3606cc12e8d9770238b9f5df65696bf2c98f6ddecffcce09b8efb38f68c",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_ger_bulletin_board_n.png": {
+      "source": "textures/p_ger_bulletin_board_n.png",
+      "sourceSha256": "05ec06f69033b578fed3af493f90aa9b6b15ade4aa068aad096da998174a27eb",
+      "outputSha256": "b23124d5309b1ea71eabbe9caacdce306bd6456e5eed6641e16ea895f6517caa",
+      "sourceSize": [
+        256,
+        128
+      ],
+      "size": [
+        256,
+        128
+      ]
+    },
+    "p_jun_clock_lrg_n.png": {
+      "source": "textures/p_jun_clock_lrg_n.png",
+      "sourceSha256": "555950ce44fa6be532fea9c0f250752e4314bec3357f18cabad6156c1047d745",
+      "outputSha256": "913de6c1f633a85907489a083d75e26660276ac4437c279a48774f0a67f33b6d",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_metal_pipe_green_n.png": {
+      "source": "textures/zombie_metal_pipe_green_n.png",
+      "sourceSha256": "45b76c2b6fc407214feef67599af619a33d932f4198710f95388a94a002d7dad",
+      "outputSha256": "2366b6cc425eca17e7fc12f50e3a842d40beded15a7363f24b72854918b6b06b",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_theater_marquee_n.png": {
+      "source": "textures/zombie_theater_marquee_n.png",
+      "sourceSha256": "da715a6e5b7395efe65fa5962bd69282a675a45c5c5aa72dc2cf05da87ca9fe4",
+      "outputSha256": "c0a2d62e6498615d74c80a22361c013b90299000fc83eb9d90f6a8d2a9f85ebc",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_hose_fitting_end_n.png": {
+      "source": "textures/p_rus_hose_fitting_end_n.png",
+      "sourceSha256": "4d57e689319daa340b1e04833941f127cce97cb00265525c388798023f82f267",
+      "outputSha256": "d68e3291dc07fbc5d2aa6c1e05ac9ecd224d95dba232fafbc571c17b56d22f8a",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "monkey_bomb_n.png": {
+      "source": "textures/monkey_bomb_n.png",
+      "sourceSha256": "59157893f7bfa72bd5ec7afc6d2a77743e5e7bcff0a3d01dddd3f37af87c7646",
+      "outputSha256": "0f6e3fbcc006a1abde02240848bb41348d1e9a3fcd188804d1e16dbc77edee0d",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "usa_monkey_bomb_explosive_n.png": {
+      "source": "textures/usa_monkey_bomb_explosive_n.png",
+      "sourceSha256": "caed342aa02d9c0b765c35ec7acf45916e704a460885648870d69cd2552e6387",
+      "outputSha256": "6b472eed06f82068b629d385f2ceebc725ea5c5a4d83176819aefd23f9b421db",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_telporter_n.png": {
+      "source": "textures/zombie_telporter_n.png",
+      "sourceSha256": "0aea5184fe3717d93d11ee31d4aae97e68af4f3edfa275b048c74e7569f85848",
+      "outputSha256": "f2e453d9b95d113088d86cb5916159eebf2e694b7cc0b30c65ac3348be59f94d",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "vacuum_tube_n.png": {
+      "source": "textures/vacuum_tube_n.png",
+      "sourceSha256": "b5971c2abd84a8c09b29bd88397b697173034eaeec608ddb76754c310b6daae5",
+      "outputSha256": "44fa8500f4227d795bebf118b1e5c71cc3c5572097abd3881161b198233a725a",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_teleporter_glow_n.png": {
+      "source": "textures/zombie_teleporter_glow_n.png",
+      "sourceSha256": "33dca3475c3cc03f617747a279254e6f9e173891bac2363f14aec04e8a166877",
+      "outputSha256": "9b6b91d38e8329e5405e425ceacb37b0cd87fe3bb8d618f9ea87290b359429e8",
+      "sourceSize": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ]
+    },
+    "zombie_power_lever_n.png": {
+      "source": "textures/zombie_power_lever_n.png",
+      "sourceSha256": "15d3ff1d65f1f3d46f1264f1de14cd28774c0f2a4f23b4e89da05a50457a8a69",
+      "outputSha256": "71d75261b5c82a6888f34c2c1f106b2a442711b9ed12a0ed220047a2d46887fc",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "difference_engine_n.png": {
+      "source": "textures/difference_engine_n.png",
+      "sourceSha256": "e57a27ad802526e0362834a1e519bef64f7d7cd9b0ac71e6c0878dbf8fd5bf67",
+      "outputSha256": "116ce5bdbb0086f60276938ee0209e72787bb4d250d7e792c54a885264b8747e",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "particle_board_02_n.png": {
+      "source": "textures/particle_board_02_n.png",
+      "sourceSha256": "9c6988dca9a156b051e72779bdd68546bc8895000b8744d2cb982da8c5f8b3c5",
+      "outputSha256": "4105af5c1b999e8028349f7598935ba0c8ee3630693c1d08dabe0c91b5a1b823",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "j_metal_grey_n.png": {
+      "source": "textures/j_metal_grey_n.png",
+      "sourceSha256": "f7bf2d6868332f2ba493a0427258f777f9fd1a03314b77ae2fbb7eb4d27ed335",
+      "outputSha256": "fcece054b1766ebdaf1a87fe34147205653ca0f7de1387ac5b238d00456b541f",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_pent_con_table_n.png": {
+      "source": "textures/p_pent_con_table_n.png",
+      "sourceSha256": "a7f39a29931b4b9496ee9cf08d8b625b528c85d63304f294c151f0117f9e9c2b",
+      "outputSha256": "565cb1319db0bf7aceb3dba6fa70ef364be6beb9ac098f28516a9caa2961f1a8",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "zombie_ground_debris_n.png": {
+      "source": "textures/zombie_ground_debris_n.png",
+      "sourceSha256": "4f8ba823325c77bf74e4609b9cd47ad4c93b1959b7f997733f07f5cc24e522dd",
+      "outputSha256": "a0f0b881d0f4ccf482cd459ad16f57a4766256ecab8f422662f9e015b855dc12",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_tools_wheelbarrow_n.png": {
+      "source": "textures/p_glo_tools_wheelbarrow_n.png",
+      "sourceSha256": "22e1aed63ee58f8e5ec3b1a6a3e5e21269b14b85b5ea5063227fbc4ac208ecce",
+      "outputSha256": "0d7c65dba0b8941e2a01f62e34fca8b77db6ca2a6c9e33dd2f422ab25113c6d6",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "ch_floor_broken02_n.png": {
+      "source": "textures/ch_floor_broken02_n.png",
+      "sourceSha256": "bd43d633287d69bdb0cedb01667b30e289d1abc1433865cb069ecd0d80eefbb1",
+      "outputSha256": "4e066b47ee24d0c75c4f5751ca6de9d421b7aa444bfca6276e3dc71b59682d76",
+      "sourceSize": [
+        1024,
+        64
+      ],
+      "size": [
+        256,
+        16
+      ]
+    },
+    "me_roof_n.png": {
+      "source": "textures/me_roof_n.png",
+      "sourceSha256": "5153861feffef652baf2c6150cf6afbe91d4c9793beb40c755a35eefb247e010",
+      "outputSha256": "c4b84c796ff83f83a49347ca0aaf8ce617f8d85d3f3a627acaf11cd823541311",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_pipes_modular_n.png": {
+      "source": "textures/p_rus_pipes_modular_n.png",
+      "sourceSha256": "da4149f84d977a988d449473e09cab99ee2e586bd3b5321e3cc088c7d032c89f",
+      "outputSha256": "269223eadb0a57654cd493a50325949e2bef113133ba244187349d3fb9adb315",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_glo_curtain_white_n.png": {
+      "source": "textures/p_glo_curtain_white_n.png",
+      "sourceSha256": "52ccceb67aee17d99267512be46bb2dd58a4feba86f25f0d4acd7de8f060f7a8",
+      "outputSha256": "8555b9a04e68ad570a86048acfc9ed6b4e9079a96bf0a199b129c04396f8c557",
+      "sourceSize": [
+        128,
+        256
+      ],
+      "size": [
+        128,
+        256
+      ]
+    },
+    "electronic_cabinet_n.png": {
+      "source": "textures/electronic_cabinet_n.png",
+      "sourceSha256": "69bdb36a449b71b1215f179bfbe5c1c5916883f1cc9d3079dc9a8a63d70ee07c",
+      "outputSha256": "6af193eb9f6900041ee1442a7ccd4593c0928a38e6b4de01459df968d23df1ab",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_console_addon_n.png": {
+      "source": "textures/p_rus_console_addon_n.png",
+      "sourceSha256": "9c856e4c3bb129c16b31e9733ba06b0b33f46fa26214778484d2b3d6643c65b0",
+      "outputSha256": "8ff1d3d508b66e3515504079bf979ac3a0f82b444538bb7cd1bc8aa0250900f1",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_console_buttonframes_n.png": {
+      "source": "textures/p_rus_console_buttonframes_n.png",
+      "sourceSha256": "47467695958befe23abaf9652cb5fd4f02d8927a583a4638cfce9f46ba9a191f",
+      "outputSha256": "368db12e525510ce38ae045cb654d7443c7bd5bc0320ec01f902832b50687240",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_console_pannel_01_n.png": {
+      "source": "textures/p_rus_console_pannel_01_n.png",
+      "sourceSha256": "0f2f865e51f4fb831b5fbf66d4097c73cfa080228ea7c3e632be13fbbef5874f",
+      "outputSha256": "0dae66bd907e7c2789e961bd4cae17a685c3801ec97fcf6b14a47257becc9dd9",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "p_rus_console_pannel_02_n.png": {
+      "source": "textures/p_rus_console_pannel_02_n.png",
+      "sourceSha256": "3eda21bc7e56bf8554ccddf12c88ccf355b13af3a22f5faa4316b0764b1dec99",
+      "outputSha256": "72d51da4c0f1c19f3a32042c6430ba6e90e8f19655404a5e291f0876bc807423",
+      "sourceSize": [
+        512,
+        512
+      ],
+      "size": [
+        256,
+        256
+      ]
+    }
+  },
+  "unmatched": [
+    {
+      "source": "wc/eb_art_ceiling_metal01",
+      "albedo": "textures/~-geb_art_ceiling_metal01_c.png"
+    },
+    {
+      "source": "wc/eb_art_ceiling_plaster01",
+      "albedo": "textures/~-geb_art_ceiling_plaster01_c.png"
+    },
+    {
+      "source": "wc/mtl_theater_door_main",
+      "albedo": "textures/~-gtheater_door_main_c.png"
+    },
+    {
+      "source": "wc/mtl_theater_carpet_4",
+      "albedo": "textures/~-gtheater_carpet_red_4_d.png"
+    },
+    {
+      "source": "wc/mtl_theater_gold_tile_trim",
+      "albedo": "textures/~-gtheater_gold_tile_trim_c.png"
+    },
+    {
+      "source": "wc/mtl_theater_carpet_2",
+      "albedo": "textures/~-gtheater_carpet_red_2_d.png"
+    },
+    {
+      "source": "wc/eb_art_wall_plaster_wallpaper05_dirt",
+      "albedo": "textures/~-geb_art_wall_plaster_wallpa~364216c4.png"
+    },
+    {
+      "source": "wc/global_color_black",
+      "albedo": "textures/~-gglobal_color_black.png"
+    },
+    {
+      "source": "wc/rus_gantry_generic",
+      "albedo": "textures/~-grus_gantry_generic_c.png"
+    },
+    {
+      "source": "wc/jun_art_tile_medium_white01",
+      "albedo": "textures/~-gtile_medium01_white_c.png"
+    },
+    {
+      "source": "wc/mtl_zombie_drum_rebar",
+      "albedo": "textures/~-gmp_drum_rebar_c.png"
+    },
+    {
+      "source": "wc/jungle_woodpanel_wall",
+      "albedo": "textures/~-gj_woodpanel_wall_c.png"
+    },
+    {
+      "source": "wc/mtl_theater_gold_tile_base",
+      "albedo": "textures/~-gtheater_gold_tile_base_c.png"
+    },
+    {
+      "source": "wc/mtl_theater_ceilingtile_2",
+      "albedo": "textures/~-gtheater_ceilingtile_2_d.png"
+    },
+    {
+      "source": "wc/cub_art_concrete_painted_wall05",
+      "albedo": "textures/~-gcub_art_concrete_painted_wall05_c.png"
+    },
+    {
+      "source": "wc/jun_art_ceiling_acoustic_dirty01",
+      "albedo": "textures/~-gceiling_acoustic01_dirty_c.png"
+    },
+    {
+      "source": "wc/eb_art_floor_concrete_tile02",
+      "albedo": "textures/~-geb_art_floor_concrete_tile02_c.png"
+    },
+    {
+      "source": "wc/global_rope_lbrown",
+      "albedo": "textures/~-gglobal_rope_lbrown_c.png"
+    },
+    {
+      "source": "wc/pent_art_jfk_frame_zombie01",
+      "albedo": "textures/~-gpent_art_jfk_frame_zombie01_c.png"
+    },
+    {
+      "source": "wc/pent_art_jfk_frame_zombie02",
+      "albedo": "textures/~-gpent_art_jfk_frame_zombie02_c.png"
+    },
+    {
+      "source": "wc/pent_art_jfk_frame_zombie03",
+      "albedo": "textures/~-gpent_art_jfk_frame_zombie03_c.png"
+    },
+    {
+      "source": "wc/pent_art_jfk_frame_zombie04",
+      "albedo": "textures/~-gpent_art_jfk_frame_zombie04_c.png"
+    },
+    {
+      "source": "wc/pent_art_light_fluorescent03",
+      "albedo": "textures/~-gpent_art_light_fluorescent03_c.png"
+    },
+    {
+      "source": "wc/pent_art_pictures_assrtd04",
+      "albedo": "textures/~-gpent_art_pictures_assrtd04_c.png"
+    },
+    {
+      "source": "wc/pent_art_wood_panels01",
+      "albedo": "textures/~-gpent_art_wood_panels_c.png"
+    },
+    {
+      "source": "wc/zombie_wall_shuri_int_lacquer_blc",
+      "albedo": "textures/~-gzombie_wall_shuri_int_lacquer_blc_c.png"
+    },
+    {
+      "source": "wc/pent_art_wall_wood01_glossy",
+      "albedo": "textures/~-gpent_art_wall_wood01_c.png"
+    },
+    {
+      "source": "wc/global_metal",
+      "albedo": "textures/~-gglobal_metal_c.png"
+    },
+    {
+      "source": "wc/global_metal01",
+      "albedo": "textures/~-gglobal_metal01_c.png"
+    },
+    {
+      "source": "wc/jun_art_metal_black",
+      "albedo": "textures/~-gjun_art_metal_black_c.png"
+    },
+    {
+      "source": "wc/global_color_white",
+      "albedo": "textures/~-gglobal_color_white.png"
+    },
+    {
+      "source": "wc/global_white",
+      "albedo": "textures/~-gglobal_color_white.png"
+    },
+    {
+      "source": "wc/incandescent_white",
+      "albedo": "textures/light_white.png"
+    },
+    {
+      "source": "wc/mtl_zombie_teleporter_glow2",
+      "albedo": "textures/~-gzombie_teleporter_glow2_c.png"
+    },
+    {
+      "source": "wc/mtl_zombie_teleport_mainframe_body",
+      "albedo": "textures/~-gglobal_grey_51_8x8.png"
+    },
+    {
+      "source": "wc/pent_art_floor_tile06_glossy",
+      "albedo": "textures/~-gpent_art_floor_tile06_c.png"
+    },
+    {
+      "source": "wc/pent_art_jfk_frame_zombie05",
+      "albedo": "textures/~-gpent_art_jfk_frame_zombie05_c.png"
+    },
+    {
+      "source": "wc/zombie_chainlink_fence",
+      "albedo": "textures/~-gzombie_chainlink_fence_c.png"
+    },
+    {
+      "source": "wc/mtl_theater_poster_1",
+      "albedo": "textures/~-gtheater_poster_1_c.png"
+    },
+    {
+      "source": "wc/jun_dec_wood_splinter_end01",
+      "albedo": "textures/~-gdecal_wood_splinter_end01_c.png"
+    },
+    {
+      "source": "wc/mtl_theater_paper_scrawl",
+      "albedo": "textures/~-gtheater_paper_scrawl_c.png"
+    },
+    {
+      "source": "wc/jun_dec_blast_crater01",
+      "albedo": "textures/decal_blast_crater01_c.png"
+    },
+    {
+      "source": "wc/mtl_theater_chalkmap",
+      "albedo": "textures/theater_chalkmap_c.png"
+    },
+    {
+      "source": "wc/mtl_theater_wall_scrawl",
+      "albedo": "textures/theater_wall_scrawl_1_c.png"
+    },
+    {
+      "source": "wc/wishing_chalk",
+      "albedo": "textures/wishing_chalk_c.png"
+    },
+    {
+      "source": "wc/zombie_barbedfence_3b",
+      "albedo": "textures/~-gbarbedfence_3b_c#0.png"
+    },
+    {
+      "source": "wc/rus_dec_posters_space_assrtd",
+      "albedo": "textures/~-grus_dec_posters_space_assrtd_c.png"
+    },
+    {
+      "source": "wc/caulk_shadow",
+      "albedo": "textures/caulk_shadow.png"
+    },
+    {
+      "source": "wc/rus_metal_grey",
+      "albedo": "textures/~-grus_metal_grey_c.png"
+    },
+    {
+      "source": "wc/mtl_russian_rocket_red",
+      "albedo": "textures/~-gmtl_russian_rocket_red_c.png"
+    },
+    {
+      "source": "wc/extracam_interrogation",
+      "albedo": "textures/film_scratch.png"
+    },
+    {
+      "source": "mc/mtl_fxanim_gp_wires",
+      "albedo": "textures/~-gfxanim_gp_wires_c.png"
+    },
+    {
+      "source": "mc/mtl_p_light_overhead_bulb_unlit",
+      "albedo": "textures/mtl_p_int_light_overhead_bulb_c.png"
+    },
+    {
+      "source": "mc/mtl_p_rus_filing_cabinet_modern_dkgrn",
+      "albedo": "textures/~-gp_rus_filing_cabinet_modern_dkgrn_c.png"
+    },
+    {
+      "source": "mc/mtl_lights_hang_lamp_on",
+      "albedo": "textures/~-glights_hang_lamp_on_c.png"
+    },
+    {
+      "source": "mc/mtl_p_glo_table_bunker",
+      "albedo": "textures/~-gp_glo_table_bunker_wood_c.png"
+    },
+    {
+      "source": "mc/mtl_p_us_chess",
+      "albedo": "textures/~-gp_us_chess_c.png"
+    },
+    {
+      "source": "mc/mtl_p_glo_hat_rack",
+      "albedo": "textures/~-gp_glo_hat_rack_c.png"
+    },
+    {
+      "source": "mc/mtl_p_cub_folding_chair",
+      "albedo": "textures/~-gp_cub_folding_chair_c.png"
+    },
+    {
+      "source": "mc/mtl_p_glo_dresser_drawer",
+      "albedo": "textures/~-gp_glo_dresser_drawer_c.png"
+    },
+    {
+      "source": "mc/mtl_p_glo_dresser_open_2",
+      "albedo": "textures/~-gp_glo_dresser_drawer_c.png"
+    },
+    {
+      "source": "mc/mtl_p_glo_table_bunker_wood_old",
+      "albedo": "textures/~-gp_glo_table_bunker_wood_old_c.png"
+    },
+    {
+      "source": "mc/mtl_dest_glo_paper_02",
+      "albedo": "textures/~-gglo_paper_01_c.png"
+    },
+    {
+      "source": "mc/mtl_p_pent_chair_office_simple",
+      "albedo": "textures/~-gp_pent_chair_office_simple_c.png"
+    },
+    {
+      "source": "mc/mtl_p_pent_reel_gray_plastic",
+      "albedo": "textures/~-gp_pent_reel_rack3_c.png"
+    },
+    {
+      "source": "mc/mtl_p_pent_reel_white_plastic",
+      "albedo": "textures/~-gp_pent_reel_rack2_c.png"
+    },
+    {
+      "source": "mc/mtl_p_pent_reel_metal",
+      "albedo": "textures/~-gp_pent_reel_rack1_c.png"
+    },
+    {
+      "source": "mc/mtl_p_pent_manila_folder",
+      "albedo": "textures/~-gp_pent_manila_folder_plain_c.png"
+    },
+    {
+      "source": "mc/mtl_p_eb_streetlight_east",
+      "albedo": "textures/~-gp_eb_streetlight_east_c.png"
+    },
+    {
+      "source": "mc/mtl_small_hatchback_wagon_windows",
+      "albedo": "textures/~-gsmall_hatchback_wagon_windows_col.png"
+    },
+    {
+      "source": "mc/mtl_small_hatchback_wagon_blue",
+      "albedo": "textures/~-gsmall_hatchback_wagon_blue_col.png"
+    },
+    {
+      "source": "mc/mtl_small_hatchback_wagon_rubber",
+      "albedo": "textures/~-gsmall_hatchback_wagon_white_col.png"
+    },
+    {
+      "source": "mc/mtl_small_hatchback_wagon_windows_inside",
+      "albedo": "textures/~-gsmall_hatchback_wagon_windows_col.png"
+    },
+    {
+      "source": "mc/mtl_fx_dest_atlas",
+      "albedo": "textures/~-gfx_dest_atlas_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_theater_trunk",
+      "albedo": "textures/~-gzombie_theater_trunk_c.png"
+    },
+    {
+      "source": "mc/jungle_woodpanel_wall",
+      "albedo": "textures/~-gj_woodpanel_wall_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_perk_bottle_jugg_in",
+      "albedo": "textures/~-gzombie_perkbottle_jugg_in_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_perk_bottle_revive_in",
+      "albedo": "textures/~-gzombie_perkbottle_revive_in_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_perk_bottle_revive_out",
+      "albedo": "textures/~-gzombie_perkbottle_revive_out_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_perk_bottle_dbltap_in",
+      "albedo": "textures/~-gzombie_perkbottle_dbltap_in_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_perk_bottle_dbltap_out",
+      "albedo": "textures/~-gzombie_perkbottle_dbltap_out_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_perk_bottle_sleight_in",
+      "albedo": "textures/~-gzombie_perkbottle_sleight_in_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_perk_bottle_sleight_out",
+      "albedo": "textures/~-gzombie_perkbottle_sleight_out_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_theater_reels",
+      "albedo": "textures/~-gzombie_theater_reels_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_theater_reels_alpha",
+      "albedo": "textures/~-gzombie_theater_reels_c.png"
+    },
+    {
+      "source": "mc/mtl_phys_trash_paper02",
+      "albedo": "textures/~-gtrash_paper02_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_chalkboard",
+      "albedo": "textures/~-gzombie_chalkboard_c.png"
+    },
+    {
+      "source": "mc/mtl_theater_paper_scrawl",
+      "albedo": "textures/~-gtheater_paper_scrawl_c.png"
+    },
+    {
+      "source": "mc/mtl_berlin_clothes_rack",
+      "albedo": "textures/~-gstatic_berlin_cloth_rack_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_theater_hanger",
+      "albedo": "textures/~-gzombie_theater_hanger_c.png"
+    },
+    {
+      "source": "mc/mtl_radio_japanese_bro",
+      "albedo": "textures/~-gclutter_peleliu_radio_jap_bro_c.png"
+    },
+    {
+      "source": "mc/mtl_filament",
+      "albedo": "textures/~-gfilament_c.png"
+    },
+    {
+      "source": "mc/mtl_p_glo_barbwire",
+      "albedo": "textures/~-gp_glo_barbwire_c#0.png"
+    },
+    {
+      "source": "mc/mtl_p_glo_barbwire_curvy",
+      "albedo": "textures/~-gp_glo_barbwire_curvy_c#0.png"
+    },
+    {
+      "source": "mc/mtl_p_glo_barbwire_gnarled",
+      "albedo": "textures/~-gp_glo_barbwire_gnarled_c#0.png"
+    },
+    {
+      "source": "mc/mtl_p_cub_playing_card",
+      "albedo": "textures/~-gp_cub_playing_cards_c.png"
+    },
+    {
+      "source": "mc/mtl_cod7_test_w_75_50",
+      "albedo": "textures/~-gcod7_white_c.png"
+    },
+    {
+      "source": "mc/mtl_cod7_test_50_75_50",
+      "albedo": "textures/~-gcod7_grey_50_c.png"
+    },
+    {
+      "source": "mc/mtl_cod7_test_b_25_25",
+      "albedo": "textures/~-gcod7_black_c.png"
+    },
+    {
+      "source": "mc/mtl_p_glo_dresser_open_1",
+      "albedo": "textures/~-gp_glo_dresser_drawer_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_perk_bottle_jugg",
+      "albedo": "textures/~-gzombie_perkbottle_jugg_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_perk_bottle_sleight",
+      "albedo": "textures/~-gzombie_perkbottle_sleight_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_perk_bottle_revive",
+      "albedo": "textures/~-gzombie_perkbottle_revive_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_perk_bottle_dbltap",
+      "albedo": "textures/~-gzombie_perkbottle_dbltap_c.png"
+    },
+    {
+      "source": "mc/mtl_p_rus_coffeemug",
+      "albedo": "textures/~-gp_rus_coffeemug_c.png"
+    },
+    {
+      "source": "mc/pent_art_tv_4x4_08",
+      "albedo": "textures/pent_art_tv_4x4_08.png"
+    },
+    {
+      "source": "mc/mtl_p_jun_projector",
+      "albedo": "textures/~-gp_jun_projector_c.png"
+    },
+    {
+      "source": "mc/mtl_p_jun_projector_on",
+      "albedo": "textures/p_jun_projector_c.png"
+    },
+    {
+      "source": "mc/mtl_p_pent_gov_seal_air",
+      "albedo": "textures/~-gp_pent_gov_seal_air_c.png"
+    },
+    {
+      "source": "mc/mtl_p_pent_gov_seal_frame",
+      "albedo": "textures/~-gp_pent_gov_seal_frame_c.png"
+    },
+    {
+      "source": "mc/mtl_p_jun_projector_screen",
+      "albedo": "textures/~-gp_jun_projector_screen_c.png"
+    },
+    {
+      "source": "mc/mtl_data_recorder01_unlit",
+      "albedo": "textures/data_recorder01_lit.png"
+    },
+    {
+      "source": "mc/mtl_data_recorder_light_blink_single",
+      "albedo": "textures/glowcycle_vert_grey_single_c.png"
+    },
+    {
+      "source": "mc/mtl_data_recorder_light_blink_double",
+      "albedo": "textures/glowcycle_vert_grey_double_c.png"
+    },
+    {
+      "source": "mc/mtl_data_recorder_light_blink_triple",
+      "albedo": "textures/glowcycle_vert_grey_triple_c.png"
+    },
+    {
+      "source": "mc/mtl_data_recorder01_spin",
+      "albedo": "textures/data_recorder01_spin_c.png"
+    },
+    {
+      "source": "mc/mtl_data_recorder01_spin2",
+      "albedo": "textures/data_recorder01_spin_c.png"
+    },
+    {
+      "source": "mc/mtl_p_glo_street_light02",
+      "albedo": "textures/~-gstreet_light_02_col.png"
+    },
+    {
+      "source": "mc/mtl_monkey_bomb_fur",
+      "albedo": "textures/~-gmonkey_fur_c.png"
+    },
+    {
+      "source": "mc/mtl_anim_zombie_asylum_single_doors",
+      "albedo": "textures/~-ganim_berlin_asylum_single_doors_c.png"
+    },
+    {
+      "source": "mc/jun_dec_wood_splinter_end01",
+      "albedo": "textures/~-gdecal_wood_splinter_end01_c.png"
+    },
+    {
+      "source": "mc/mtl_theater_door_main",
+      "albedo": "textures/~-gtheater_door_main_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_teleporter_2",
+      "albedo": "textures/~-gzombie_telporter_2_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_teleport_mainframe_body",
+      "albedo": "textures/~-gglobal_grey_51_8x8.png"
+    },
+    {
+      "source": "mc/mtl_zombie_teleporter_glow2",
+      "albedo": "textures/~-gzombie_teleporter_glow2_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_teleporter_glow3",
+      "albedo": "textures/~-gzombie_teleporter_glow2_c.png"
+    },
+    {
+      "source": "mc/mtl_lights_sconce_on",
+      "albedo": "textures/~-glights_sconce_shade_on_c.png"
+    },
+    {
+      "source": "mc/jun_art_metal_black",
+      "albedo": "textures/~-gjun_art_metal_black_c.png"
+    },
+    {
+      "source": "mc/jun_art_metal_white",
+      "albedo": "textures/~-gjun_art_metal_white_c.png"
+    },
+    {
+      "source": "mc/jun_art_woodgrainprint",
+      "albedo": "textures/~-gjun_art_woodgrainprint_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_generator",
+      "albedo": "textures/~-gzombie_generator_c.png"
+    },
+    {
+      "source": "mc/mtl_zombie_generator_engine",
+      "albedo": "textures/~-gzombie_generator_engine_c.png"
+    },
+    {
+      "source": "mc/mtl_p_rus_console_buttons_unlit",
+      "albedo": "textures/~-gp_rus_console_buttons_off_c.png"
+    },
+    {
+      "source": "mc/mtl_p_rus_console_buttons_lit",
+      "albedo": "textures/p_rus_console_buttons_on_c.png"
+    }
+  ],
+  "estimatedGpuBytesWithMipmaps": 60882944
+}
